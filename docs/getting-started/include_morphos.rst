@@ -99,8 +99,7 @@ Here is an example what that would look like:
           - center
           - my_module.add_axon
           - func: rotate
-            parameters:
-              - [20, 0, 20]
+            rotation: [20, 0, 20]
 
   .. code-block:: json
 
