@@ -23,6 +23,7 @@ class MorphologyParser:
 
     @abc.abstractmethod
     def parse(self, file: typing.Union["FileDependency", str]) -> Morphology:
+        """Parse the morphology"""
         pass
 
 

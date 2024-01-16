@@ -1,6 +1,14 @@
 bsb.morphologies package
 ========================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   bsb.morphologies.parsers
+
 Module contents
 ---------------
 
