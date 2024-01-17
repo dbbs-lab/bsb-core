@@ -278,6 +278,90 @@ class TestConfigList(unittest.TestCase):
             TestNormal(listattr={5: "hey", 6: "boo"})
 
 
+class TestConfigProperties(unittest.TestCase):
+    def test_prop(self):
+        @config.root
+        class Test:
+            @config.property
+            def pget(self):
+                return -1
+
+            @config.property()
+            def pget2(self):
+                return -2
+
+        t = Test()
+        self.assertEqual(-1, t.pget)
+        self.assertEqual(-2, t.pget2)
+        with self.assertRaises(AttributeError):
+            t.pget = 1
+
+    def test_setter(self):
+        @config.root
+        class Test:
+            @config.property
+            def pget(self):
+                return self._pget
+
+            @pget.setter
+            def pget(self, value):
+                self._pget = (value or 0) * 2
+
+        t = Test()
+        t.pget = 2
+        self.assertEqual(4, t.pget)
+
+    def test_type(self):
+        """
+        Test that by default there's no type conversion for properties, and that when a
+        type handler is explicitly set, the user defined values are type cast.
+        """
+
+        @config.root
+        class Test:
+            @config.property
+            def pget(self):
+                return None
+
+            @pget.setter
+            def pget(self, value):
+                if not isinstance(value, (type(None), int)):
+                    raise ValueError()
+
+            @config.property()
+            def pget2(self):
+                return None
+
+            @pget2.setter
+            def pget2(self, value):
+                if not isinstance(value, (type(None), int)):
+                    raise ValueError()
+
+            @config.property(type=str)
+            def pget3(self):
+                return None
+
+            @pget3.setter
+            def pget3(self, value):
+                if not isinstance(value, (type(None), str)):
+                    raise ValueError()
+
+            @config.property(type=int)
+            def pget4(self):
+                return None
+
+            @pget4.setter
+            def pget4(self, value):
+                if not isinstance(value, (type(None), int)):
+                    raise ValueError()
+
+        t = Test()
+        t.pget = 3
+        t.pget2 = 3
+        t.pget3 = 3
+        t.pget4 = "3"
+
+
 class TestConfigRef(unittest.TestCase):
     def test_referencing(self):
         @config.node

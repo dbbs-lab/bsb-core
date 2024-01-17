@@ -67,7 +67,7 @@ parallel = [
 test = [
     "coverage~=7.3",
     "bsb-hdf5==1.0.0b1",
-    "bsb-test==0.0.0b2",
+    "bsb-test==0.0.0b4",
     "bsb-json==0.0.0b0",
     "bsb-arbor==0.0.0b0"
 ]

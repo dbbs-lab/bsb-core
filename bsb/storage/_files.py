@@ -12,7 +12,6 @@ import typing
 import typing as _tp
 import urllib.parse as _up
 import urllib.request as _ur
-import warnings
 
 import nrrd as _nrrd
 import requests as _rq
@@ -22,9 +21,11 @@ from .. import config
 from .._util import obj_str_insert
 from ..config import types
 from ..config._attrs import cfglist
+from ..morphologies.parsers import MorphologyParser
 from ..reporting import warn
 
 if _tp.TYPE_CHECKING:
+    from ..core import Scaffold
     from ..morphologies import Morphology
     from ..storage.interfaces import FileStore
 
@@ -362,6 +363,7 @@ def _get_scheme(scheme: str) -> FileScheme:
 
 @config.node
 class FileDependencyNode:
+    scaffold: "Scaffold"
     file: "FileDependency" = config.attr(type=FileDependency)
 
     def __init__(self, value=None, **kwargs):
@@ -497,15 +499,10 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
 
     pipeline: cfglist[MorphologyOperation] = config.list(type=MorphologyOperation)
     name: str = config.attr(type=str, default=None, required=False)
+    parser: MorphologyParser = config.attr(type=MorphologyParser, default={})
     """
     Name associated to the morphology. If not provided, the program will use the name of the file 
     in which the morphology is stored. 
-    """
-    tags: dict[typing.Union[str, list[str]]] = config.attr(
-        type=types.dict(type=types.or_(types.str(), types.list(str)))
-    )
-    """
-    Dictionary mapping SWC tags to sets of morphology labels.
     """
 
     def store_content(self, content, *args, encoding=None, meta=None):
@@ -516,26 +513,29 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         stored = super().store_content(content, *args, encoding=encoding, meta=meta)
         return stored
 
-    def load_object(self) -> "Morphology":
-        from ..morphologies import Morphology
-
+    def load_object(self, parser=None, save=True) -> "Morphology":
+        if parser is None or self.__class__.parser.is_dirty(self):
+            parser = self.parser
         self.file.update()
         stored = self.get_stored_file()
         meta = stored.meta
         if meta.get("_stale", True):
             content, meta = stored.load()
-            try:
-                morpho_in = Morphology.from_buffer(content, meta=meta)
-            except Exception as _:
-                with self.file.provide_locally() as (path, encoding):
-                    morpho_in = Morphology.from_file(path, tags=self.tags, meta=meta)
-            morpho = self.pipe(morpho_in)
+            if hasattr(parser, "parse_content"):
+                morpho = parser.parse_content(
+                    content.decode(meta.get("encoding", "utf8"))
+                )
+            else:
+                morpho = parser.parse(self.file)
+            morpho.meta = meta
+            morpho = self.pipe(morpho)
             meta["hash"] = self._hash(content)
             meta["_stale"] = False
             morpho.meta = meta
-            self.scaffold.morphologies.save(
-                self.get_morphology_name(), morpho, overwrite=True
-            )
+            if save:
+                self.scaffold.morphologies.save(
+                    self.get_morphology_name(), morpho, overwrite=True
+                )
             return morpho
         else:
             return self.scaffold.morphologies.load(self.get_morphology_name())
@@ -593,3 +593,34 @@ class YamlDependencyNode(FileDependencyNode):
     def load_object(self):
         with self.file.provide_locally() as (path, encoding):
             return yaml.safe_load(open(path, "r"))
+
+
+@config.node
+class MorphologyPipelineNode(FilePipelineMixin):
+    files: list[MorphologyDependencyNode] = config.list(
+        type=MorphologyDependencyNode, required=True
+    )
+    pipeline: cfglist[MorphologyOperation] = config.list(type=MorphologyOperation)
+    parser: MorphologyParser = config.attr(type=MorphologyParser, required=False)
+
+    def queue(self, pool):
+        """
+        Add the loading of the current morphology to a job queue.
+
+        :param pool: Queue of jobs.
+        :type pool:bsb.services.pool.JobPool
+        """
+
+        def job(scaffold, i, j):
+            me = scaffold.configuration.morphologies[i]
+            fnode = me.files[j]
+            morpho = fnode.load_object(parser=me.parser, save=False)
+            morpho_out = me.pipe(morpho)
+            scaffold.morphologies.save(
+                fnode.get_morphology_name(), morpho_out, overwrite=True
+            )
+            return morpho_out
+
+        for k in range(len(self.files)):
+            # The lambda serves to bind the closure arguments
+            pool.queue(lambda scaffold, i=self._config_index, j=k: job(scaffold, i, j))
