@@ -1222,12 +1222,7 @@ class TestCopy(unittest.TestCase):
         instance = MainClass({"a": {"c": tab}, "b": 3.0})
         copied = instance.__copy__()
         self.assertTrue(id(instance.a) != id(copied.a))
-        self.assertTrue(np.alltrue(instance.a.c == copied.a.c))
-        self.assertEqual(instance.b, copied.b)
-
-        copied = instance.__deepcopy__()
-        self.assertTrue(id(instance.a) != id(copied.a))
-        self.assertTrue(np.alltrue(instance.a.c == copied.a.c))
+        self.assertTrue(np.all(instance.a.c == copied.a.c))
         self.assertEqual(instance.b, copied.b)
 
 

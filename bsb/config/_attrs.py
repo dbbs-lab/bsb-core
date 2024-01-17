@@ -74,6 +74,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     make_tree(node_cls)
     make_dictable(node_cls)
     make_copyable(node_cls)
+
     return node_cls
 
 
