@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import copy
 from typing import List, Tuple
 
 import numpy
@@ -148,12 +147,6 @@ class GeometricShape(abc.ABC):
         """
         pass
 
-    def clone(self):
-        # TODO: find a cleaner way to copy
-        return type(self)(
-            {k: copy.deepcopy(self.__getattribute__(k)) for k in self._config_attr_order}
-        )
-
 
 @config.node
 class ShapesComposition:
@@ -185,21 +178,6 @@ class ShapesComposition:
 
         self.find_mbb()
 
-    def copy(self) -> ShapesComposition:
-        """
-        Return a copy of this object.
-
-        :return: A copy of this object.
-        :rtype: ShapesComposition
-        """
-        result = type(self)(dict(voxel_size=self.voxel_size, labels=[], shapes=[]))
-        for shape, label in zip(self._shapes, self._labels):
-            result._shapes.append(shape.clone())
-            result._labels.append(label.copy())
-        result._mbb_max = np.copy(self._mbb_max)
-        result._mbb_min = np.copy(self._mbb_min)
-        return result
-
     def add_shape(self, shape: GeometricShape, labels: List[str]):
         """
         Add a geometric shape to the collection
@@ -229,7 +207,7 @@ class ShapesComposition:
             dict(voxel_size=self._voxel_size, labels=[], shapes=[])
         )
         selected_id = np.where(np.isin(labels, self._labels))[0]
-        result._shapes = [self._shapes[i].clone() for i in selected_id]
+        result._shapes = [self._shapes[i].__copy__() for i in selected_id]
         result._labels = [self._labels[i].copy() for i in selected_id]
         result.mbb_min, result.mbb_max = result.find_mbb()
         return result
@@ -300,7 +278,7 @@ class ShapesComposition:
             int(shape.get_volume() // self._voxel_size**3) for shape in self._shapes
         ]
 
-    def generate_point_cloud(self) -> numpy.ndarray[float]:
+    def generate_point_cloud(self) -> numpy.ndarray[float] | None:
         """
         Generate a point cloud. The number of points to generate is determined automatically using
         the voxel size.
@@ -361,7 +339,7 @@ class ShapesComposition:
         """
         return inside_mbox(points, self._mbb_min, self._mbb_max)
 
-    def inside_shapes(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
+    def inside_shapes(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool] | None:
         """
         Check if the points given in input are inside at least in one of the shapes of the
         collection.

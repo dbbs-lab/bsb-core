@@ -99,6 +99,18 @@ def uniform_surface_wireframe(
 def rotate_3d_mesh_by_vec(
     x: np.array, y: np.array, z: np.array, rot_versor: np.array, angle: float
 ):
+    """
+    Rotate meshgrid points according to a rotation versor and angle.
+
+    :param numpy.ndarray[numpy.ndarray[float]] x: x coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] y: y coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] z: z coordinate points of the meshgrid
+    :param numpy.ndarray[float] rot_versor: vector representing rotation versor
+    :param float angle: rotation angle in radian
+    :return: Rotated x, y, z coordinate points
+    :rtype: Tuple[numpy.ndarray[numpy.ndarray[float]]
+    """
+
     # Arrange point coordinates in shape (N, 3) for vectorized processing
     pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
 
@@ -115,6 +127,17 @@ def rotate_3d_mesh_by_vec(
 
 
 def translate_3d_mesh_by_vec(x: np.array, y: np.array, z: np.array, t_vec: np.array):
+    """
+    Translate meshgrid points according to a 3d vector.
+
+    :param numpy.ndarray[numpy.ndarray[float]] x: x coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] y: y coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] z: z coordinate points of the meshgrid
+    :param numpy.ndarray[float] t_vec: translation vector
+    :return: Translated x, y, z coordinate points
+    :rtype: Tuple[numpy.ndarray[numpy.ndarray[float]]
+    """
+
     # Arrange point coordinates in shape (N, 3) for vectorized processing
     pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
 
@@ -129,6 +152,17 @@ def translate_3d_mesh_by_vec(x: np.array, y: np.array, z: np.array, t_vec: np.ar
 
 
 def rotate_3d_mesh_by_rot_mat(x: np.array, y: np.array, z: np.array, rot_mat: np.array):
+    """
+    Rotate meshgrid points according to a rotation matrix.
+
+    :param numpy.ndarray[numpy.ndarray[float]] x: x coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] y: y coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] z: z coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] rot_mat: rotation matrix, shape (3,3)
+    :return: Rotated x, y, z coordinate points
+    :rtype: Tuple[numpy.ndarray[numpy.ndarray[float]]
+    """
+
     # Arrange point coordinates in shape (N, 3) for vectorized processing
     pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
 
