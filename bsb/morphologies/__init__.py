@@ -37,6 +37,12 @@ from ..reporting import warn
 from ..voxels import VoxelSet
 
 
+def parse_morphology_file(file, **kwargs):
+    from .parsers import parse_morphology_file
+
+    return parse_morphology_file(file, **kwargs)
+
+
 class MorphologySet:
     """
     Associates a set of :class:`StoredMorphologies
@@ -947,89 +953,12 @@ class Morphology(SubTree):
         if optimize:
             self.optimize()
 
-    @classmethod
-    def from_swc(cls, file, branch_class=None, tags=None, meta=None):
-        """
-        Create a Morphology from an SWC file or file-like object.
-
-        :param file: path or file-like object to parse.
-        :param branch_class: Custom branch class
-        :type branch_class: bsb.morphologies.Branch
-        :param tags: dictionary mapping morphology label id to its name
-        :type tags: dict
-        :param meta: dictionary header containing metadata on morphology
-        :type meta: dict
-        :returns: The parsed morphology.
-        :rtype: bsb.morphologies.Morphology
-        """
-        if isinstance(file, str) or isinstance(file, Path):
-            with open(str(file), "r") as f:
-                return cls.from_swc(f, branch_class, tags=tags, meta=meta)
-        if branch_class is None:
-            branch_class = Branch
-        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
-
-    @classmethod
-    def from_swc_data(cls, data, branch_class=None, tags=None, meta=None):
-        """
-        Create a Morphology from a SWC-like formatted array.
-
-        :param numpy.ndarray data: (N,7) array.
-        :param type branch_class: Custom branch class
-        :returns: The parsed morphology, with the SWC tags as a property.
-        :rtype: bsb.morphologies.Morphology
-        """
-        if branch_class is None:
-            branch_class = Branch
-        return _swc_data_to_morpho(cls, branch_class, data, tags=tags, meta=meta)
-
-    @classmethod
-    def from_file(cls, path, branch_class=None, tags=None, meta=None):
-        """
-        Create a Morphology from a file on the file system through MorphIO.
-
-        :param path: path or file-like object to parse.
-        :param branch_class: Custom branch class
-        :type branch_class: bsb.morphologies.Branch
-        :param tags: dictionary mapping morphology label id to its name
-        :type tags: dict
-        :param meta: dictionary header containing metadata on morphology
-        :type meta: dict
-        """
-        if branch_class is None:
-            branch_class = Branch
-        if path.endswith("swc"):
-            return cls.from_swc(path, branch_class, tags=tags, meta=meta)
-        else:
-            return _import(cls, branch_class, path, meta=meta)
-
-    @classmethod
-    def from_buffer(cls, buffer, branch_class=None, tags=None, meta=None):
-        if not isinstance(buffer, str):
-            buffer = buffer.read()
-        if branch_class is None:
-            branch_class = Branch
-        return _swc_to_morpho(cls, branch_class, buffer, tags=tags, meta=meta)
-
-    @classmethod
-    def from_arbor(cls, arb_m, centering=True, branch_class=None, meta=None):
-        if branch_class is None:
-            branch_class = Branch
-        return _import_arb(cls, arb_m, centering, branch_class, meta=meta)
-
-    def to_swc(self, file, meta=None):
+    def to_swc(self, file):
         """
         Create a SWC file from a Morphology.
-        :param file: path or file-like object to parse.
-        :param branch_class: Custom branch class
+        :param file: path to write to
         """
         file_data = _morpho_to_swc(self)
-        if meta:  # pragma: nocover
-            raise NotImplementedError(
-                "Can't store morpho header yet,"
-                " requires special handling in morphologies/__init__.py, todo"
-            )
-
         if isinstance(file, str) or isinstance(file, Path):
             np.savetxt(
                 file,
@@ -1732,118 +1661,6 @@ class Branch:
         return SubTree([self]).voxelize(*args, **kwargs)
 
 
-def _swc_branch_dfs(adjacency, branches, node):
-    branch = []
-    branch_id = len(branches)
-    branches.append((None, branch))
-    node_stack = deque()
-    while True:
-        if node is not None:
-            branch.append(node)
-            child_nodes = adjacency[node]
-        if not child_nodes:
-            try:
-                parent_bid, parent, node = node_stack.pop()
-            except IndexError:
-                break
-            else:
-                branch = [parent]
-                branch_id = len(branches)
-                branches.append((parent_bid, branch))
-        elif len(child_nodes) == 1:
-            node = child_nodes[0]
-        else:
-            node_stack.extend((branch_id, node, child) for child in reversed(child_nodes))
-            child_nodes = []
-            node = None
-
-
-def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
-    data = np.array(
-        [
-            swc_data
-            for line in content.split("\n")
-            if not line.strip().startswith("#")
-            and (swc_data := [float(x) for x in line.split() if x != ""])
-        ]
-    )
-    if data.dtype.name == "object":
-        err_lines = ", ".join(i for i, d in enumerate(data) if len(d) != 7)
-        raise ValueError(f"SWC incorrect on lines: {err_lines}")
-    return _swc_data_to_morpho(cls, branch_cls, data, tags=tags, meta=meta)
-
-
-def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
-    tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
-    if tags is not None:
-        tag_map.update((int(k), v) for (k, v) in tags.items())
-    # `data` is the raw SWC data, `samples` and `parents` are the graph nodes and edges.
-    samples = data[:, 0].astype(int)
-    # Map possibly irregular sample IDs (SWC spec allows this) to an ordered 0 to N map.
-    id_map = dict(zip(samples, itertools.count()))
-    id_map[-1] = -1
-    # Create an adjacency list of the graph described in the SWC data
-    adjacency = {n: [] for n in range(len(samples))}
-    adjacency[-1] = []
-    map_ids = np.vectorize(id_map.get)
-    parents = map_ids(data[:, 6])
-    for s, p in enumerate(parents):
-        adjacency[p].append(s)
-    # Now turn the adjacency list into a list of unbranching stretches of the graph.
-    # Call these `node_branches` because they only contain the sample/node ids.
-    node_branches = []
-    for root_node in adjacency[-1]:
-        _swc_branch_dfs(adjacency, node_branches, root_node)
-    branches = []
-    roots = []
-    _len = sum(len(s[1]) for s in node_branches)
-    points = np.empty((_len, 3))
-    radii = np.empty(_len)
-    tags = np.empty(_len, dtype=int)
-    labels = EncodedLabels.none(_len)
-    # Now turn each "node branch" into an actual branch by looking up the node data in the
-    # samples array. We copy over the node data into several contiguous matrices that will
-    # form the basis of the Morphology data structure.
-    ptr = 0
-    for parent, branch_nodes in node_branches:
-        nptr = ptr + len(branch_nodes)
-        node_data = data[branch_nodes]
-        # Example with the points data matrix: copy over the swc data into contiguous arr
-        points[ptr:nptr] = node_data[:, 2:5]
-        # Then create a partial view into that data matrix for the branch
-        branch_points = points[ptr:nptr]
-        # Same here for radius,
-        radii[ptr:nptr] = node_data[:, 5]
-        branch_radii = radii[ptr:nptr]
-        # the SWC tags
-        tags[ptr:nptr] = node_data[:, 1]
-        if len(branch_nodes) > 1:
-            # Since we add an extra point we have to copy its tag from the next point.
-            tags[ptr] = tags[ptr + 1]
-        branch_tags = tags[ptr:nptr]
-        # And the labels
-        branch_labels = labels[ptr:nptr]
-        for v in np.unique(branch_tags):
-            u_tags = tag_map.get(v, f"tag_{v}")
-            branch_labels.label(
-                [u_tags] if isinstance(u_tags, str) else u_tags, branch_tags == v
-            )
-        ptr = nptr
-        # Use the views to construct the branch
-        branch = branch_cls(branch_points, branch_radii, branch_labels)
-        branch.set_properties(tags=branch_tags)
-        branches.append(branch)
-        if parent is not None:
-            branches[parent].attach_child(branch)
-        else:
-            roots.append(branch)
-    # Then save the shared data matrices on the morphology
-    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
-    # And assert that this shared buffer mode succeeded
-    assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
-    return morpho
-
-
 def _morpho_to_swc(morpho):
     # Initialize an empty data array
     data = np.empty((len(morpho.points), 7), dtype=object)
@@ -1886,135 +1703,3 @@ def _morpho_to_swc(morpho):
         data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
 
     return data[data != np.array(None)].reshape(-1, 7)
-
-
-# Wrapper to append our own attributes to morphio somas and treat it like any other branch
-class _MorphIoSomaWrapper:
-    def __init__(self, obj):
-        self._o = obj
-
-    def __getattr__(self, attr):
-        return getattr(self._o, attr)
-
-
-def _import(cls, branch_cls, file, meta=None):
-    morpho_io = morphio.Morphology(file)
-    # We create shared buffers for the entire morphology, which optimize operations on the
-    # entire morphology such as `.flatten`, subtree transformations and IO.  The branches
-    # have views on those buffers, and as long as no points are added or removed, we can
-    # keep working in shared buffer mode.
-    soma = _MorphIoSomaWrapper(morpho_io.soma)
-    _len = len(morpho_io.points) + len(soma.points)
-    points = np.empty((_len, 3))
-    radii = np.empty(_len)
-    tags = np.empty(_len, dtype=int)
-    labels = EncodedLabels.none(_len)
-    soma.children = morpho_io.root_sections
-    section_stack = deque([(None, soma)])
-    branch = None
-    roots = []
-    ptr = 0
-    while True:
-        try:
-            parent, section = section_stack.pop()
-        except IndexError:
-            break
-        else:
-            nptr = ptr + len(section.points)
-            # Fill the branch data into the shared buffers and create views into them.
-            points[ptr:nptr] = section.points
-            branch_points = points[ptr:nptr]
-            radii[ptr:nptr] = section.diameters / 2
-            branch_radii = radii[ptr:nptr]
-            tags[ptr:nptr] = np.ones(len(section.points), dtype=int) * int(section.type)
-            branch_tags = tags[ptr:nptr]
-            branch_labels = labels[ptr:nptr]
-            ptr = nptr
-            # Pass the shared buffer views to the branch
-            branch = branch_cls(branch_points, branch_radii, branch_labels)
-            branch.set_properties(tags=branch_tags)
-            if parent:
-                parent.attach_child(branch)
-            else:
-                roots.append(branch)
-            children = reversed([(branch, child) for child in section.children])
-            section_stack.extend(children)
-    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
-    assert morpho._check_shared(), "MorphIO import didn't result in shareable buffers."
-    return morpho
-
-
-def _import_arb(cls, arb_m, centering, branch_class, labels=None, meta=None):
-    import arbor
-
-    decor = arbor.decor()
-    morpho_roots = set(
-        i for i in range(arb_m.num_branches) if arb_m.branch_parent(i) == 4294967295
-    )
-    root_prox = [r[0].prox for r in map(arb_m.branch_segments, morpho_roots)]
-    center = np.mean([[p.x, p.y, p.z] for p in root_prox], axis=0)
-    parent = None
-    roots = []
-    stack = []
-    cable_id = morpho_roots.pop()
-    while True:
-        segments = arb_m.branch_segments(cable_id)
-        if not segments:
-            branch = Branch([], [], [], [])
-        else:
-            # Prepend the proximal end of the first segment to get [p0, p1, ..., pN]
-            x = np.array([segments[0].prox.x] + [s.dist.x for s in segments])
-            y = np.array([segments[0].prox.y] + [s.dist.y for s in segments])
-            z = np.array([segments[0].prox.z] + [s.dist.z for s in segments])
-            r = np.array([segments[0].prox.radius] + [s.dist.radius for s in segments])
-            if centering:
-                x -= center[0]
-                y -= center[1]
-                z -= center[2]
-            branch = branch_class(x, y, z, r)
-        branch._cable_id = cable_id
-        if parent:
-            parent.attach_child(branch)
-        else:
-            roots.append(branch)
-        children = arb_m.branch_children(cable_id)
-        if children:
-            stack.extend((branch, child) for child in reversed(children))
-        if stack:
-            parent, cable_id = stack.pop()
-        elif not morpho_roots:
-            break
-        else:
-            parent = None
-            cable_id = morpho_roots.pop()
-
-    morpho = cls(roots, meta=meta)
-    branches = morpho.branches
-    branch_map = {branch._cable_id: branch for branch in branches}
-    labels = labels if labels is not None else arbor.label_dict()
-    cc = arbor.cable_cell(arb_m, labels, decor)
-    for label in labels:
-        if "excl:" in label or label == "all":
-            continue
-        label_cables = cc.cables(f'"{label}"')
-        for cable in label_cables:
-            cable_id = cable.branch
-            branch = branch_map[cable_id]
-            if cable.dist == 1 and cable.prox == 0:
-                branch.label([label])
-            else:
-                prox_index = branch.get_arc_point(cable.prox, eps=1e-7)
-                if prox_index is None:
-                    prox_index = branch.introduce_arc_point(cable.prox)
-                dist_index = branch.get_arc_point(cable.dist, eps=1e-7)
-                if dist_index is None:
-                    dist_index = branch.introduce_arc_point(cable.dist)
-                mask = np.array(
-                    [False] * prox_index
-                    + [True] * (dist_index - prox_index + 1)
-                    + [False] * (len(branch) - dist_index - 1)
-                )
-                branch.label([label], mask)
-
-    morpho.optimize()
-    return morpho

@@ -15,9 +15,9 @@ from bsb_test import skip_nointernet, skip_parallel
 from bsb.cell_types import CellType
 from bsb.config import Configuration, from_json
 from bsb.core import Scaffold
-from bsb.exceptions import *
+from bsb.exceptions import MissingMorphologyError, SelectorError
 from bsb.morphologies import Branch, Morphology
-from bsb.morphologies.selector import NameSelector, NeuroMorphoSelector
+from bsb.morphologies.selector import NameSelector
 from bsb.services import MPI
 from bsb.storage.interfaces import StoredMorphology
 

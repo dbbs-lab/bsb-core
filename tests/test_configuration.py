@@ -278,6 +278,90 @@ class TestConfigList(unittest.TestCase):
             TestNormal(listattr={5: "hey", 6: "boo"})
 
 
+class TestConfigProperties(unittest.TestCase):
+    def test_prop(self):
+        @config.root
+        class Test:
+            @config.property
+            def pget(self):
+                return -1
+
+            @config.property()
+            def pget2(self):
+                return -2
+
+        t = Test()
+        self.assertEqual(-1, t.pget)
+        self.assertEqual(-2, t.pget2)
+        with self.assertRaises(AttributeError):
+            t.pget = 1
+
+    def test_setter(self):
+        @config.root
+        class Test:
+            @config.property
+            def pget(self):
+                return self._pget
+
+            @pget.setter
+            def pget(self, value):
+                self._pget = (value or 0) * 2
+
+        t = Test()
+        t.pget = 2
+        self.assertEqual(4, t.pget)
+
+    def test_type(self):
+        """
+        Test that by default there's no type conversion for properties, and that when a
+        type handler is explicitly set, the user defined values are type cast.
+        """
+
+        @config.root
+        class Test:
+            @config.property
+            def pget(self):
+                return None
+
+            @pget.setter
+            def pget(self, value):
+                if not isinstance(value, (type(None), int)):
+                    raise ValueError()
+
+            @config.property()
+            def pget2(self):
+                return None
+
+            @pget2.setter
+            def pget2(self, value):
+                if not isinstance(value, (type(None), int)):
+                    raise ValueError()
+
+            @config.property(type=str)
+            def pget3(self):
+                return None
+
+            @pget3.setter
+            def pget3(self, value):
+                if not isinstance(value, (type(None), str)):
+                    raise ValueError()
+
+            @config.property(type=int)
+            def pget4(self):
+                return None
+
+            @pget4.setter
+            def pget4(self, value):
+                if not isinstance(value, (type(None), int)):
+                    raise ValueError()
+
+        t = Test()
+        t.pget = 3
+        t.pget2 = 3
+        t.pget3 = 3
+        t.pget4 = "3"
+
+
 class TestConfigRef(unittest.TestCase):
     def test_referencing(self):
         @config.node
@@ -1200,6 +1284,40 @@ class TestTreeing(unittest.TestCase):
         cfg, tree = self.bijective("eval", Test, {"a": {"statement": "[1, 2, 3]"}})
         self.assertEqual([1, 2, 3], cfg.a)
         self.assertEqual({"statement": "[1, 2, 3]"}, tree["a"])
+
+
+class TestCopy(unittest.TestCase):
+    def test_copy(self):
+        """
+        Check copy and deepcopy functions for the nodes.
+        """
+
+        @config.node
+        class SubClass:
+            c = config.attr(
+                required=False,
+                default=lambda: np.array([0, 0, 0], dtype=int),
+                call_default=True,
+                type=types.ndarray(),
+            )
+
+        @config.root
+        class MainClass:
+            a = config.attr(type=SubClass)
+            b = config.attr(default=5.0)
+
+        tab = np.array([1, 2, 3], dtype=int)
+        instance = MainClass({"a": {"c": tab}, "b": 3.0})
+        copied = instance.__copy__()
+        self.assertTrue(id(instance.a) != id(copied.a))
+        # check that the c arrays elements are equals
+        self.assertTrue(np.all(instance.a.c == copied.a.c))
+        self.assertEqual(instance.b, copied.b)
+        copied = instance.__deepcopy__()
+        self.assertTrue(id(instance.a) != id(copied.a))
+        # check that the c arrays elements are equals
+        self.assertTrue(np.all(instance.a.c == copied.a.c))
+        self.assertEqual(instance.b, copied.b)
 
 
 class TestDictScripting(unittest.TestCase):
