@@ -585,10 +585,11 @@ def make_tree(node_cls):
 
 
 def make_copyable(node_cls):
-    def loc_copy(instance):
+    def loc_copy(instance, memo=None):
         return type(instance)(instance.__tree__())
 
     node_cls.__copy__ = loc_copy
+    node_cls.__deepcopy__ = loc_copy
 
 
 def walk_node_attributes(node):
