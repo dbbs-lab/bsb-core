@@ -22,6 +22,7 @@ from ._make import (
     compile_isc,
     compile_new,
     compile_postnew,
+    make_copyable,
     make_dictable,
     make_get_node_name,
     make_tree,
@@ -72,6 +73,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     make_get_node_name(node_cls, root=root)
     make_tree(node_cls)
     make_dictable(node_cls)
+    make_copyable(node_cls)
 
     return node_cls
 
