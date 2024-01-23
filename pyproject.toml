@@ -61,7 +61,7 @@ profiling = "bsb._options:profiling"
 [project.optional-dependencies]
 parallel = [
     "mpi4py~=3.0",
-    "zwembad~=1.2",
+    "mpipool~=1.0",
     "mpilock~=1.1"
 ]
 test = [
