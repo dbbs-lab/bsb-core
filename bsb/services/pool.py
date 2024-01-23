@@ -75,7 +75,6 @@ class Job:
 
     def __init__(self, pool, args, kwargs, deps=None, submitter=None):
         self.pool_id = pool.id
-        self._id = ""
         self._args = args
         self._kwargs = kwargs
         self._deps = set(deps or [])
@@ -145,9 +144,7 @@ class Job:
                 # waiting for deps, in the `_enqueue` method below.
                 self._enqueue(self._pool)
 
-    def _enqueue(self, pool, id):
-        # First of all set our id in the pool queue
-        self._id = id
+    def _enqueue(self, pool):
         if not self._deps:
             # Notify anyone waiting on the spaceholder `FakeFuture` that we're
             # now actually queueing ourselves
@@ -319,7 +316,7 @@ class JobPool:
             # themselves on the pool queue.
             jobs_status = []
             for ind, job in enumerate(self._queue):
-                job._enqueue(pool, ind)
+                job._enqueue(pool)
                 jobs_status.append(job._status)
             # todo: let listeners decide `max_refresh`, and `futures.wait(timeout=max_refresh)`
             # Setting a default refresh time of 60 sec, then select the minimum between the default and
@@ -339,8 +336,8 @@ class JobPool:
                     open_jobs, timeout=min_refresh_time, return_when="FIRST_COMPLETED"
                 )
                 # Update the status for all the jobs
-                for job in self._queue:
-                    jobs_status[job._id] = job._status
+                for ind, job in enumerate(self._queue):
+                    jobs_status[ind] = job._status
 
                 # Send the updates to the listeners that have reached refresh time
                 for listener in self._listeners:
