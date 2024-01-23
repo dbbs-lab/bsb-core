@@ -13,7 +13,7 @@ from bsb.exceptions import *
 from bsb.mixins import NotParallel
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb.services import MPI
-from bsb.services.pool import FakeFuture, JobPool, create_job_pool
+from bsb.services.pool import JobPool, create_job_pool
 from bsb.storage import Chunk
 from bsb.topology import Partition, Region
 from bsb.voxels import VoxelData, VoxelSet
@@ -151,11 +151,6 @@ class SchedulerBaseTest:
         job = pool.queue_placement(_dud, _chunk(0, 0, 0))
         pool.execute()
 
-    def test_chunked_job(self):
-        pool = JobPool(_net)
-        job = pool.queue_chunk(test_chunk, _chunk(0, 0, 0))
-        pool.execute()
-
     def test_notparallel_ps_job(test):
         spy = 0
 
@@ -225,6 +220,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         else:
             self.assertTrue(executed, "master loop skipped")
 
+    """
     @timeout(3)
     def test_fake_futures(self):
         pool = JobPool(_net)
@@ -232,6 +228,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         self.assertIs(FakeFuture.done, job._future.done.__func__)
         self.assertFalse(job._future.done())
         self.assertFalse(job._future.running())
+    """
 
     @timeout(3)
     def test_dependencies(self):

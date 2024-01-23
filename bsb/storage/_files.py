@@ -577,7 +577,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         :param pool: Queue of jobs.
         :type pool:bsb.services.pool.JobPool
         """
-        pool.queue(
+        pool.queue_pipeline(
             lambda scaffold, i=self._config_index: scaffold.configuration.morphologies[
                 i
             ].load_object()
