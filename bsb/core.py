@@ -12,8 +12,8 @@ from .exceptions import InputError, NodeNotFoundError, RedoError, ScaffoldError
 from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report, warn
-from .services import MPI
-from .services.pool import create_job_pool
+from .services import MPI, JobPool
+from .services.pool import Job
 from .simulation import get_simulation_adapter
 from .storage import Chunk, Storage, open_storage
 
@@ -124,6 +124,9 @@ class Scaffold:
         :returns: A network object
         :rtype: :class:`~.core.Scaffold`
         """
+        self._pool_listeners: list[
+            tuple[typing.Callable[[list["Job"]], None], float]
+        ] = []
         self._configuration = None
         self._storage = None
         self._comm = comm or MPI
@@ -255,18 +258,11 @@ class Scaffold:
         if strategies is None:
             strategies = [*self.placement]
         strategies = PlacementStrategy.sort_deps(strategies)
-        pool = create_job_pool(self)
+        pool = self.create_job_pool()
         if pool.is_master():
+            self._register_pool_listeners(pool)
             for strategy in strategies:
                 strategy.queue(pool, self.network.chunk_size)
-            loop = self._progress_terminal_loop(pool, debug=DEBUG)
-            try:
-                pool.execute(loop)
-            except Exception:
-                self._stop_progress_loop(loop, debug=DEBUG)
-                raise
-            finally:
-                self._stop_progress_loop(loop, debug=DEBUG)
         else:
             pool.execute()
 
@@ -280,7 +276,7 @@ class Scaffold:
         if strategies is None:
             strategies = set(self.connectivity.values())
         strategies = ConnectionStrategy.sort_deps(strategies)
-        pool = create_job_pool(self)
+        pool = self.create_job_pool()
         if pool.is_master():
             for strategy in strategies:
                 strategy.queue(pool)
@@ -309,7 +305,7 @@ class Scaffold:
         """
         if self.after_placement:
             warn("After placement disabled")
-        # pool = create_job_pool(self)
+        # pool = self.create_job_pool()
         # for hook in self.configuration.after_placement.values():
         #     pool.queue(hook.after_placement)
         # pool.execute(self._pool_event_loop)
@@ -397,7 +393,7 @@ class Scaffold:
     def run_pipelines(self, pipelines=None, DEBUG=True):
         if pipelines is None:
             pipelines = self.get_dependency_pipelines()
-        pool = create_job_pool(self)
+        pool = self.create_job_pool()
         if pool.is_master():
             for pipeline in pipelines:
                 pipeline.queue(pool)
@@ -784,6 +780,15 @@ class Scaffold:
                 f"Couldn't load '{cs.tag}' connections, missing cell type '{e.args[0]}'."
             ) from None
         return cs
+
+    def create_job_pool(self):
+        pool = JobPool(self)
+        for listener, max_wait in self._pool_listeners:
+            pool.add_listener(listener, max_wait=max_wait)
+        return pool
+
+    def register_listener(self, listener, max_wait=None):
+        self._pool_listeners.append((listener, max_wait))
 
 
 class ReportListener:

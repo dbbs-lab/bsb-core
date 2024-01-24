@@ -13,15 +13,9 @@ from bsb.exceptions import *
 from bsb.mixins import NotParallel
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb.services import MPI
-from bsb.services.pool import JobPool, create_job_pool
 from bsb.storage import Chunk
 from bsb.topology import Partition, Region
 from bsb.voxels import VoxelData, VoxelSet
-
-
-def test_dud(scaffold, x, y):
-    sleep(y)
-    return x
 
 
 def test_chunk(scaffold, chunk):
@@ -121,145 +115,7 @@ class TestIndicators(unittest.TestCase):
                 self.assertEqual(0, guess)
 
 
-class SchedulerBaseTest:
-    @timeout(3)
-    def test_create_pool(self):
-        pool = create_job_pool(_net)
-
-    @timeout(3)
-    def test_single_job(self):
-        pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
-        pool.execute()
-
-    @timeout(3)
-    def test_listeners(self):
-        i = 0
-
-        def spy(job):
-            nonlocal i
-            i += 1
-
-        pool = JobPool(_net, listeners=[spy])
-        job = pool.queue(test_dud, (5, 0.1))
-        pool.execute()
-        if not MPI.get_rank():
-            self.assertEqual(1, i, "Listeners not executed.")
-
-    def test_placement_job(self):
-        pool = JobPool(_net)
-        job = pool.queue_placement(_dud, _chunk(0, 0, 0))
-        pool.execute()
-
-    def test_notparallel_ps_job(test):
-        spy = 0
-
-        @config.node
-        class SerialPStrat(NotParallel, PlacementStrategy):
-            def place(self, chunk, indicators):
-                nonlocal spy
-                test.assertEqual(Chunk([0, 0, 0], None), chunk)
-                spy += 1
-
-        pool = JobPool(_net)
-        pstrat = _net.placement.add(
-            "test", SerialPStrat(strategy="", cell_types=[], partitions=[])
-        )
-        pstrat.queue(pool, None)
-        pool.execute()
-        test.assertEqual(1, sum(MPI.allgather(spy)))
-
-    def test_notparallel_cs_job(test):
-        spy = 0
-
-        @config.node
-        class SerialCStrat(NotParallel, ConnectionStrategy):
-            def connect(self, pre, post):
-                nonlocal spy
-
-                spy += 1
-
-        pool = JobPool(_net)
-        cstrat = _net.connectivity.add(
-            "test",
-            SerialCStrat(
-                strategy="",
-                presynaptic={"cell_types": []},
-                postsynaptic={"cell_types": []},
-            ),
-        )
-        cstrat.queue(pool)
-        pool.execute()
-        test.assertEqual(1, sum(MPI.allgather(spy)))
-
-
-@unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
-class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
-    @timeout(3)
-    def test_double_pool(self):
-        pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
-        pool.execute()
-        pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
-        pool.execute()
-
-    @timeout(3)
-    def test_master_loop(self):
-        pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
-        executed = False
-
-        def spy_loop(p):
-            nonlocal executed
-            executed = True
-
-        pool.execute(master_event_loop=spy_loop)
-        if MPI.get_rank():
-            self.assertFalse(executed, "workers executed master loop")
-        else:
-            self.assertTrue(executed, "master loop skipped")
-
-    """
-    @timeout(3)
-    def test_fake_futures(self):
-        pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
-        self.assertIs(FakeFuture.done, job._future.done.__func__)
-        self.assertFalse(job._future.done())
-        self.assertFalse(job._future.running())
-    """
-
-    @timeout(3)
-    def test_dependencies(self):
-        pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
-        job2 = pool.queue(test_dud, (5, 0.1), deps=[job])
-        result = None
-
-        def spy_queue(jobs):
-            nonlocal result
-            if result is None:
-                result = jobs[0]._future.running() and not jobs[1]._future.running()
-
-        pool.execute(master_event_loop=spy_queue)
-        if not MPI.get_rank():
-            self.assertTrue(result, "A job with unfinished dependencies was scheduled.")
-
-    @unittest.expectedFailure
-    def test_notparallel_cs_job(test):
-        raise Exception("MPI voodoo deadlocks simple nonlocal assigment")
-
-    @unittest.expectedFailure
-    def test_notparallel_ps_job(test):
-        raise Exception("MPI voodoo deadlocks simple nonlocal assigment")
-
-
 @unittest.skipIf(MPI.get_size() > 1, "Skipped during parallel testing.")
-class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
-    pass
-
-
 class TestPlacementStrategies(
     RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
 ):

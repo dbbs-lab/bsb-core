@@ -42,6 +42,9 @@ _t(
         GatewayError=_e(
             AllenApiError=_e(),
         ),
+        PoolError=_e(
+            JobCancelledError=_e(),
+        ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
             LayoutError=_e(),
