@@ -21,7 +21,7 @@ class AdapterProgress:
         self._progstart = self._last_progtic = time()
         self._progtics = 0
 
-    def progress(self, step):
+    def tick(self, step):
         """
         Report simulation progress.
         """
@@ -35,11 +35,14 @@ class AdapterProgress:
         self._last_progtic = now
         return progress
 
-    def step_progress(self, duration, step=1):
+    def steps(self, duration, step=1):
         steps = itertools.chain(np.arange(0, duration), (duration,))
         a, b = itertools.tee(steps)
         next(b, None)
         yield from zip(a, b)
+
+    def complete(self):
+        return
 
 
 class SimulationData:

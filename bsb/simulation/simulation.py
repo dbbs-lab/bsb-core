@@ -30,6 +30,7 @@ class ProgressEvent:
 @config.pluggable(key="simulator", plugin_name="simulation backend")
 class Simulation:
     scaffold: "Scaffold"
+    simulator: str
     name: str = config.attr(key=True)
     duration: float = config.attr(type=float, required=True)
     cell_models: cfgdict[CellModel] = config.slot(type=CellModel, required=True)
