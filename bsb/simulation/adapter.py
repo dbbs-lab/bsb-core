@@ -17,26 +17,26 @@ if typing.TYPE_CHECKING:
 
 class AdapterProgress:
     def __init__(self, duration):
-        self._progdur = duration
-        self._progstart = self._last_progtic = time()
-        self._progtics = 0
+        self._duration = duration
+        self._start = self._last_tick = time()
+        self._ticks = 0
 
     def tick(self, step):
         """
         Report simulation progress.
         """
         now = time()
-        tic = now - self._last_progtic
-        self._progtics += 1
-        el = now - self._progstart
+        tic = now - self._last_tick
+        self._ticks += 1
+        el = now - self._start
         progress = types.SimpleNamespace(
-            progression=step, duration=self._progdur, time=time(), tick=tic, elapsed=el
+            progression=step, duration=self._duration, time=time(), tick=tic, elapsed=el
         )
-        self._last_progtic = now
+        self._last_tick = now
         return progress
 
-    def steps(self, duration, step=1):
-        steps = itertools.chain(np.arange(0, duration), (duration,))
+    def steps(self, step=1):
+        steps = itertools.chain(np.arange(0, self._duration, step), (self._duration,))
         a, b = itertools.tee(steps)
         next(b, None)
         yield from zip(a, b)
