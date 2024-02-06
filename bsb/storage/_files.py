@@ -15,7 +15,6 @@ import urllib.request as _ur
 
 import nrrd as _nrrd
 import requests as _rq
-import yaml
 
 from .. import config
 from .._util import obj_str_insert
@@ -582,17 +581,6 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
                 i
             ].load_object()
         )
-
-
-@config.node
-class YamlDependencyNode(FileDependencyNode):
-    """
-    Configuration dependency node to load yaml files.
-    """
-
-    def load_object(self):
-        with self.file.provide_locally() as (path, encoding):
-            return yaml.safe_load(open(path, "r"))
 
 
 @config.node

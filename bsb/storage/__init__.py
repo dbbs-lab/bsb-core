@@ -22,7 +22,6 @@ from ._files import (
     FileDependency,
     FileDependencyNode,
     NrrdDependencyNode,
-    YamlDependencyNode,
 )
 from .interfaces import ConnectivitySet, FileStore, MorphologyRepository, PlacementSet
 
