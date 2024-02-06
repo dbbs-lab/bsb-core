@@ -282,7 +282,7 @@ class Scaffold:
                 strategy.queue(pool)
             loop = self._progress_terminal_loop(pool, debug=DEBUG)
             try:
-                pool.execute(loop)
+                pool.execute()
             except Exception:
                 self._stop_progress_loop(loop, debug=DEBUG)
                 raise
