@@ -268,10 +268,18 @@ def parser_factory(name, parser):
     # load the content of a file-like object or a simple string as a Configuration object.
     def parser_method(self, file=None, data=None, path=None):
         if file is not None:
-            file = os.path.abspath(file)
-            with open(file, "r") as f:
-                data = f.read()
-        tree, meta = parser().parse(data, path=path or file)
+            if hasattr(file, "read"):
+                data = file.read()
+                try:
+                    path = path or os.fspath(file)
+                except TypeError:
+                    pass
+            else:
+                file = os.path.abspath(file)
+                path = path or file
+                with open(file, "r") as f:
+                    data = f.read()
+        tree, meta = parser().parse(data, path=path)
         return _from_parsed(self, name, tree, meta, file)
 
     parser_method.__name__ = "from_" + name
