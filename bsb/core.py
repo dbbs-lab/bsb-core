@@ -262,10 +262,7 @@ class Scaffold:
         if pool.is_master():
             for strategy in strategies:
                 strategy.queue(pool, self.network.chunk_size)
-            try:
-                pool.execute()
-            except Exception:
-                raise
+            pool.execute()
         else:
             pool.execute()
 
@@ -283,10 +280,8 @@ class Scaffold:
         if pool.is_master():
             for strategy in strategies:
                 strategy.queue(pool)
-            try:
-                pool.execute()
-            except Exception:
-                raise
+            pool.execute()
+
         else:
             pool.execute()
 
