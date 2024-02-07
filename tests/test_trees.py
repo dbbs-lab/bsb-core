@@ -3,11 +3,9 @@ import os
 import sys
 import unittest
 
-from bsb.voxels import VoxelSet
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 import bsb_test
+
+from bsb.voxels import VoxelSet
 
 
 class TestVoxelSet(bsb_test.NumpyTestCase, unittest.TestCase):

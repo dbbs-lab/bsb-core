@@ -1,6 +1,7 @@
 """
     Module for the Partition configuration nodes and its dependencies.
 """
+
 import abc
 import collections
 import functools
@@ -269,9 +270,9 @@ class Layer(Rhomboid, classmap_entry="layer"):
         default=lambda: [1.0, 1.0],
         call_default=True,
     )
-    axis: typing.Union[
-        typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
-    ] = config.attr(type=types.in_(["x", "y", "z"]), default="z")
+    axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
+        config.attr(type=types.in_(["x", "y", "z"]), default="z")
+    )
     stack_index: float = config.attr(type=float, default=0)
 
     def get_layout(self, hint):
