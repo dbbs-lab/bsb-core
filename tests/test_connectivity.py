@@ -8,8 +8,8 @@ from bsb_test import (
     NetworkFixture,
     NumpyTestCase,
     RandomStorageFixture,
-    skip_parallel,
     get_test_config,
+    skip_parallel,
 )
 
 from bsb.config import Configuration

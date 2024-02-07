@@ -2,12 +2,12 @@ import unittest
 
 import numpy as np
 from bsb_test import (
+    NetworkFixture,
     NumpyTestCase,
+    RandomStorageFixture,
+    get_test_config,
     skip_parallel,
     timeout,
-    get_test_config,
-    RandomStorageFixture,
-    NetworkFixture,
 )
 
 from bsb.storage import Chunk

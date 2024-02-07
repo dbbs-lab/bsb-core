@@ -2,7 +2,7 @@ import unittest
 from time import sleep
 
 import numpy as np
-from bsb_test import NumpyTestCase, RandomStorageFixture, timeout, get_test_config
+from bsb_test import NumpyTestCase, RandomStorageFixture, get_test_config, timeout
 
 from bsb import config
 from bsb.cell_types import CellType

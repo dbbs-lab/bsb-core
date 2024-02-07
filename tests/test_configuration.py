@@ -6,8 +6,8 @@ import numpy as np
 from bsb_test import (
     RandomStorageFixture,
     get_data_path,
-    list_test_configs,
     get_test_config,
+    list_test_configs,
 )
 
 from bsb import config
