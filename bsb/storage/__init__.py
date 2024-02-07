@@ -11,6 +11,7 @@
     consumers and can be used independent of the underlying storage engine, which is the
     end goal of this module.
 """
+
 from inspect import isclass
 from typing import Type
 

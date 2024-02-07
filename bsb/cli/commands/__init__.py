@@ -6,6 +6,7 @@ Inherit from :class:`BaseCommand` for regular CLI style commands, or from
 :class:`BsbCommand` if you want more freedom in what exactly constitutes a command to the
 BSB.
 """
+
 import argparse
 
 from ...exceptions import CommandError
