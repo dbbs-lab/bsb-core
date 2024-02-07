@@ -102,7 +102,7 @@ class TestSerialAndParallelScheduler(
 
     # @timeout(3)
     def test_create_pool(self):
-        pool = self.network.create_job_pool()
+        pool = self.network.create_job_pool(fail_fast=True)
 
     #     @timeout(3)
     def test_single_job(self):
@@ -178,7 +178,7 @@ class TestSerialAndParallelScheduler(
                 job_list[-1].cancel("Testing")
 
         self.network.register_listener(job_killer, 0.01)
-        pool = self.network.create_job_pool()
+        pool = self.network.create_job_pool(fail_fast=True)
         jobs = [pool.queue(sleep_y, (j_id, 0.1)) for j_id in range(6)]
         jobs.append(pool.queue(sleep_y, (100, 0.8)))
         pool.execute()
@@ -206,7 +206,7 @@ class TestSerialAndParallelScheduler(
 
         self.network.register_listener(spy, 0.01)
         self.network.register_listener(collect, 0.04)
-        pool = self.network.create_job_pool()
+        pool = self.network.create_job_pool(fail_fast=True)
         job = pool.queue(sleep_y, (5, 0.017))
         pool.execute()
         if not MPI.get_rank():
@@ -253,7 +253,7 @@ class TestParallelScheduler(
         pool.execute()
 
     def test_submitting_closed(self):
-        pool = self.network.create_job_pool()
+        pool = self.network.create_job_pool(fail_fast=True)
         pool.queue(sleep_y, (5, 0.1))
         pool.execute()
 
@@ -278,7 +278,7 @@ class TestParallelScheduler(
                 )
 
         self.network.register_listener(spy, 0.01)
-        pool = self.network.create_job_pool()
+        pool = self.network.create_job_pool(fail_fast=True)
         job = pool.queue(sleep_y, (4, 0.2), submitter={"name": "One"})
         job2 = pool.queue(sleep_y, (5, 0.08), deps=[job], submitter={"name": "Two"})
         job3 = pool.queue(sleep_y, (10, 0.1), submitter={"name": "Three"})
@@ -293,7 +293,7 @@ class TestParallelScheduler(
     def test_dependency_failure(self):
         result = None
 
-        pool = self.network.create_job_pool()
+        pool = self.network.create_job_pool(fail_fast=True)
         job = pool.queue(sleep_fail, (4, 0.2), submitter={"name": "One"})
         job2 = pool.queue(sleep_y, (5, 0.1), deps=[job], submitter={"name": "Two"})
         job3 = pool.queue(sleep_y, (4, 0.1), submitter={"name": "Three"})

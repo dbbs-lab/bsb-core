@@ -69,6 +69,15 @@ class JobStatus(Enum):
     ABORTED = "aborted"
 
 
+class PoolStatus(Enum):
+    # Pool Starting
+    STARTING = "Starting"
+    # Pool Running
+    RUNNING = "Running"
+    # Pool Ending
+    ENDING = "Ending"
+
+
 class _MissingMPIExecutor(ErrorModule):
     pass
 
@@ -251,61 +260,6 @@ class FunctionJob(Job):
         return result
 
 
-def basic_listener(job_list, pool_status):
-    if pool_status == "Starting":
-        print(f"\nThere are {len(job_list)} jobs in the queue.\n")
-    elif pool_status == "Running":
-        job_pending = sum([1 for job in job_list if job._status == JobStatus.PENDING])
-        job_queued = sum([1 for job in job_list if job._status == JobStatus.QUEUED])
-        print(
-            f"> There are {job_pending} job pending and {job_queued} job queued over a total of {len(job_list)} jobs."
-        )
-        failed_list = np.array(
-            [[1, job] for job in job_list if job._status == JobStatus.FAILED]
-        )
-
-        if np.any(failed_list):
-            job_failed = np.sum(failed_list[:, 0])
-            print(f"> There are {job_failed} failed jobs. \n")
-            for job_f in failed_list[:, 1]:
-                if hasattr(job_f, "_cname"):
-                    print(
-                        f">> Strategy {job_f._name} raise the error {job_f._error} while attempting to use {job_f._cname}."
-                    )
-                else:
-                    print(
-                        f">> Job {job_f} named {job_f._name} raise the error {job_f._error}!"
-                    )
-        return 0
-
-    else:
-        pass
-
-
-def listener_ff(job_list, pool_status):
-    if pool_status == "Starting":
-        print(f"There are {len(job_list)} jobs in the queue.\n")
-    elif pool_status == "Running":
-        if failed_jobs := [job for job in job_list if job.error]:
-            for job in failed_jobs:
-                if hasattr(job, "_cname"):
-                    msg = f"Strategy {job.name} raise the error {job.error} while attempting to use {job._cname}."
-
-                else:
-                    msg = f"> Job {job} errored!"
-            raise ValueError(msg) from job.error
-        else:
-            job_pending = sum([1 for job in job_list if job._status == JobStatus.PENDING])
-            job_queued = sum([1 for job in job_list if job._status == JobStatus.QUEUED])
-            print(
-                f"> There are {job_pending} job pending and {job_queued} job queued over a total of {len(job_list)} jobs.\n"
-            )
-            return 0
-
-    else:
-        pass
-
-
 class JobPool:
     _next_pool_id = 0
     _pool_owners = {}
@@ -317,7 +271,7 @@ class JobPool:
         self.id = JobPool._next_pool_id
         self._listeners = []
         self._max_wait = 60
-        self._status = "Starting"
+        self._status = PoolStatus.STARTING
         JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = scaffold
 
@@ -402,14 +356,12 @@ class JobPool:
 
                 for job in self._job_queue:
                     job._enqueue(self)
-                # Check if there are listeners defined otherwise use basic_listener.
-                if not self._listeners:
-                    self._listeners.append(basic_listener)
+
                 # Call the listeners when execution is starting
                 for listener in self._listeners:
                     listener(self._job_queue, self._status)
                 # Now we start to listen to future, use the boolean check_failures variable to exit when an error is raised
-                self._status = "Running"
+                self._status = PoolStatus.RUNNING
                 self._check_failures = False
                 # As long as any of the jobs aren't done yet we repeat the wait action with a timeout defined by _max_wait
                 while any(
@@ -428,7 +380,7 @@ class JobPool:
                     for listener in self._listeners:
                         listener(self._job_queue, self._status)
             finally:
-                self._status = "Ending"
+                self._status = PoolStatus.ENDING
                 for listener in self._listeners:
                     listener(self._job_queue, self._status)
                 self._pool.shutdown()
@@ -455,7 +407,7 @@ class JobPool:
                 finally:
                     f.done()
                 for listener in self._listeners:
-                    listener(self._job_queue, job._status)
+                    listener(self._job_queue, self._status)
 
         # Clear the queue after all jobs have been done
         self._job_queue = []

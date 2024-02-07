@@ -1,5 +1,6 @@
 import itertools
 import os
+import sys
 import time
 import typing
 
@@ -9,6 +10,7 @@ from ._util import obj_str_insert
 from .config._config import Configuration
 from .connectivity import ConnectionStrategy
 from .exceptions import InputError, NodeNotFoundError, RedoError, ScaffoldError
+from .listeners import NonTTYTerminalListener
 from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report, warn
@@ -249,7 +251,7 @@ class Scaffold:
         )
 
     @meter()
-    def run_placement(self, strategies=None, DEBUG=True, pipelines=True):
+    def run_placement(self, strategies=None, fail_fast=True, pipelines=True):
         """
         Run placement strategies.
         """
@@ -258,7 +260,7 @@ class Scaffold:
         if strategies is None:
             strategies = [*self.placement]
         strategies = PlacementStrategy.sort_deps(strategies)
-        pool = self.create_job_pool()
+        pool = self.create_job_pool(fail_fast=fail_fast)
         if pool.is_master():
             for strategy in strategies:
                 strategy.queue(pool, self.network.chunk_size)
@@ -267,7 +269,7 @@ class Scaffold:
             pool.execute()
 
     @meter()
-    def run_connectivity(self, strategies=None, DEBUG=True, pipelines=True):
+    def run_connectivity(self, strategies=None, fail_fast=True, pipelines=True):
         """
         Run connection strategies.
         """
@@ -276,7 +278,7 @@ class Scaffold:
         if strategies is None:
             strategies = set(self.connectivity.values())
         strategies = ConnectionStrategy.sort_deps(strategies)
-        pool = self.create_job_pool()
+        pool = self.create_job_pool(fail_fast=fail_fast)
         if pool.is_master():
             for strategy in strategies:
                 strategy.queue(pool)
@@ -327,6 +329,7 @@ class Scaffold:
         append=False,
         redo=False,
         force=False,
+        fail_fast=True,
     ):
         """
         Run reconstruction steps in the scaffold sequence to obtain a full network.
@@ -365,29 +368,29 @@ class Scaffold:
             #   append mode is luckily simpler, just don't clear anything :)
 
         t = time.time()
-        self.run_pipelines()
+        self.run_pipelines(fail_fast=fail_fast)
         if not skip_placement:
             placement_todo = ", ".join(s.name for s in p_strats)
             report(f"Starting placement strategies: {placement_todo}", level=2)
-            self.run_placement(p_strats, pipelines=False)
+            self.run_placement(p_strats, fail_fast=fail_fast, pipelines=False)
         if not skip_after_placement:
-            self.run_after_placement(pipelines=False)
+            self.run_after_placement(pipelines=False, fail_fast=fail_fast)
         if not skip_connectivity:
             connectivity_todo = ", ".join(s.name for s in c_strats)
             report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
-            self.run_connectivity(c_strats, pipelines=False)
+            self.run_connectivity(c_strats, fail_fast=fail_fast, pipelines=False)
         if not skip_after_connectivity:
-            self.run_after_connectivity(pipelines=False)
+            self.run_after_connectivity(fail_fast=fail_fast, pipelines=False)
         report("Runtime: {}".format(time.time() - t), 2)
         # After compilation we should flag the storage as having existed before so that
         # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
         self.storage._preexisted = True
 
     @meter()
-    def run_pipelines(self, pipelines=None, DEBUG=True):
+    def run_pipelines(self, fail_fast=True, pipelines=None, DEBUG=True):
         if pipelines is None:
             pipelines = self.get_dependency_pipelines()
-        pool = self.create_job_pool()
+        pool = self.create_job_pool(fail_fast=fail_fast)
         if pool.is_master():
             for pipeline in pipelines:
                 pipeline.queue(pool)
@@ -775,10 +778,18 @@ class Scaffold:
             ) from None
         return cs
 
-    def create_job_pool(self):
+    def create_job_pool(self, fail_fast=None):
         pool = JobPool(self)
-        for listener, max_wait in self._pool_listeners:
-            pool.add_listener(listener, max_wait=max_wait)
+        default_listener = NonTTYTerminalListener
+        # if os.isatty(sys.stdout.fileno()):
+        #     default_listener = TTYTerminalListener
+        # else:
+        #     default_listener = NonTTYTerminalListener
+        if self._pool_listeners:
+            for listener, max_wait in self._pool_listeners:
+                pool.add_listener(listener, max_wait=max_wait)
+        else:
+            pool.add_listener(default_listener(fail_fast=fail_fast))
         return pool
 
     def register_listener(self, listener, max_wait=None):
