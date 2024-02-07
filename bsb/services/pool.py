@@ -114,6 +114,10 @@ class Job(abc.ABC):
         self._error = None
 
     @property
+    def status(self):
+        return self._status
+
+    @property
     def result(self):
         return self._result
 
@@ -219,7 +223,7 @@ class ConnectivityJob(Job):
     """
 
     def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
-        args = (self._f, strategy.name, pre_roi, post_roi)
+        args = (strategy.name, pre_roi, post_roi)
         super().__init__(pool, args, {}, deps=deps)
         self._cname = strategy.__class__.__name__
         self._name = strategy.name
@@ -229,7 +233,7 @@ class ConnectivityJob(Job):
         name = args[0]
         connectivity = job_owner.connectivity[name]
         collections = connectivity._get_connect_args_from_job(*args[1:])
-        return connectivity.connect(connectivity, *collections, **kwargs)
+        return connectivity.connect(*collections, **kwargs)
 
 
 class FunctionJob(Job):
@@ -282,15 +286,14 @@ def listener_ff(job_list, pool_status):
     if pool_status == "Starting":
         print(f"There are {len(job_list)} jobs in the queue.\n")
     elif pool_status == "Running":
-        if failed_jobs := [job for job in job_list if job._status == JobStatus.FAILED]:
+        if failed_jobs := [job for job in job_list if job.error]:
             for job in failed_jobs:
                 if hasattr(job, "_cname"):
-                    print(
-                        f"> Strategy {job._name} raise the error {job._error} while attempting to use {job._cname}."
-                    )
+                    msg = f"Strategy {job.name} raise the error {job.error} while attempting to use {job._cname}."
+
                 else:
-                    print(f"> Job {job} named {job._name} raise the error {job._error}!")
-            raise ValueError
+                    msg = f"> Job {job} errored!"
+            raise ValueError(msg) from job.error
         else:
             job_pending = sum([1 for job in job_list if job._status == JobStatus.PENDING])
             job_queued = sum([1 for job in job_list if job._status == JobStatus.QUEUED])
@@ -396,9 +399,9 @@ class JobPool:
                 # queue; each job will store their own future and will use the futures of
                 # their previously enqueued dependencies to determine when they can put
                 # themselves on the pool queue.
+
                 for job in self._job_queue:
                     job._enqueue(self)
-
                 # Check if there are listeners defined otherwise use basic_listener.
                 if not self._listeners:
                     self._listeners.append(basic_listener)
@@ -421,15 +424,9 @@ class JobPool:
                         timeout=self._max_wait,
                         return_when="FIRST_COMPLETED",
                     )
-                    # Send the updates to the listeners and check if an error is returned
+                    # Send the updates to the listeners and check if an error is raised
                     for listener in self._listeners:
-                        try:
-                            listener(self._job_queue, self._status)
-                        except:
-                            break
-                    else:
-                        continue
-                    break
+                        listener(self._job_queue, self._status)
             finally:
                 self._status = "Ending"
                 for listener in self._listeners:
@@ -442,26 +439,23 @@ class JobPool:
             for job in self._job_queue:
                 job._future = concurrent.futures.Future()
                 job._future.add_done_callback(job._completion)
-                job.status = JobStatus.QUEUED
+                job._status = JobStatus.QUEUED
 
             # Just run each job serially
             for job in self._job_queue:
                 f = job._future
                 try:
-                    job.status = JobStatus.RUNNING
+                    job._status = JobStatus.RUNNING
                     # Execute the static handler
                     result = job.execute(self.owner, job._args, job._kwargs)
-                    # result = FunctionJob.execute(self.owner, job._args, job._kwargs)
-                    # result = dispatcher(job.pool_id, job.serialize())
-                    # job._result = result = 0.5
                 except Exception as e:
-                    job.status = JobStatus.FAILED
                     f.set_exception(e)
                 else:
-                    job.status = JobStatus.SUCCESS
                     f.set_result(result)
                 finally:
                     f.done()
+                for listener in self._listeners:
+                    listener(self._job_queue, job._status)
 
         # Clear the queue after all jobs have been done
         self._job_queue = []
