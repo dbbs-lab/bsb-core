@@ -6,7 +6,7 @@ from bsb_test import NumpyTestCase, RandomStorageFixture, get_test_config, timeo
 
 from bsb import config
 from bsb.cell_types import CellType
-from bsb.config import Configuration, from_json
+from bsb.config import Configuration
 from bsb.connectivity import ConnectionStrategy
 from bsb.core import Scaffold
 from bsb.exceptions import *
