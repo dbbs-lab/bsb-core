@@ -295,13 +295,13 @@ class Scaffold:
         self.run_placement([strategy])
 
     @meter()
-    def run_after_placement(self, pipelines=True):
+    def run_after_placement(self, fail_fast=None, pipelines=True):
         """
         Run after placement hooks.
         """
         if self.after_placement:
             warn("After placement disabled")
-        # pool = self.create_job_pool()
+        # pool = self.create_job_pool(fail_fast)
         # for hook in self.configuration.after_placement.values():
         #     pool.queue(hook.after_placement)
         # pool.execute(self._pool_event_loop)
@@ -380,7 +380,7 @@ class Scaffold:
             report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
             self.run_connectivity(c_strats, fail_fast=fail_fast, pipelines=False)
         if not skip_after_connectivity:
-            self.run_after_connectivity(fail_fast=fail_fast, pipelines=False)
+            self.run_after_connectivity(pipelines=False)
         report("Runtime: {}".format(time.time() - t), 2)
         # After compilation we should flag the storage as having existed before so that
         # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.

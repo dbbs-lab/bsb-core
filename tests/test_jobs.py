@@ -19,7 +19,7 @@ from bsb.core import Scaffold
 from bsb.mixins import NotParallel
 from bsb.placement import FixedPositions, PlacementStrategy, RandomPlacement
 from bsb.services import MPI
-from bsb.services.pool import Job, JobPool, JobStatus
+from bsb.services.pool import Job, JobPool, JobStatus, PoolStatus
 from bsb.storage import Chunk
 from bsb.topology import Partition
 
@@ -155,38 +155,6 @@ class TestSerialAndParallelScheduler(
                 job.cancel("Testing")
             self.assertIn("Could not cancel", str(w.warning))
 
-    def test_cancel_pending_job(self):
-        """Test the cancel method on a job that is not submitted"""
-        pool = JobPool(self.network)
-        jobs = [pool.queue(sleep_y, (j_id, 0.1)) for j_id in range(6)]
-        jobs.append(pool.queue(sleep_y, (100, 0.8)))
-
-        pool._job_cancel(jobs[6], "Remove Last One")
-        pool.execute()
-
-        self.assertEqual("Remove Last One", str(jobs[6]._error))
-        self.assertEqual(JobStatus.CANCELLED, jobs[6]._status)
-
-    @unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
-    def test_cancel_queued_job(self):
-        counter = 0
-
-        def job_killer(job_list, status):
-            nonlocal counter
-            counter += 1
-            if status == "Running" and counter == 2:
-                job_list[-1].cancel("Testing")
-
-        self.network.register_listener(job_killer, 0.01)
-        pool = self.network.create_job_pool(fail_fast=True)
-        jobs = [pool.queue(sleep_y, (j_id, 0.1)) for j_id in range(6)]
-        jobs.append(pool.queue(sleep_y, (100, 0.8)))
-        pool.execute()
-
-        if MPI.get_rank() == 0:
-            self.assertEqual(jobs[6]._status, JobStatus.CANCELLED)
-            self.assertEqual(str(jobs[6]._error), "Testing")
-
     #     @timeout(3)
     @unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
     def test_listeners(self):
@@ -195,7 +163,7 @@ class TestSerialAndParallelScheduler(
         res = None
 
         def spy(pool_state, pool_status=None):
-            if pool_status != "Ending":
+            if pool_status != PoolStatus.ENDING:
                 nonlocal i
                 i += 1
 
@@ -264,8 +232,38 @@ class TestParallelScheduler(
             ) as err:
                 job._enqueue(pool)
 
+    def test_cancel_pending_job(self):
+        """Test the cancel method on a job that is not submitted"""
+        pool = JobPool(self.network)
+        jobs = [pool.queue(sleep_y, (j_id, 0.1)) for j_id in range(6)]
+        jobs.append(pool.queue(sleep_y, (100, 0.8), deps=[jobs[5]]))
+
+        pool._job_cancel(jobs[6], "Remove Last One")
+        pool.execute()
+
+        self.assertEqual("Remove Last One", str(jobs[6]._error))
+        self.assertEqual(JobStatus.CANCELLED, jobs[6]._status)
+
+    def test_cancel_queued_job(self):
+        counter = 0
+
+        def job_killer(job_list, status):
+            nonlocal counter
+            counter += 1
+            if status == PoolStatus.RUNNING and counter == 2:
+                job_list[-1].cancel("Testing")
+
+        self.network.register_listener(job_killer, 0.01)
+        pool = self.network.create_job_pool(fail_fast=True)
+        jobs = [pool.queue(sleep_y, (j_id, 0.1)) for j_id in range(6)]
+        jobs.append(pool.queue(sleep_y, (100, 0.8)))
+        pool.execute()
+
+        if MPI.get_rank() == 0:
+            self.assertEqual(jobs[6]._status, JobStatus.CANCELLED)
+            self.assertEqual(str(jobs[6]._error), "Testing")
+
     # @timeout(3)
-    # @unittest.expectedFailure
     def test_dependencies(self):
         outcome = None
 
@@ -291,13 +289,12 @@ class TestParallelScheduler(
             self.assertEqual(job2._result, 5)
 
     def test_dependency_failure(self):
-        result = None
-
-        pool = self.network.create_job_pool(fail_fast=True)
+        pool = self.network.create_job_pool()
         job = pool.queue(sleep_fail, (4, 0.2), submitter={"name": "One"})
         job2 = pool.queue(sleep_y, (5, 0.1), deps=[job], submitter={"name": "Two"})
         job3 = pool.queue(sleep_y, (4, 0.1), submitter={"name": "Three"})
 
+        # with self.assertRaises(ZeroDivisionError):
         pool.execute()
 
         if not MPI.get_rank():
