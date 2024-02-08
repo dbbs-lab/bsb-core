@@ -64,7 +64,7 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
             ]
         except Exception:
             raise RuntimeError(f"Could not parse SWC content")
-        err_lines = ", ".join(i for i, d in enumerate(data) if len(d) != 7)
+        err_lines = ", ".join(str(i) for i, d in enumerate(data) if len(d) != 7)
         if err_lines:
             raise ValueError(f"SWC incorrect on lines: {err_lines}")
         return np.array(data)

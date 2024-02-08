@@ -1,6 +1,7 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+
 import builtins
 
 import errr

@@ -1,6 +1,7 @@
 """
 Contains builtin commands.
 """
+
 import itertools
 from uuid import uuid4
 
