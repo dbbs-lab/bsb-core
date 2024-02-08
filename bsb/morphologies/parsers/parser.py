@@ -45,7 +45,7 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
     def parse(self, file: typing.Union["FileDependency", str]):
         from ...storage import FileDependency
 
-        if isinstance(file, str):
+        if not isinstance(file, FileDependency):
             file = FileDependency(file)
         content, encoding = file.get_content(check_store=False)
         return self.parse_content(content.decode(encoding or "utf8"))
