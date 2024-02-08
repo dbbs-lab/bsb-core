@@ -102,18 +102,43 @@ def dispatcher(pool_id, job_args):
     return handler(owner, args, kwargs)
 
 
+class SubmissionContext:
+    def __init__(self, submitter=None, chunks=None, **kwargs):
+        # todo: store attributes on self, store all other kwargs in
+        self._submitter = submitter
+        self._chunks = chunks
+        self._context = kwargs
+
+    @property
+    def name(self):
+        # todo: cascade the node, class, and name information
+        f_name = self._submitter[0]
+        f_class = self._submitter[1]
+        return (f_class, f_name)
+
+    @property
+    def chunks(self):
+        # todo: return a copy of the chunks list
+        return self._chunks
+
+    def __getattr__(self, key):
+        if key in self._context:
+            return self._context[key]
+        else:
+            return self.__getattribute__(key)
+
+
 class Job(abc.ABC):
     """
     Dispatches the execution of a function through a JobPool
     """
 
-    def __init__(self, pool, args, kwargs, deps=None, submitter=None):
+    def __init__(self, pool, args, kwargs, deps=None):
         self.pool_id = pool.id
-        self._name = "No name"
         self._args = args
         self._kwargs = kwargs
         self._deps = set(deps or [])
-        self._submitter = submitter
+        self._context = None
         self._completion_cbs = []
         self._status = JobStatus.PENDING
         for j in self._deps:
@@ -215,8 +240,8 @@ class PlacementJob(Job):
     def __init__(self, pool, strategy, chunk, deps=None):
         args = (strategy.name, chunk)
         super().__init__(pool, args, {}, deps=deps)
-        self._cname = strategy.__class__.__name__
-        self._name = strategy.name
+        context = (strategy.name, strategy.__class__.__name__)
+        self._context = SubmissionContext(context, chunk)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
@@ -234,8 +259,8 @@ class ConnectivityJob(Job):
     def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
         args = (strategy.name, pre_roi, post_roi)
         super().__init__(pool, args, {}, deps=deps)
-        self._cname = strategy.__class__.__name__
-        self._name = strategy.name
+        context = (strategy.name, strategy.__class__.__name__)
+        self._context = SubmissionContext(context, chunks=pre_roi)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
@@ -248,10 +273,12 @@ class ConnectivityJob(Job):
 class FunctionJob(Job):
     def __init__(self, pool, f, args, kwargs, deps=None, submitter=None):
         self._f = f
-        self._name = f.__name__
         new_args = [f]
         new_args.extend(args)
-        super().__init__(pool, new_args, kwargs, deps=deps, submitter=submitter)
+        super().__init__(pool, new_args, kwargs, deps=deps)
+        self._context = SubmissionContext(
+            (f.__name__, None or f.__class__), chunks=new_args
+        )
 
     @staticmethod
     def execute(job_owner, args, kwargs):
