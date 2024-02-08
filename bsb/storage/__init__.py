@@ -350,7 +350,8 @@ class Storage:
         Initialize the storage to be ready for use by the specified scaffold.
         """
         self.store_active_config(scaffold.configuration)
-        self.init_placement(scaffold)
+        if self.supports("PlacementSet"):
+            self.init_placement(scaffold)
 
     def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():

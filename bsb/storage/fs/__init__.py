@@ -61,7 +61,7 @@ class FileSystemEngine(Engine):
         shutil.copytree(self._root, new_root)
 
     def remove(self):
-        os.remove(self._root)
+        shutil.rmtree(self._root)
 
     def require_placement_set(self, ct):
         raise NotImplementedError("No PS")

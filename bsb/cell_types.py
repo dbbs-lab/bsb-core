@@ -66,7 +66,8 @@ class CellType:
 
     def __boot__(self):
         storage = self.scaffold.storage
-        storage._PlacementSet.require(storage._engine, self)
+        if storage.supports("PlacementSet"):
+            storage.require_placement_set(self)
 
     def __lt__(self, other):
         try:
