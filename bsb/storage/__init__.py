@@ -441,7 +441,7 @@ def view_support(engine=None):
 # * Discover the engine plugins with `discover_engines`
 # * Store engine initializers in `_engines` through `register_engine`
 # Any time something from `_engines` is used, it should be checked if it is callable. If
-# it is the engine plugin is not initialized yet and the function should be called and
-# replaced with its return value.
+# it is, then the engine plugin is not initialized yet and the function should be called
+# and replaced with its return value.
 _engines = {}
 _available_engines = discover_engines()

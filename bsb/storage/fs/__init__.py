@@ -6,6 +6,7 @@ import shortuuid
 
 from ... import config
 from ...services import MPILock
+from ..decorators import on_main, on_main_until
 from ..interfaces import Engine, NoopLock
 from ..interfaces import StorageNode as IStorageNode
 from .file_store import FileStore
@@ -49,17 +50,21 @@ class FileSystemEngine(Engine):
     def exists(self):
         return os.path.exists(self._root)
 
+    @on_main_until(lambda self: self.exists())
     def create(self):
         os.makedirs(os.path.join(self._root, "files"), exist_ok=True)
         os.makedirs(os.path.join(self._root, "file_meta"), exist_ok=True)
 
+    @on_main_until(lambda self: self.exists())
     def move(self, new_root):
         shutil.move(self._root, new_root)
         self._root = new_root
 
+    @on_main_until(lambda self, r: self.__class__(self.root, self.comm).exists())
     def copy(self, new_root):
         shutil.copytree(self._root, new_root)
 
+    @on_main_until(lambda self: not self.exists())
     def remove(self):
         shutil.rmtree(self._root)
 
