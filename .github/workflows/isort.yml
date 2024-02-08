@@ -11,9 +11,10 @@ jobs:
         with:
           python-version: 3.9
       - name: Install apt dependencies
+        # Install `libopenmpi` for mpi4py
         run: |
           sudo apt update
-          # Install `libopenmpi` for MPI
           sudo apt install openmpi-bin libopenmpi-dev
+      # Install dependencies for proper 1st/2nd/3rd party import sorting
       - run: pip install -e .[parallel]
       - uses: isort/isort-action@master
