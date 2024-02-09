@@ -258,7 +258,7 @@ class Scaffold:
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = [*self.placement]
+            strategies = [*self.placement.values()]
         strategies = PlacementStrategy.sort_deps(strategies)
         pool = self.create_job_pool(fail_fast=fail_fast)
         if pool.is_master():

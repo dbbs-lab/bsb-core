@@ -358,3 +358,47 @@ class TestSerialScheduler(
         )
         cstrat.queue(pool)
         pool.execute()
+
+
+class TestSubmissionContext(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
+):
+    def setUp(self):
+        self.cfg = Configuration.default(
+            cell_types=dict(A=dict(spatial=dict(radius=1, count=1))),
+            placement=dict(
+                test=(
+                    PlacementStrategy(
+                        strategy="bsb.placement.FixedPositions",
+                        cell_types=["A"],
+                        partitions=[],
+                        positions=[[0, 0, 0]],
+                    )
+                )
+            ),
+            connectivity=dict(
+                test=(
+                    ConnectionStrategy(
+                        strategy="bsb.connectivity.AllToAll",
+                        presynaptic={"cell_types": ["A"]},
+                        postsynaptic={"cell_types": ["A"]},
+                    )
+                )
+            ),
+        )
+        super().setUp()
+
+    def test_ps_node_submission(self):
+        pool = self.network.create_job_pool()
+        if pool.is_master():
+            self.network.placement.test.queue(pool, [100, 100, 100])
+            self.assertEqual(1, len(pool.jobs))
+            self.assertEqual("{root}.placement.test", pool.jobs[0].name)
+
+    def test_cs_node_submission(self):
+        self.network.run_placement()
+        pool = self.network.create_job_pool()
+        if pool.is_master():
+            self.network.connectivity.test.queue(pool)
+            self.assertEqual(1, len(pool.jobs))
+            self.assertEqual("{root}.connectivity.test", pool.jobs[0].name)

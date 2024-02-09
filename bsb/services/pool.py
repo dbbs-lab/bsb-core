@@ -36,6 +36,7 @@ API and subject to sudden change in the future.
 
 """
 import abc
+import builtins
 import concurrent.futures
 import typing
 import warnings
@@ -103,23 +104,24 @@ def dispatcher(pool_id, job_args):
 
 
 class SubmissionContext:
-    def __init__(self, submitter=None, chunks=None, **kwargs):
-        # todo: store attributes on self, store all other kwargs in
+    def __init__(self, submitter, chunks=None, **kwargs):
         self._submitter = submitter
         self._chunks = chunks
         self._context = kwargs
 
     @property
     def name(self):
-        # todo: cascade the node, class, and name information
-        f_name = self._submitter[0]
-        f_class = self._submitter[1]
-        return (f_class, f_name)
+        if hasattr(self._submitter, "get_node_name"):
+            name = self._submitter.get_node_name()
+        else:
+            name = str(self._submitter)
+        return name
 
     @property
     def chunks(self):
-        # todo: return a copy of the chunks list
-        return self._chunks
+        from ..storage import chunklist
+
+        return chunklist(self._chunks) if self._chunks is not None else None
 
     def __getattr__(self, key):
         if key in self._context:
@@ -133,12 +135,12 @@ class Job(abc.ABC):
     Dispatches the execution of a function through a JobPool
     """
 
-    def __init__(self, pool, args, kwargs, deps=None):
+    def __init__(self, pool, submission_context, args, kwargs, deps=None):
         self.pool_id = pool.id
         self._args = args
         self._kwargs = kwargs
         self._deps = set(deps or [])
-        self._context = None
+        self._submit_ctx = submission_context
         self._completion_cbs = []
         self._status = JobStatus.PENDING
         for j in self._deps:
@@ -146,6 +148,10 @@ class Job(abc.ABC):
         self._future = None
         self._result = None
         self._error = None
+
+    @property
+    def name(self):
+        return self._submit_ctx.name
 
     @property
     def status(self):
@@ -239,9 +245,8 @@ class PlacementJob(Job):
 
     def __init__(self, pool, strategy, chunk, deps=None):
         args = (strategy.name, chunk)
-        super().__init__(pool, args, {}, deps=deps)
-        context = (strategy.name, strategy.__class__.__name__)
-        self._context = SubmissionContext(context, chunk)
+        context = SubmissionContext(strategy, [chunk])
+        super().__init__(pool, context, args, {}, deps=deps)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
@@ -257,10 +262,13 @@ class ConnectivityJob(Job):
     """
 
     def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
+        from bsb.storage import chunklist
+
         args = (strategy.name, pre_roi, post_roi)
-        super().__init__(pool, args, {}, deps=deps)
-        context = (strategy.name, strategy.__class__.__name__)
-        self._context = SubmissionContext(context, chunks=pre_roi)
+        context = SubmissionContext(
+            strategy, chunks=chunklist((*(pre_roi or []), *(post_roi or [])))
+        )
+        super().__init__(pool, context, args, {}, deps=deps)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
@@ -305,6 +313,10 @@ class JobPool:
     def add_listener(self, listener, max_wait=None):
         self._max_wait = min(self._max_wait, max_wait or float("+inf"))
         self._listeners.append(listener)
+
+    @property
+    def jobs(self):
+        return [*self._job_queue]
 
     @property
     def parallel(self):
