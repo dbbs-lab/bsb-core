@@ -154,6 +154,10 @@ class Job(abc.ABC):
         return self._submit_ctx.name
 
     @property
+    def context(self):
+        return self._submit_ctx._context
+
+    @property
     def status(self):
         return self._status
 
@@ -283,10 +287,8 @@ class FunctionJob(Job):
         self._f = f
         new_args = [f]
         new_args.extend(args)
-        super().__init__(pool, new_args, kwargs, deps=deps)
-        self._context = SubmissionContext(
-            (f.__name__, None or f.__class__), chunks=new_args
-        )
+        context = SubmissionContext(f, chunks=new_args, **submitter)
+        super().__init__(pool, context, new_args, kwargs, deps=deps)
 
     @staticmethod
     def execute(job_owner, args, kwargs):

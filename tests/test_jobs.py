@@ -402,3 +402,10 @@ class TestSubmissionContext(
             self.network.connectivity.test.queue(pool)
             self.assertEqual(1, len(pool.jobs))
             self.assertEqual("{root}.connectivity.test", pool.jobs[0].name)
+
+    def test_no_node_submission(self):
+        pool = self.network.create_job_pool()
+        if pool.is_master():
+            job = pool.queue(sleep_y, (4, 0.2), submitter={"number": "One"})
+            self.assertIn("function sleep_y", job.name)
+            self.assertEqual("One", job.context["number"])
