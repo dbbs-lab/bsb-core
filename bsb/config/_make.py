@@ -586,6 +586,14 @@ def make_tree(node_cls):
     node_cls.__tree__ = get_tree
 
 
+def make_copyable(node_cls):
+    def loc_copy(instance, memo=None):
+        return type(instance)(instance.__tree__())
+
+    node_cls.__copy__ = loc_copy
+    node_cls.__deepcopy__ = loc_copy
+
+
 def walk_node_attributes(node):
     """
     Walk over all of the child configuration nodes and attributes of ``node``.

@@ -1,6 +1,7 @@
 """
     Module for the Partition configuration nodes and its dependencies.
 """
+
 import abc
 import collections
 import functools

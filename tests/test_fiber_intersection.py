@@ -1,23 +1,13 @@
-import importlib
 import os
-import sys
 import unittest
 
-import h5py
 import numpy as np
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.config import from_json
 from bsb.core import Scaffold
 
 
 def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
-
-
-fiber_transform_config = relative_to_tests_folder("configs/test_fiber_intersection.json")
-morpho_file = relative_to_tests_folder("morphologies.h5")
 
 
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
@@ -28,7 +18,8 @@ class TestFiberIntersection(unittest.TestCase):
         # Make sure the MR exists
         # The scaffold has only the Granular layer (100x100x150) with 20 GrCs
         # and 1 GoC placed, as specified in the config file
-        self.config = cfg = from_json(fiber_transform_config)
+        # fixme: retrieve and update old fiber intersection tests
+        self.config = cfg = Configuration.default()
         # Defining quivers field to include also voxels outside the scaffold
         # volume
         self.quivers_field = np.zeros(

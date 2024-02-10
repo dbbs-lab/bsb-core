@@ -99,8 +99,7 @@ Here is an example what that would look like:
           - center
           - my_module.add_axon
           - func: rotate
-            parameters:
-              - [20, 0, 20]
+            rotation: [20, 0, 20]
 
   .. code-block:: json
 
@@ -112,9 +111,7 @@ Here is an example what that would look like:
           "my_module.add_axon",
           {
             "func": "rotate",
-            "parameters": [
-              [20, 0, 20]
-            ]
+            "rotation": [20, 0, 20]
           },
         ],
       }
@@ -122,9 +119,8 @@ Here is an example what that would look like:
 
 .. note::
 
-  Parameters are passed positionally, keyword arguments must be passed in the order they appear
-  in in the signature. If your target function has a complicated signature or keyword-only
-  arguments, create a wrapping function and target that instead.
+  Any additional keys given in a pipeline step, such as :guilabel:`rotation` in the
+  example, are passed to the function as keyword arguments.
 
 Fetching with alternative URI schemes
 -------------------------------------

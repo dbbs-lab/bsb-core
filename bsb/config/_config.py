@@ -9,7 +9,11 @@ from ..connectivity import ConnectionStrategy
 from ..placement import PlacementStrategy
 from ..postprocessing import PostProcessingHook
 from ..simulation.simulation import Simulation
-from ..storage._files import CodeDependencyNode, MorphologyDependencyNode
+from ..storage._files import (
+    CodeDependencyNode,
+    MorphologyDependencyNode,
+    MorphologyPipelineNode,
+)
 from ..storage.interfaces import StorageNode
 from ..topology import Partition, Region, RegionGroup, create_topology, get_partitions
 from . import types
@@ -60,7 +64,7 @@ class Configuration:
         type=CodeDependencyNode,
     )
     morphologies: cfglist[MorphologyDependencyNode] = config.list(
-        type=MorphologyDependencyNode,
+        type=types.or_(MorphologyDependencyNode, MorphologyPipelineNode),
     )
     storage: StorageNode = config.attr(
         type=StorageNode,

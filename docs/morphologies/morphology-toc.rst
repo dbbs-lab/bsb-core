@@ -3,5 +3,6 @@
    :caption: Morphology
 
    intro
+   parsers
    repository
    morphology-set
