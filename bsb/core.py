@@ -795,6 +795,9 @@ class Scaffold:
     def register_listener(self, listener, max_wait=None):
         self._pool_listeners.append((listener, max_wait))
 
+    def clean_listeners(self):
+        self._pool_listeners = []
+
 
 class ReportListener:
     def __init__(self, scaffold, file):

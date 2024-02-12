@@ -132,6 +132,7 @@ class TestSerialAndParallelScheduler(
             self.assertEqual(job._status, JobStatus.SUCCESS)
 
     def test_single_job_fail(self):
+        self.network.clean_listeners()
         pool = JobPool(self.network)
         # Test if raise errors
         job = pool.queue(lambda scaffold, x, y: x / y, (5, 0))
@@ -143,6 +144,7 @@ class TestSerialAndParallelScheduler(
     def test_multiple_jobs(self):
         """Test the execution of a set of lambda function"""
         result = [None for x in range(4)]
+        self.network.clean_listeners()
 
         def collect_mj(pool_states, pool_status=None):
             nonlocal result
@@ -168,6 +170,7 @@ class TestSerialAndParallelScheduler(
     @unittest.skip
     def test_cancel_running_job(self):
         """Attempt to cancel a job while running todo: test is stuck"""
+        self.network.clean_listeners()
         pool = JobPool(self.network)
         job = pool.queue(sleep_y, (5, 0.5))
         pool.execute()
