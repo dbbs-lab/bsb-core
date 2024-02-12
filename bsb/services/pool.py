@@ -38,6 +38,7 @@ API and subject to sudden change in the future.
 import abc
 import builtins
 import concurrent.futures
+import tempfile
 import typing
 import warnings
 from enum import Enum
@@ -146,7 +147,7 @@ class Job(abc.ABC):
         for j in self._deps:
             j.on_completion(self._dep_completed)
         self._future = None
-        self._result = None
+        self.res_file = None
         self._error = None
 
     @property
@@ -186,18 +187,35 @@ class Job(abc.ABC):
     def on_completion(self, cb):
         self._completion_cbs.append(cb)
 
+    def get_result(self):
+        if self.res_file != None:
+            self.res_file.seek(0)
+            retrieved = self.res_file.read()
+            return retrieved.decode("utf-8")
+        else:
+            raise RuntimeError(
+                f"Attempting to get result of {self} but temporary file do not exist!"
+            )
+
+    def set_result(self, value):
+        dirname = JobPool.get_tmp_folder(self.pool_id)
+        result = str(value)
+        self.res_file = tempfile.NamedTemporaryFile(prefix=dirname + "/", delete=False)
+        self.res_file.write(result.encode("ascii"))
+
     def _completion(self, future):
         # todo: First update ourselves, based on future:
         #       * retrieve error/result
         #       then, publish ourselves to all our listeners:
         if self._status != JobStatus.CANCELLED:
             try:
-                self._result = future.result()
+                result = future.result()
             except Exception as e:
                 self._status = JobStatus.FAILED
                 self._error = e
             else:
                 self._status = JobStatus.SUCCESS
+                self.set_result(result)
         for cb in self._completion_cbs:
             cb(self, err=None, result=None)
 
@@ -283,7 +301,7 @@ class ConnectivityJob(Job):
 
 
 class FunctionJob(Job):
-    def __init__(self, pool, f, args, kwargs, deps=None, submitter=None):
+    def __init__(self, pool, f, args, kwargs, deps=None, submitter={}):
         self._f = f
         new_args = [f]
         new_args.extend(args)
@@ -300,6 +318,7 @@ class FunctionJob(Job):
 class JobPool:
     _next_pool_id = 0
     _pool_owners = {}
+    _tmp_folders = {}
 
     def __init__(self, scaffold):
         self._running_futures: list[concurrent.futures.Future] = []
@@ -327,6 +346,10 @@ class JobPool:
     @classmethod
     def get_owner(cls, id):
         return cls._pool_owners[id]
+
+    @classmethod
+    def get_tmp_folder(cls, id):
+        return cls._tmp_folders[id]
 
     @property
     def owner(self):
@@ -356,7 +379,7 @@ class JobPool:
     def _job_cancel(self, job, msg="Bo"):
         job.cancel(msg)
 
-    def queue(self, f, args=None, kwargs=None, deps=None, submitter=None):
+    def queue(self, f, args=None, kwargs=None, deps=None, submitter={}):
         job = FunctionJob(self, f, args or [], kwargs or {}, deps, submitter=submitter)
         self._put(job)
         return job
@@ -383,70 +406,77 @@ class JobPool:
             # Create the MPI pool
             self._pool = _MPIPool.MPIExecutor()
 
-            if self._pool.is_worker():
-                # The workers will return out of the pool constructor when they receive
-                # the shutdown signal from the master, they return here skipping the
-                # master logic.
-                return
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                JobPool._tmp_folders[self.id] = tmp_dirname
+                if self._pool.is_worker():
+                    # The workers will return out of the pool constructor when they receive
+                    # the shutdown signal from the master, they return here skipping the
+                    # master logic.
+                    return
 
-            try:
-                # Tell each job in our queue that they have to put themselves in the pool
-                # queue; each job will store their own future and will use the futures of
-                # their previously enqueued dependencies to determine when they can put
-                # themselves on the pool queue.
+                try:
+                    # Tell each job in our queue that they have to put themselves in the pool
+                    # queue; each job will store their own future and will use the futures of
+                    # their previously enqueued dependencies to determine when they can put
+                    # themselves on the pool queue.
 
-                for job in self._job_queue:
-                    job._enqueue(self)
+                    for job in self._job_queue:
+                        job._enqueue(self)
 
-                # Call the listeners when execution is starting
-                for listener in self._listeners:
-                    listener(self._job_queue, self._status)
-                # Now we start to listen to future, use the boolean check_failures variable to exit when an error is raised
-                self._status = PoolStatus.RUNNING
-                self._check_failures = False
-                # As long as any of the jobs aren't done yet we repeat the wait action with a timeout defined by _max_wait
-                while any(
-                    [
-                        job._status == JobStatus.PENDING
-                        or job._status == JobStatus.QUEUED
-                        for job in self._job_queue
-                    ]
-                ):
-                    concurrent.futures.wait(
-                        self._running_futures,
-                        timeout=self._max_wait,
-                        return_when="FIRST_COMPLETED",
-                    )
-                    # Send the updates to the listeners and check if an error is raised
+                    # Call the listeners when execution is starting
                     for listener in self._listeners:
                         listener(self._job_queue, self._status)
-            finally:
-                self._status = PoolStatus.ENDING
-                for listener in self._listeners:
-                    listener(self._job_queue, self._status)
-                self._pool.shutdown()
+                    # Now we start to listen to future, use the boolean check_failures variable to exit when an error is raised
+                    self._status = PoolStatus.RUNNING
+                    self._check_failures = False
+                    # As long as any of the jobs aren't done yet we repeat the wait action with a timeout defined by _max_wait
+                    while any(
+                        [
+                            job._status == JobStatus.PENDING
+                            or job._status == JobStatus.QUEUED
+                            for job in self._job_queue
+                        ]
+                    ):
+                        concurrent.futures.wait(
+                            self._running_futures,
+                            timeout=self._max_wait,
+                            return_when="FIRST_COMPLETED",
+                        )
+                        # Send the updates to the listeners and check if an error is raised
+                        for listener in self._listeners:
+                            listener(self._job_queue, self._status)
+                    # Call the listeners in the ending of the job pool
+                    self._status = PoolStatus.ENDING
+                    for listener in self._listeners:
+                        listener(self._job_queue, self._status)
+                finally:
+                    self._pool.shutdown()
 
         else:
             # todo: start a thread/coroutines/asyncio that calls the listeners periodically
-            # Prepare jobs for local execution
-            for job in self._job_queue:
-                job._future = concurrent.futures.Future()
-                job._future.add_done_callback(job._completion)
-                job._status = JobStatus.QUEUED
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                # Create tmp folder
+                JobPool._tmp_folders[self.id] = tmp_dirname
+                # Prepare jobs for local execution
+                for job in self._job_queue:
+                    job._future = concurrent.futures.Future()
+                    job._future.add_done_callback(job._completion)
+                    job._status = JobStatus.QUEUED
 
-            # Just run each job serially
-            for job in self._job_queue:
-                f = job._future
-                try:
-                    job._status = JobStatus.RUNNING
-                    # Execute the static handler
-                    result = job.execute(self.owner, job._args, job._kwargs)
-                except Exception as e:
-                    f.set_exception(e)
-                else:
-                    f.set_result(result)
-                finally:
-                    f.done()
+                # Just run each job serially
+                for job in self._job_queue:
+                    f = job._future
+                    try:
+                        job._status = JobStatus.RUNNING
+                        # Execute the static handler
+                        result = job.execute(self.owner, job._args, job._kwargs)
+                    except Exception as e:
+                        f.set_exception(e)
+                    else:
+                        f.set_result(result)
+                    finally:
+                        f.done()
+                self._status = PoolStatus.ENDING
                 for listener in self._listeners:
                     listener(self._job_queue, self._status)
 
