@@ -163,10 +163,6 @@ class Job(abc.ABC):
         return self._status
 
     @property
-    def result(self):
-        return self._result
-
-    @property
     def error(self):
         return self._error
 
@@ -213,6 +209,7 @@ class Job(abc.ABC):
             except Exception as e:
                 self._status = JobStatus.FAILED
                 self._error = e
+                self.set_result("Job failed")
             else:
                 self._status = JobStatus.SUCCESS
                 self.set_result(result)
@@ -428,7 +425,6 @@ class JobPool:
                         listener(self._job_queue, self._status)
                     # Now we start to listen to future, use the boolean check_failures variable to exit when an error is raised
                     self._status = PoolStatus.RUNNING
-                    self._check_failures = False
                     # As long as any of the jobs aren't done yet we repeat the wait action with a timeout defined by _max_wait
                     while any(
                         [

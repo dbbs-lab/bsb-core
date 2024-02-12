@@ -28,3 +28,5 @@ bsb-*/
 # Merge note: NRRD & jupyter checkpoints
 *.nrrd
 .ipynb_checkpoints
+
+bsb/services/try_tmp.py

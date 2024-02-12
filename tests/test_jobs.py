@@ -109,17 +109,26 @@ class TestSerialAndParallelScheduler(
     #     @timeout(3)
     def test_single_job(self):
         """Test the execution of a single lambda function"""
-        pool = JobPool(self.network)
+        result = None
+
+        def collect_sj(pool_states, pool_status=None):
+            nonlocal result
+            if pool_status is PoolStatus.ENDING:
+                print(f"Risultato: {pool_states[0]}")
+                result = pool_states[0].get_result()
+
+        self.network.register_listener(collect_sj, 0.04)
+        pool = self.network.create_job_pool(fail_fast=True)
         # Test a single job execution
         job = pool.queue(lambda scaffold, x, y: x * y, (5, 0.1))
-
+        job2 = pool.queue(lambda scaffold, x, y: x * y, (6, 0.1))
         # Check status
         self.assertEqual(job._status, JobStatus.PENDING)
 
         pool.execute()
 
         if MPI.get_rank() == 0:
-            self.assertEqual(0.5, job.result)
+            self.assertEqual(0.5, float(result))
             self.assertEqual(job._status, JobStatus.SUCCESS)
 
     def test_single_job_fail(self):
@@ -133,7 +142,16 @@ class TestSerialAndParallelScheduler(
 
     def test_multiple_jobs(self):
         """Test the execution of a set of lambda function"""
-        pool = JobPool(self.network)
+        result = [None for x in range(4)]
+
+        def collect_mj(pool_states, pool_status=None):
+            nonlocal result
+            if pool_status is PoolStatus.ENDING:
+                for id, pool_state in enumerate(pool_states):
+                    result[id] = pool_state.get_result()
+
+        self.network.register_listener(collect_mj, 0.04)
+        pool = self.network.create_job_pool(fail_fast=True)
         job1 = pool.queue(lambda scaffold, x, y: x * y, (5, 0.1))
         job2 = pool.queue(lambda scaffold, x, y: x * y, (6, 0.1))
         job3 = pool.queue(lambda scaffold, x, y: x * y, (7, 0.1))
@@ -142,10 +160,10 @@ class TestSerialAndParallelScheduler(
         pool.execute()
 
         if MPI.get_rank() == 0:
-            assert np.isclose(0.5, job1.result)
-            assert np.isclose(0.6, job2.result)
-            assert np.isclose(0.7, job3.result)
-            assert np.isclose(0.8, job4.result)
+            self.assertAlmostEqual(0.5, float(result[0]))
+            self.assertAlmostEqual(0.6, float(result[1]))
+            self.assertAlmostEqual(0.7, float(result[2]))
+            self.assertAlmostEqual(0.8, float(result[3]))
 
     @unittest.skip
     def test_cancel_running_job(self):
@@ -157,6 +175,14 @@ class TestSerialAndParallelScheduler(
             with self.assertWarns(Warning) as w:
                 job.cancel("Testing")
             self.assertIn("Could not cancel", str(w.warning))
+
+    def test_get_result_with_no_tmpfile(self):
+        """Test get_result call before tmp file is created"""
+
+        pool = self.network.create_job_pool(fail_fast=True)
+        job = pool.queue(sleep_y, (5, 0.5))
+        with self.assertRaisesRegex(RuntimeError, "temporary file do not exist"):
+            job.get_result()
 
     #     @timeout(3)
     @unittest.skip
@@ -172,9 +198,9 @@ class TestSerialAndParallelScheduler(
                 i += 1
 
         def collect(pool_state, pool_status=None):
-            if pool_state[0]._status == JobStatus.SUCCESS:
+            if pool_status == PoolStatus.ENDING:
                 nonlocal res
-                res = pool_state[0]._result
+                res = pool_state[0].get_result()
 
         self.network.register_listener(spy, 0.01)
         self.network.register_listener(collect, 0.04)
@@ -183,7 +209,7 @@ class TestSerialAndParallelScheduler(
         pool.execute()
         if not MPI.get_rank():
             self.assertEqual(3, i, "Listeners not executed.")
-            self.assertEqual(5, res, "Listeners not executed.")
+            self.assertEqual(5, float(res), "Listeners not executed.")
             self.assertEqual(0.01, pool._max_wait, "_max_wait not properly set.")
 
     def test_placement_job(self):
@@ -279,16 +305,24 @@ class TestParallelScheduler(
     def test_dependencies(self):
         """todo: test is stuck"""
         outcome = None
+        results = [None for x in range(3)]
 
         def spy(jobs, pool_status):
             nonlocal outcome
             if outcome is None:
                 outcome = (
-                    "queued" == jobs[0]._status.value
-                    and not "queued" == jobs[1]._status.value
+                    JobStatus.QUEUED == jobs[0]._status
+                    and not JobStatus.QUEUED == jobs[1]._status
                 )
 
+        def collect(jobs, pool_status):
+            nonlocal results
+            if pool_status is PoolStatus.ENDING:
+                for id, job in enumerate(jobs):
+                    results[id] = job.get_result()
+
         self.network.register_listener(spy, 0.01)
+        self.network.register_listener(collect, 0.1)
         pool = self.network.create_job_pool(fail_fast=True)
         job = pool.queue(sleep_y, (4, 0.2), submitter={"name": "One"})
         job2 = pool.queue(sleep_y, (5, 0.08), deps=[job], submitter={"name": "Two"})
@@ -298,8 +332,8 @@ class TestParallelScheduler(
 
         if not MPI.get_rank():
             self.assertTrue(outcome, "A job with unfinished dependencies was scheduled.")
-            self.assertEqual(job._result, 4)
-            self.assertEqual(job2._result, 5)
+            self.assertEqual(float(results[0]), 4)
+            self.assertEqual(float(results[1]), 5)
 
     @unittest.skip
     def test_dependency_failure(self):
@@ -314,7 +348,6 @@ class TestParallelScheduler(
 
         if not MPI.get_rank():
             self.assertEqual(str(job2._error), "Job killed for dependency failure")
-            self.assertEqual(job3._result, 4)
             self.assertEqual(job._status, JobStatus.FAILED)
             self.assertEqual(job2._status, JobStatus.CANCELLED)
             self.assertEqual(job3._status, JobStatus.SUCCESS)
