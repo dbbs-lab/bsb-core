@@ -441,6 +441,7 @@ class JobPool:
                         # Send the updates to the listeners and check if an error is raised
                         for listener in self._listeners:
                             listener(self._job_queue, self._status)
+                    sleep(0.2)
                     # Call the listeners in the ending of the job pool
                     self._status = PoolStatus.ENDING
                     for listener in self._listeners:
