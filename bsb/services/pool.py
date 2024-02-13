@@ -38,6 +38,7 @@ API and subject to sudden change in the future.
 import abc
 import builtins
 import concurrent.futures
+import pickle
 import tempfile
 import typing
 import warnings
@@ -147,7 +148,7 @@ class Job(abc.ABC):
         for j in self._deps:
             j.on_completion(self._dep_completed)
         self._future = None
-        self.res_file = None
+        self._res_file = None
         self._error = None
 
     @property
@@ -184,10 +185,9 @@ class Job(abc.ABC):
         self._completion_cbs.append(cb)
 
     def get_result(self):
-        if self.res_file != None:
-            self.res_file.seek(0)
-            retrieved = self.res_file.read()
-            return retrieved.decode("utf-8")
+        if self._res_file != None:
+            with open(self._res_file, "rb") as f:
+                return pickle.load(f)
         else:
             raise RuntimeError(
                 f"Attempting to get result of {self} but temporary file do not exist!"
@@ -195,9 +195,11 @@ class Job(abc.ABC):
 
     def set_result(self, value):
         dirname = JobPool.get_tmp_folder(self.pool_id)
-        result = str(value)
-        self.res_file = tempfile.NamedTemporaryFile(prefix=dirname + "/", delete=False)
-        self.res_file.write(result.encode("ascii"))
+        with tempfile.NamedTemporaryFile(
+            prefix=dirname + "/", delete=False, mode="wb"
+        ) as fp:
+            pickle.dump(value, fp)
+            self._res_file = fp.name
 
     def _completion(self, future):
         # todo: First update ourselves, based on future:
