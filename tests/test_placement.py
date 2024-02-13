@@ -2,11 +2,11 @@ import unittest
 from time import sleep
 
 import numpy as np
-from bsb_test import NumpyTestCase, RandomStorageFixture, get_config_path, timeout
+from bsb_test import NumpyTestCase, RandomStorageFixture, get_test_config, timeout
 
 from bsb import config
 from bsb.cell_types import CellType
-from bsb.config import Configuration, from_json
+from bsb.config import Configuration
 from bsb.connectivity import ConnectionStrategy
 from bsb.core import Scaffold
 from bsb.exceptions import *
@@ -120,7 +120,7 @@ class TestPlacementStrategies(
     RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
 ):
     def test_random_placement(self):
-        cfg = from_json(get_config_path("test_single.json"))
+        cfg = get_test_config("single")
         network = Scaffold(cfg, self.storage)
         cfg.placement["test_placement"] = dict(
             strategy="bsb.placement.RandomPlacement",
@@ -161,7 +161,7 @@ class TestPlacementStrategies(
         self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
 
     def test_parallel_arrays(self):
-        cfg = from_json(get_config_path("test_single.json"))
+        cfg = get_test_config("single")
         network = Scaffold(cfg, self.storage)
         cfg.placement["test_placement"] = dict(
             strategy="bsb.placement.ParallelArrayPlacement",

@@ -1,6 +1,7 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+
 import builtins
 
 import errr
@@ -22,6 +23,7 @@ from ._make import (
     compile_isc,
     compile_new,
     compile_postnew,
+    make_copyable,
     make_dictable,
     make_get_node_name,
     make_tree,
@@ -72,6 +74,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     make_get_node_name(node_cls, root=root)
     make_tree(node_cls)
     make_dictable(node_cls)
+    make_copyable(node_cls)
 
     return node_cls
 
@@ -252,15 +255,17 @@ def slot(**kwargs):
     return ConfigurationAttributeSlot(**kwargs)
 
 
-def property(val=None, /, **kwargs):
+def property(val=None, /, type=None, **kwargs):
     """
     Create a configuration property attribute. You may provide a value or a callable. Call
     `setter` on the return value as you would with a regular property.
     """
+    if type is None:
+        type = lambda v: v
 
     def decorator(val):
         prop = val if callable(val) else lambda s: val
-        return ConfigurationProperty(prop, **kwargs)
+        return ConfigurationProperty(prop, type=type, **kwargs)
 
     if val is None:
         return decorator
@@ -440,16 +445,18 @@ class ConfigurationAttribute:
             return self
         return _getattr(instance, self.attr_name)
 
+    def fset(self, instance, value):
+        return _setattr(instance, self.attr_name, value)
+
     def __set__(self, instance, value):
         if _hasattr(instance, self.attr_name):
             ex_value = _getattr(instance, self.attr_name)
             _unset_nodes(ex_value)
         if value is None:
-            # Don't cast None to a value of the attribute type.
-            return _setattr(instance, self.attr_name, None)
+            # Don't try to cast None to a value of the attribute type.
+            return self.fset(instance, None)
         try:
             value = self.type(value, _parent=instance, _key=self.attr_name)
-            self.flag_dirty(instance)
         except ValueError:
             # This value error should only arise when users are manually setting
             # attributes in an already bootstrapped config tree.
@@ -467,8 +474,9 @@ class ConfigurationAttribute:
                 instance,
                 self.attr_name,
             ) from e
+        self.flag_dirty(instance)
         # The value was cast to its intented type and the new value can be set.
-        _setattr(instance, self.attr_name, value)
+        self.fset(instance, value)
         root = _strict_root(instance)
         if _is_booted(root):
             _boot_nodes(value, root.scaffold)
@@ -1058,7 +1066,7 @@ class ConfigurationProperty(ConfigurationAttribute):
             e.node = self
             raise e
         else:
-            return self.fset(instance, value)
+            return super().__set__(instance, value)
 
 
 def _collect_kv(n, d, k, v):

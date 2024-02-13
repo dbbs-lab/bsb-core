@@ -1,6 +1,7 @@
 """
 This module contains the classes required to construct options.
 """
+
 import argparse
 import functools
 import os

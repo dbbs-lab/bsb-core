@@ -3,7 +3,6 @@ Plugins module. Uses ``pkg_resources`` to detect installed plugins and loads the
 categories.
 """
 
-
 import types
 from importlib.metadata import entry_points
 

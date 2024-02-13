@@ -280,6 +280,8 @@ def compile_postnew(cls):
         for attr in attrs.values():
             name = attr.attr_name
             if attr.key and attr.attr_name not in kwargs:
+                # If this is a "key" attribute, and the user didn't overwrite it,
+                # set the attribute to the config key
                 setattr(self, name, self._config_key)
                 attr.flag_pristine(self)
             elif (value := values[name]) is None:
@@ -582,6 +584,14 @@ def make_tree(node_cls):
         return tree
 
     node_cls.__tree__ = get_tree
+
+
+def make_copyable(node_cls):
+    def loc_copy(instance, memo=None):
+        return type(instance)(instance.__tree__())
+
+    node_cls.__copy__ = loc_copy
+    node_cls.__deepcopy__ = loc_copy
 
 
 def walk_node_attributes(node):

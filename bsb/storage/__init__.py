@@ -11,6 +11,7 @@
     consumers and can be used independent of the underlying storage engine, which is the
     end goal of this module.
 """
+
 from inspect import isclass
 from typing import Type
 
@@ -18,12 +19,7 @@ from .. import plugins
 from ..exceptions import UnknownStorageEngineError
 from ..services import MPI
 from ._chunks import Chunk, chunklist
-from ._files import (
-    FileDependency,
-    FileDependencyNode,
-    NrrdDependencyNode,
-    YamlDependencyNode,
-)
+from ._files import FileDependency, FileDependencyNode, NrrdDependencyNode
 from .interfaces import ConnectivitySet, FileStore, MorphologyRepository, PlacementSet
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
@@ -354,7 +350,8 @@ class Storage:
         Initialize the storage to be ready for use by the specified scaffold.
         """
         self.store_active_config(scaffold.configuration)
-        self.init_placement(scaffold)
+        if self.supports("PlacementSet"):
+            self.init_placement(scaffold)
 
     def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():
@@ -444,7 +441,7 @@ def view_support(engine=None):
 # * Discover the engine plugins with `discover_engines`
 # * Store engine initializers in `_engines` through `register_engine`
 # Any time something from `_engines` is used, it should be checked if it is callable. If
-# it is the engine plugin is not initialized yet and the function should be called and
-# replaced with its return value.
+# it is, then the engine plugin is not initialized yet and the function should be called
+# and replaced with its return value.
 _engines = {}
 _available_engines = discover_engines()
