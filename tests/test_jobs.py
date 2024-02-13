@@ -167,7 +167,7 @@ class TestSerialAndParallelScheduler(
             self.assertAlmostEqual(0.7, float(result[2]))
             self.assertAlmostEqual(0.8, float(result[3]))
 
-    @unittest.skip
+    # @unittest.skip
     def test_cancel_running_job(self):
         """Attempt to cancel a job while running todo: test is stuck"""
         self.network.clean_listeners()
@@ -188,25 +188,27 @@ class TestSerialAndParallelScheduler(
             job.get_result()
 
     #     @timeout(3)
-    @unittest.skip
+    # @unittest.skip
     @unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
     def test_listeners(self):
         """Test that listeners are called and _max_wait is set correctly todo: test is stuck"""
         i = 0
         res = None
 
-        def spy(pool_state, pool_status=None):
+        self.network.clean_listeners()
+
+        def spy_lt(pool_state, pool_status=None):
             if pool_status != PoolStatus.ENDING:
                 nonlocal i
                 i += 1
 
-        def collect(pool_state, pool_status=None):
-            if pool_status == PoolStatus.ENDING:
+        def collect_lt(pool_state, pool_status=None):
+            if pool_status is PoolStatus.ENDING:
                 nonlocal res
                 res = pool_state[0].get_result()
 
-        self.network.register_listener(spy, 0.01)
-        self.network.register_listener(collect, 0.04)
+        self.network.register_listener(spy_lt, 0.01)
+        self.network.register_listener(collect_lt, 0.2)
         pool = self.network.create_job_pool(fail_fast=True)
         job = pool.queue(sleep_y, (5, 0.017))
         pool.execute()
@@ -244,7 +246,7 @@ class TestParallelScheduler(
         self.config = create_config()
         super().setUp()
 
-    @unittest.skip
+    # @unittest.skip
     # @timeout(3)
     def test_double_pool(self):
         """todo: test is stuck"""
@@ -255,7 +257,7 @@ class TestParallelScheduler(
         pool.queue(sleep_y, (5, 0.1))
         pool.execute()
 
-    @unittest.skip
+    # @unittest.skip
     def test_submitting_closed(self):
         """todo: test is stuck"""
         pool = self.network.create_job_pool(fail_fast=True)
@@ -269,7 +271,7 @@ class TestParallelScheduler(
             ) as err:
                 job._enqueue(pool)
 
-    @unittest.skip
+    # @unittest.skip
     def test_cancel_pending_job(self):
         """Test the cancel method on a job that is not submitted todo: Robin, test is stuck"""
         pool = JobPool(self.network)
@@ -282,7 +284,7 @@ class TestParallelScheduler(
         self.assertEqual("Remove Last One", str(jobs[6]._error))
         self.assertEqual(JobStatus.CANCELLED, jobs[6]._status)
 
-    @unittest.skip
+    # @unittest.skip
     def test_cancel_queued_job(self):
         """todo: test is stuck"""
         counter = 0
@@ -303,7 +305,7 @@ class TestParallelScheduler(
             self.assertEqual(jobs[6]._status, JobStatus.CANCELLED)
             self.assertEqual(str(jobs[6]._error), "Testing")
 
-    @unittest.skip
+    # @unittest.skip
     # @timeout(3)
     def test_dependencies(self):
         """todo: test is stuck"""
