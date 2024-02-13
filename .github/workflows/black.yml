@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Black Check
-      uses: jpetrucciani/black-check@24.1.1
+    - uses: psf/black@stable
       with:
-        path: 'bsb'
+        options: "--check --verbose"
+        version: "24.1.1"

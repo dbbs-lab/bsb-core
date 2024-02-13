@@ -30,6 +30,7 @@ class ProgressEvent:
 @config.pluggable(key="simulator", plugin_name="simulation backend")
 class Simulation:
     scaffold: "Scaffold"
+    simulator: str
     name: str = config.attr(key=True)
     duration: float = config.attr(type=float, required=True)
     cell_models: cfgdict[CellModel] = config.slot(type=CellModel, required=True)
@@ -44,45 +45,6 @@ class Simulation:
     @staticmethod
     def __plugins__():
         return get_simulation_nodes()
-
-    def start_progress(self, duration):
-        """
-        Start a progress meter.
-        """
-        self._progdur = duration
-        self._progstart = self._last_progtic = time()
-        self._progtics = 0
-
-    def progress(self, step):
-        """
-        Report simulation progress.
-        """
-        now = time()
-        tic = now - self._last_progtic
-        self._progtics += 1
-        el = now - self._progstart
-        # report(
-        #     f"Simulated {step}/{self._progdur}ms.",
-        #     f"{el:.2f}s elapsed.",
-        #     f"Simulated tick in {tic:.2f}.",
-        #     f"Avg tick {el / self._progtics:.4f}s",
-        #     level=3,
-        #     ongoing=False,
-        # )
-        progress = types.SimpleNamespace(
-            progression=step, duration=self._progdur, time=time()
-        )
-        self._last_progtic = now
-        return progress
-
-    def step_progress(self, duration, step=1):
-        steps = itertools.chain(np.arange(0, duration), (duration,))
-        a, b = itertools.tee(steps)
-        next(b, None)
-        yield from zip(a, b)
-
-    def add_progress_listener(self, listener):
-        self._progress_listeners.append(listener)
 
     def get_model_of(
         self, type: typing.Union["CellType", "ConnectionStrategy"]

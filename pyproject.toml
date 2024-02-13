@@ -64,9 +64,9 @@ parallel = [
     "mpilock~=1.1"
 ]
 test = [
-    "bsb-arbor==0.0.0b0",
+    "bsb-arbor==0.0.0b1",
     "bsb-hdf5==1.0.0b1",
-    "bsb-test==0.0.0b7",
+    "bsb-test==0.0.0b8",
     "coverage~=7.3",
 ]
 docs = [
