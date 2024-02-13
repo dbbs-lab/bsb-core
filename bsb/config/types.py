@@ -705,16 +705,14 @@ def in_classmap():
     return type_handler
 
 
-def mut_excl(*mutuals, required=True, max=1):
+def mut_excl(*mutuals, required=True, max=1, shortform=False):
     """
     Requirement handler for mutually exclusive attributes.
 
-    :param mutuals: The keys of the mutually exclusive attributes.
-    :type mutuals: str
-    :param required: Whether at least one of the keys is required
-    :type required: bool
-    :param max: The maximum amount of keys that may occur together.
-    :type max: int
+    :param str mutuals: The keys of the mutually exclusive attributes.
+    :param bool required: Whether at least one of the keys is required
+    :param int max: The maximum amount of keys that may occur together.
+    :param bool shortform: Allow the short form alternative.
     :returns: Requirement function
     :rtype: Callable
     """
@@ -723,6 +721,8 @@ def mut_excl(*mutuals, required=True, max=1):
         listed += f" {{}} `{mutuals[-1]}`"
 
     def requirement(section):
+        if shortform and section.is_shortform:
+            return False
         bools = [m in section for m in mutuals]
         given = sum(bools)
         if given > max:

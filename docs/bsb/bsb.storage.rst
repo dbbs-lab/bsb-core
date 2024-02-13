@@ -26,6 +26,8 @@ Module contents
 Dev
 ---
 
+.. autoclass:: bsb.storage._files.FileDependency
+
 .. autoclass:: bsb.storage._files.CodeDependencyNode
 
 .. autoclass:: bsb.storage._files.MorphologyDependencyNode
