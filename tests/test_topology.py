@@ -73,7 +73,6 @@ class TestTopology(unittest.TestCase):
 class TestAllenVoxels(unittest.TestCase):
     def test_val(self):
         cfg = Configuration.default(
-            regions=dict(br=dict(children=["a"])),
             partitions=dict(a=dict(type="allen", struct_name="VAL")),
         )
         part = cfg.partitions.a
@@ -90,6 +89,15 @@ class TestAllenVoxels(unittest.TestCase):
                 transform = getattr(part, t)
                 with self.assertRaises(LayoutError, msg=not_impl):
                     transform(0)
+
+    def test_optional_struct_key(self):
+        """Test only if AllenStructure correctly assign default struct_name, the actual function is tested in test_val()"""
+        cfg = Configuration.default(
+            partitions=dict(val=dict(type="allen")),
+        )
+        part = cfg.partitions.val
+        vs = part.voxelset
+        self.assertEqual(52314, len(vs), "VAL is that many voxels")
 
     def test_mask_nrrd(self):
         cfg = Configuration.default(

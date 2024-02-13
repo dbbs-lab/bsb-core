@@ -1203,6 +1203,54 @@ class TestTypes(unittest.TestCase):
         d = Test(c="test.nrrd", _parent=TestRoot())
         self.assertRaises(FileNotFoundError, d.c.load_object)
 
+    def test_mutexcl_required(self):
+        """test the types.mut_excl function"""
+
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b"))
+            b = config.attr(required=types.mut_excl("a", "b"))
+
+        TestClass(a="1")
+        TestClass(b="6")
+        with self.assertRaises(RequirementError):
+            TestClass(a="5", b="6")
+        with self.assertRaises(RequirementError):
+            TestClass()
+
+    def test_mutexcl_optional(self):
+        """test the types.mut_excl function with optional values"""
+
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b", required=False))
+            b = config.attr(required=types.mut_excl("a", "b", required=False))
+
+        TestClass()
+
+    def test_mutexcl_maxval(self):
+        """test the max variable"""
+
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b", max=2))
+            b = config.attr(required=types.mut_excl("a", "b", max=2))
+
+        TestClass(a="1", b="6")
+
+    def test_mutexcl_threecase(self):
+        """test the types.mut_excl function with three arguments"""
+
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+            b = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+            c = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+
+        TestClass(a="1", c="3")
+        with self.assertRaises(RequirementError):
+            TestClass(a="1", b="6", c="3")
+
 
 @config.dynamic(
     type=types.in_classmap(),
