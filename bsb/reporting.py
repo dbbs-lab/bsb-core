@@ -45,6 +45,10 @@ def in_notebook():
     return True
 
 
+def in_pytest():
+    return "pytest" in sys.modules
+
+
 def set_report_file(v):
     """
     Set a file to which the scaffold package should report instead of stdout.
@@ -147,7 +151,7 @@ def _decode(payload: str):
 def setup_reporting():
     warnings.formatwarning = warning_on_one_line
     # Don't touch stdout if we're in IPython
-    if in_notebook():
+    if in_notebook() or in_pytest():
         return
     # Otherwise, tinker with stdout so that we autoflush after each write, better for MPI.
     try:

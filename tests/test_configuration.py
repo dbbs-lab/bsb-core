@@ -1,3 +1,4 @@
+import inspect
 import json
 import sys
 import unittest
@@ -1149,14 +1150,27 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(3, _eval("np.array([v - 2])[0]", v=5))
 
     def test_class(self):
+        """
+        Check that class retrieval fetches the right objects. The test is somewhat
+        complicated to make sure that this test can be run in a directory independent way.
+        """
+
         @config.root
         class Test:
             a = config.attr(type=types.class_())
             b = config.attr(type=types.class_(module_path=["test_configuration"]))
 
-        cfg = Test({"a": "test_configuration.MyTestClass", "b": "MyTestClass"})
-        self.assertEqual(MyTestClass, cfg.a)
-        self.assertEqual(MyTestClass, cfg.b)
+        import pathlib
+        import sys
+
+        sys.path.insert(0, str(pathlib.Path(__file__).parent))
+        try:
+            cfg = Test({"a": "test_configuration.MyTestClass", "b": "MyTestClass"})
+        finally:
+            sys.path.pop(0)
+
+        self.assertEqual(inspect.getsource(MyTestClass), inspect.getsource(cfg.a))
+        self.assertEqual(inspect.getsource(MyTestClass), inspect.getsource(cfg.b))
 
         with self.assertRaises(CastError):
             cfg = Test({"a": "MyTestClass"})
@@ -1273,6 +1287,10 @@ class Classmap2ChildB(Classmap2Parent):
 
 
 class MyTestClass:
+    """
+    Test class used for testing class object retrieval from a module.
+    """
+
     pass
 
 
