@@ -35,8 +35,8 @@ to display what the workers are doing during parallel execution. This is an expe
 API and subject to sudden change in the future.
 
 """
+
 import abc
-import builtins
 import concurrent.futures
 import pickle
 import tempfile
@@ -44,8 +44,6 @@ import typing
 import warnings
 from enum import Enum
 from time import sleep
-
-import numpy as np
 
 from ..exceptions import JobCancelledError
 from . import MPI
@@ -164,6 +162,14 @@ class Job(abc.ABC):
         return self._status
 
     @property
+    def result(self):
+        try:
+            with open(self._res_file, "rb") as f:
+                return pickle.load(f)
+        except Exception:
+            raise RuntimeError(f"Result of {self} is not available.") from None
+
+    @property
     def error(self):
         return self._error
 
@@ -174,6 +180,7 @@ class Job(abc.ABC):
         # for different job types.
         return (name, self._args, self._kwargs)
 
+    @staticmethod
     @abc.abstractmethod
     def execute(job_owner, args, kwargs):
         """
@@ -183,15 +190,6 @@ class Job(abc.ABC):
 
     def on_completion(self, cb):
         self._completion_cbs.append(cb)
-
-    def get_result(self):
-        if self._res_file != None:
-            with open(self._res_file, "rb") as f:
-                return pickle.load(f)
-        else:
-            raise RuntimeError(
-                f"Attempting to get result of {self} but temporary file do not exist!"
-            )
 
     def set_result(self, value):
         dirname = JobPool.get_tmp_folder(self.pool_id)
@@ -354,7 +352,7 @@ class JobPool:
     def owner(self):
         return self.get_owner(self.id)
 
-    def is_master(self):
+    def is_main(self):
         return MPI.get_rank() == 0
 
     def _put(self, job):
@@ -393,7 +391,7 @@ class JobPool:
         self._put(job)
         return job
 
-    def execute(self):
+    def execute(self, return_results=False):
         """
         Execute the jobs in the queue
 
@@ -401,18 +399,19 @@ class JobPool:
         order. In parallel execution this enqueues all jobs into the MPIPool unless they
         have dependencies that need to complete first.
         """
+        results = None
         if self.parallel:
             # Create the MPI pool
             self._pool = _MPIPool.MPIExecutor()
 
+            if self._pool.is_worker():
+                # The workers will return out of the pool constructor when they receive
+                # the shutdown signal from the master, they return here skipping the
+                # master logic.
+                return
+
             with tempfile.TemporaryDirectory() as tmp_dirname:
                 JobPool._tmp_folders[self.id] = tmp_dirname
-                if self._pool.is_worker():
-                    # The workers will return out of the pool constructor when they receive
-                    # the shutdown signal from the master, they return here skipping the
-                    # master logic.
-                    return
-
                 try:
                     # Tell each job in our queue that they have to put themselves in the pool
                     # queue; each job will store their own future and will use the futures of
@@ -450,6 +449,12 @@ class JobPool:
                         listener(self._job_queue, self._status)
                 finally:
                     self._pool.shutdown()
+                if return_results:
+                    results = {
+                        job: job.result
+                        for job in self._job_queue
+                        if job.status == JobStatus.SUCCESS
+                    }
 
         else:
             # todo: start a thread/coroutines/asyncio that calls the listeners periodically
@@ -462,6 +467,10 @@ class JobPool:
                     job._future.add_done_callback(job._completion)
                     job._status = JobStatus.QUEUED
 
+                for listener in self._listeners:
+                    listener(self._job_queue, self._status)
+                self._status = PoolStatus.RUNNING
+
                 # Just run each job serially
                 for job in self._job_queue:
                     f = job._future
@@ -469,6 +478,8 @@ class JobPool:
                         job._status = JobStatus.RUNNING
                         # Execute the static handler
                         result = job.execute(self.owner, job._args, job._kwargs)
+                        for listener in self._listeners:
+                            listener(self._job_queue, self._status)
                     except Exception as e:
                         f.set_exception(e)
                     else:
@@ -478,6 +489,14 @@ class JobPool:
                 self._status = PoolStatus.ENDING
                 for listener in self._listeners:
                     listener(self._job_queue, self._status)
+                if return_results:
+                    results = {
+                        job: job.result
+                        for job in self._job_queue
+                        if job.status == JobStatus.SUCCESS
+                    }
 
         # Clear the queue after all jobs have been done
         self._job_queue = []
+
+        return results

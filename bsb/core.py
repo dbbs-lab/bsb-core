@@ -9,7 +9,7 @@ import numpy as np
 from ._util import obj_str_insert
 from .config._config import Configuration
 from .connectivity import ConnectionStrategy
-from .exceptions import InputError, NodeNotFoundError, RedoError, ScaffoldError
+from .exceptions import InputError, NodeNotFoundError, RedoError
 from .listeners import NonTTYTerminalListener
 from .placement import PlacementStrategy
 from .profiling import meter
@@ -261,7 +261,7 @@ class Scaffold:
             strategies = [*self.placement.values()]
         strategies = PlacementStrategy.sort_deps(strategies)
         pool = self.create_job_pool(fail_fast=fail_fast)
-        if pool.is_master():
+        if pool.is_main():
             for strategy in strategies:
                 strategy.queue(pool, self.network.chunk_size)
             pool.execute()
@@ -279,7 +279,7 @@ class Scaffold:
             strategies = set(self.connectivity.values())
         strategies = ConnectionStrategy.sort_deps(strategies)
         pool = self.create_job_pool(fail_fast=fail_fast)
-        if pool.is_master():
+        if pool.is_main():
             for strategy in strategies:
                 strategy.queue(pool)
             pool.execute()
@@ -391,7 +391,7 @@ class Scaffold:
         if pipelines is None:
             pipelines = self.get_dependency_pipelines()
         pool = self.create_job_pool(fail_fast=fail_fast)
-        if pool.is_master():
+        if pool.is_main():
             for pipeline in pipelines:
                 pipeline.queue(pool)
             loop = self._progress_terminal_loop(pool, debug=DEBUG)
@@ -778,25 +778,28 @@ class Scaffold:
             ) from None
         return cs
 
-    def create_job_pool(self, fail_fast=None):
+    def create_job_pool(self, fail_fast=None, quiet=False):
         pool = JobPool(self)
-        default_listener = NonTTYTerminalListener
-        # if os.isatty(sys.stdout.fileno()):
-        #     default_listener = TTYTerminalListener
-        # else:
-        #     default_listener = NonTTYTerminalListener
+        if os.isatty(sys.stdout.fileno()):
+            # todo: Create the TTY terminal listener
+            default_listener = NonTTYTerminalListener
+        else:
+            default_listener = NonTTYTerminalListener
         if self._pool_listeners:
             for listener, max_wait in self._pool_listeners:
                 pool.add_listener(listener, max_wait=max_wait)
-        else:
+        elif not quiet:
             pool.add_listener(default_listener(fail_fast=fail_fast))
         return pool
 
     def register_listener(self, listener, max_wait=None):
         self._pool_listeners.append((listener, max_wait))
 
-    def clean_listeners(self):
-        self._pool_listeners = []
+    def remove_listener(self, listener):
+        for i, (l, _) in enumerate(self._pool_listeners):
+            if l is listener:
+                self._pool_listeners.pop(i)
+                break
 
 
 class ReportListener:
