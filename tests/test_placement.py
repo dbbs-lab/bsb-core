@@ -18,7 +18,12 @@ from bsb.topology import Partition, Region
 from bsb.voxels import VoxelData, VoxelSet
 
 
-def test_chunk(scaffold, chunk):
+def dud_tester(scaffold, x, y):
+    sleep(y)
+    return x
+
+
+def chunk_tester(scaffold, chunk):
     return chunk
 
 

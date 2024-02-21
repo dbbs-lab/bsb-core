@@ -2,6 +2,7 @@ __pycache__/
 *.gdf
 *.pyc
 *.hdf5
+*.pkl
 *.swc
 *.h5
 *.json
