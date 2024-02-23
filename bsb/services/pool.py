@@ -42,7 +42,7 @@ import pickle
 import tempfile
 import typing
 import warnings
-from enum import Enum
+from enum import Enum, auto
 from time import sleep
 
 from ..exceptions import JobCancelledError
@@ -77,6 +77,47 @@ class PoolStatus(Enum):
     RUNNING = "Running"
     # Pool Ending
     ENDING = "Ending"
+
+
+class PoolProgressReason(Enum):
+    POOL_STATUS_CHANGE = auto()
+    JOB_STATUS_CHANGE = auto()
+    MAX_TIMEOUT_PING = auto()
+
+
+class PoolProgress:
+    def __init__(self, pool: "JobPool", reason: PoolProgressReason):
+        self._pool = pool
+        self._reason = reason
+
+    @property
+    def reason(self):
+        return self._reason
+
+    @property
+    def jobs(self):
+        return self._pool.jobs
+
+    @property
+    def status(self):
+        return self._pool.status
+
+
+class PoolJobUpdateProgress(PoolProgress):
+    def __init__(self, pool: "JobPool", job: "Job", old_status: "JobStatus"):
+        super().__init__(pool, PoolProgressReason.JOB_STATUS_CHANGE)
+        self._job = job
+        self._old_status = old_status
+
+    @property
+    def job(self):
+        return self._job
+
+
+class PoolStatusProgress(PoolProgress):
+    def __init__(self, pool: "JobPool", old_status: PoolStatus):
+        super().__init__(pool, PoolProgressReason.JOB_STATUS_CHANGE)
+        self._old_status = old_status
 
 
 class _MissingMPIExecutor(ErrorModule):
@@ -198,6 +239,11 @@ class Job(abc.ABC):
         ) as fp:
             pickle.dump(value, fp)
             self._res_file = fp.name
+        self.change_status(JobStatus.SUCCESS)
+
+    def set_exception(self, e: Exception):
+        self._error = e
+        self.change_status(JobStatus.FAILED)
 
     def _completion(self, future):
         # todo: First update ourselves, based on future:
@@ -207,18 +253,13 @@ class Job(abc.ABC):
             try:
                 result = future.result()
             except Exception as e:
-                self._status = JobStatus.FAILED
-                self._error = e
-                self.set_result("Job failed")
+                self.set_exception(e)
             else:
-                self._status = JobStatus.SUCCESS
                 self.set_result(result)
         for cb in self._completion_cbs:
             cb(self, err=None, result=None)
 
     def _dep_completed(self, dep, err=None, result=None):
-        # todo: use err/result
-        #       * todo maybe: write result to file, then read file for data in dependency submit
         # Earlier we registered this callback on the completion of our dependencies.
         # When a dep completes we end up here and we discard it as a dependency as it has
         # finished. If the dep returns an error remove the job from the pool, since the dependency have failed.
@@ -238,7 +279,7 @@ class Job(abc.ABC):
             # Go ahead and submit ourselves to the pool, no dependencies to wait for
             # The dispatcher is run on the remote worker and unpacks the data required
             # to execute the job contents.
-            self._status = JobStatus.QUEUED
+            self.change_status(JobStatus.QUEUED)
             self._future = pool._submit(dispatcher, self.pool_id, self.serialize())
             # Invoke our completion callbacks when the future completes.
             self._future.add_done_callback(self._completion)
@@ -250,11 +291,18 @@ class Job(abc.ABC):
             self._pool = pool
 
     def cancel(self, reason: typing.Optional[str] = None):
-        self._status = JobStatus.CANCELLED
+        self.change_status(JobStatus.CANCELLED)
         self._error = JobCancelledError() if reason is None else JobCancelledError(reason)
         if self._future:
             if not self._future.cancel():
                 warnings.warn(f"Could not cancel {self}, the job is already running.")
+
+    def change_status(self, status: JobStatus):
+        old_status = self._status
+        self._status = status
+        pool = JobPool._pools[self.pool_id]
+        progress = PoolJobUpdateProgress(pool, self, old_status)
+        pool.add_notification(progress)
 
 
 class PlacementJob(Job):
@@ -314,6 +362,7 @@ class FunctionJob(Job):
 
 class JobPool:
     _next_pool_id = 0
+    _pools = {}
     _pool_owners = {}
     _tmp_folders = {}
 
@@ -325,12 +374,18 @@ class JobPool:
         self._listeners = []
         self._max_wait = 60
         self._status = PoolStatus.STARTING
+        self._progress_notifications: list["PoolProgress"] = []
         JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = scaffold
+        JobPool._pools[self.id] = self
 
     def add_listener(self, listener, max_wait=None):
         self._max_wait = min(self._max_wait, max_wait or float("+inf"))
         self._listeners.append(listener)
+
+    @property
+    def status(self):
+        return self._status
 
     @property
     def jobs(self):
@@ -403,6 +458,11 @@ class JobPool:
         if self.parallel:
             # Create the MPI pool
             self._pool = _MPIPool.MPIExecutor()
+            if self._pool.is_worker():
+                # The workers will return out of the pool constructor when they receive
+                # the shutdown signal from the master, they return here skipping the
+                # master logic.
+                return
 
             if self._pool.is_worker():
                 # The workers will return out of the pool constructor when they receive
@@ -422,10 +482,7 @@ class JobPool:
                         job._enqueue(self)
 
                     # Call the listeners when execution is starting
-                    for listener in self._listeners:
-                        listener(self._job_queue, self._status)
-                    # Now we start to listen to future, use the boolean check_failures variable to exit when an error is raised
-                    self._status = PoolStatus.RUNNING
+                    self.change_status(PoolStatus.RUNNING)
                     # As long as any of the jobs aren't done yet we repeat the wait action with a timeout defined by _max_wait
                     while any(
                         [
@@ -439,14 +496,14 @@ class JobPool:
                             timeout=self._max_wait,
                             return_when="FIRST_COMPLETED",
                         )
-                        # Send the updates to the listeners and check if an error is raised
-                        for listener in self._listeners:
-                            listener(self._job_queue, self._status)
+                        if not self._progress_notifications:
+                            self.add_notification(
+                                PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
+                            )
+                        self.notify()
                     sleep(0.2)
                     # Call the listeners in the ending of the job pool
-                    self._status = PoolStatus.ENDING
-                    for listener in self._listeners:
-                        listener(self._job_queue, self._status)
+                    self.change_status(PoolStatus.ENDING)
                 finally:
                     self._pool.shutdown()
                 if return_results:
@@ -499,4 +556,24 @@ class JobPool:
         # Clear the queue after all jobs have been done
         self._job_queue = []
 
+        # <<<<<<< Updated upstream
         return results
+
+    # =======
+    def change_status(self, status: PoolStatus):
+        old_status = self._status
+        self._status = status
+        self.add_notification(PoolStatusProgress(self, old_status))
+        self.notify()
+
+    def add_notification(self, notification: PoolProgress):
+        self._progress_notifications.append(notification)
+
+    def notify(self):
+        for notification in self._progress_notifications:
+            for listener in self._listeners:
+                listener(notification)
+        self._progress_notifications = []
+
+
+# >>>>>>> Stashed changes

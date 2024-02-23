@@ -1,8 +1,17 @@
 import abc
+import datetime
 import sys
 import traceback
+from typing import cast
 
-from .services.pool import Job, JobStatus, PoolStatus
+from .services.pool import (
+    Job,
+    JobStatus,
+    PoolJobUpdateProgress,
+    PoolProgress,
+    PoolProgressReason,
+    PoolStatus,
+)
 
 
 class Listener(abc.ABC):
@@ -10,33 +19,19 @@ class Listener(abc.ABC):
         self._ff = fail_fast
 
     @abc.abstractmethod
-    def __call__(self, jobs: list[Job], status: PoolStatus):
+    def __call__(self, progress: PoolProgress):
         pass
 
 
 class NonTTYTerminalListener(Listener):
-    def __call__(self, jobs: list[Job], status: PoolStatus):
-        if status == PoolStatus.STARTING:
-            print(f"There are {len(jobs)} jobs in the queue.\n")
-        elif status == PoolStatus.RUNNING:
-            failed_jobs = [job for job in jobs if job.error]
-            if failed_jobs:
-                # No point in trying to raise more than 1 error
-                if self._ff:
-                    raise failed_jobs[0].error
-            else:
-                # todo: store state of jobs
-                # todo: make a diff of job states
-                # todo: print out any changed jobs
-                job_pending = sum([1 for job in jobs if job.status == JobStatus.PENDING])
-                job_queued = sum([1 for job in jobs if job.status == JobStatus.QUEUED])
-        elif status == PoolStatus.ENDING:
-            failed_jobs = [job for job in jobs if job.error]
-            for job in failed_jobs:
-                print(f"Job {job} failed:")
-                traceback.print_exception(
-                    type(job.error), job.error, job.error.__traceback__, file=sys.stderr
-                )
+    def __call__(self, progress: PoolProgress):
+        if progress.reason == PoolProgressReason.JOB_STATUS_CHANGE:
+            job = cast(PoolJobUpdateProgress, progress).job
+            print(f"[{datetime.datetime.now()}] {job.status} {job.name}")
+            if self._ff and job.error:
+                raise job.error
+        if progress.reason == PoolProgressReason.MAX_TIMEOUT_PING:
+            print(f"[{datetime.datetime.now()}] Progress ping.")
 
 
 class TTYTerminalListener(Listener):
