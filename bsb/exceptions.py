@@ -42,7 +42,7 @@ _t(
         GatewayError=_e(
             AllenApiError=_e(),
         ),
-        PoolError=_e(
+        JobPoolError=_e(
             JobCancelledError=_e(),
         ),
         TopologyError=_e(

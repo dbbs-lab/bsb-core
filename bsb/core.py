@@ -10,11 +10,11 @@ from ._util import obj_str_insert
 from .config._config import Configuration
 from .connectivity import ConnectionStrategy
 from .exceptions import InputError, NodeNotFoundError, RedoError
-from .listeners import NonTTYTerminalListener
 from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report, warn
 from .services import MPI, JobPool
+from .services._pool_listeners import FailFastListener, NonTTYTerminalListener
 from .services.pool import Job
 from .simulation import get_simulation_adapter
 from .storage import Chunk, Storage, open_storage
@@ -789,7 +789,9 @@ class Scaffold:
             for listener, max_wait in self._pool_listeners:
                 pool.add_listener(listener, max_wait=max_wait)
         elif not quiet:
-            pool.add_listener(default_listener(fail_fast=fail_fast))
+            pool.add_listener(default_listener())
+        if fail_fast:
+            pool.add_listener(FailFastListener())
         return pool
 
     def register_listener(self, listener, max_wait=None):

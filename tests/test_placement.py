@@ -2,16 +2,13 @@ import unittest
 from time import sleep
 
 import numpy as np
-from bsb_test import NumpyTestCase, RandomStorageFixture, get_test_config, timeout
+from bsb_test import NumpyTestCase, RandomStorageFixture, get_test_config, skip_parallel
 
-from bsb import config
 from bsb.cell_types import CellType
 from bsb.config import Configuration
-from bsb.connectivity import ConnectionStrategy
 from bsb.core import Scaffold
 from bsb.exceptions import *
-from bsb.mixins import NotParallel
-from bsb.placement import PlacementStrategy, RandomPlacement
+from bsb.placement import PlacementStrategy
 from bsb.services import MPI
 from bsb.storage import Chunk
 from bsb.topology import Partition, Region
@@ -242,9 +239,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
             ),
         )
 
-    @unittest.expectedFailure
     def test_packing_factor_error1(self):
-        """todo: Robin"""
         cfg = self._config_packing_fact()
         network = Scaffold(cfg, self.storage)
         with self.assertRaisesRegex(
@@ -253,9 +248,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
         ):
             network.compile(clear=True)
 
-    @unittest.skip
     def test_packing_factor_error2(self):
-        """todo: Robin, test is stuck and do not fail"""
         cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1.3, count=100))
         network = Scaffold(cfg, self.storage)
@@ -265,7 +258,12 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
         ):
             network.compile(clear=True)
 
+    @skip_parallel
     def test_packing_factor_warning(self):
+        """
+        Test that particle placement warns for high density packing. Skipped during parallel because the warning
+        is raised on a worker and can't be asserted on all nodes.
+        """
         cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1, count=100))
         network = Scaffold(cfg, self.storage)

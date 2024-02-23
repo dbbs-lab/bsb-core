@@ -1270,7 +1270,7 @@ class TestMorphologyPipelineNode(
         scaffold = Scaffold(cfg, self.storage)
         pool = JobPool(scaffold)
         cfg.morphologies[0].queue(pool)
-        self.assertEqual(2, len(pool._queue))
+        self.assertEqual(2, len(pool.jobs))
         pool.execute()
         m_mio = scaffold.morphologies.load("test_mio")
         m_bsb = scaffold.morphologies.load("test_bsb")

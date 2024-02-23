@@ -15,11 +15,17 @@ from bsb import config
 from bsb.cell_types import CellType
 from bsb.config import Configuration
 from bsb.connectivity import ConnectionStrategy
-from bsb.exceptions import JobCancelledError
+from bsb.exceptions import JobCancelledError, JobPoolError
 from bsb.mixins import NotParallel
 from bsb.placement import FixedPositions, PlacementStrategy, RandomPlacement
 from bsb.services import MPI
-from bsb.services.pool import JobPool, JobStatus, PoolStatus
+from bsb.services.pool import (
+    JobPool,
+    JobStatus,
+    PoolProgress,
+    PoolProgressReason,
+    PoolStatus,
+)
 from bsb.storage import Chunk
 from bsb.topology import Partition
 
@@ -102,7 +108,8 @@ class TestSerialAndParallelScheduler(
 
     @timeout(1)
     def test_create_pool(self):
-        self.network.create_job_pool(quiet=True)
+        pool = self.network.create_job_pool(quiet=True)
+        pool.execute()
 
     @timeout(1)
     def test_single_job(self):
@@ -116,6 +123,7 @@ class TestSerialAndParallelScheduler(
             self.assertEqual(0.5, results[job])
             self.assertEqual(job.status, JobStatus.SUCCESS)
 
+    @timeout(1)
     def test_single_job_fail(self):
         """
         Test if a division by zero error is propagated back
@@ -127,6 +135,7 @@ class TestSerialAndParallelScheduler(
             self.assertIn("division by zero", str(job._error))
             self.assertEqual(job.status, JobStatus.FAILED)
 
+    @timeout(1)
     def test_multiple_jobs(self):
         """Test the execution of a set of lambda function"""
         pool = self.network.create_job_pool(quiet=True)
@@ -143,6 +152,7 @@ class TestSerialAndParallelScheduler(
             self.assertAlmostEqual(0.7, results[job3])
             self.assertAlmostEqual(0.8, results[job4])
 
+    @timeout(1)
     def test_cancel_job(self):
         """
         Cancel a job
@@ -158,6 +168,7 @@ class TestSerialAndParallelScheduler(
         # Confirm the job did not run and sleep for 2 seconds
         self.assertLess(t - time.time(), 1)
 
+    @timeout(1)
     def test_cancel_bygone_job(self):
         """
         Attempt to cancel a job after running. Should yield a 'could not cancel' warning.
@@ -170,23 +181,26 @@ class TestSerialAndParallelScheduler(
                 job.cancel("Testing")
             self.assertIn("Could not cancel", str(w.warning))
 
+    @timeout(1)
     def test_job_result_before_run(self):
         """Test result exception before the pool has ran"""
 
         pool = self.network.create_job_pool(quiet=True)
         job = pool.queue(sleep_y, (5, 0.5))
-        with self.assertRaisesRegex(RuntimeError, "not available"):
+        with self.assertRaisesRegex(JobPoolError, "not available"):
             job.result
 
+    @timeout(1)
     def test_job_result_after_run(self):
         """Test result exception after the pool has ran"""
 
         pool = self.network.create_job_pool(quiet=True)
         job = pool.queue(sleep_y, (5, 0.5))
         pool.execute()
-        with self.assertRaisesRegex(RuntimeError, "not available"):
+        with self.assertRaisesRegex(JobPoolError, "not available"):
             job.result
 
+    @timeout(3)
     def test_placement_job(self):
         """Test the execution of placement job"""
         self.network.placement.add(
@@ -213,151 +227,142 @@ class TestParallelScheduler(
     RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
 ):
     def setUp(self):
-        self.config = create_config()
+        self.cfg = create_config()
         super().setUp()
 
-    # @unittest.skip
-    # @timeout(3)
+    @timeout(3)
     def test_double_pool(self):
-        """todo: test is stuck"""
-        pool = JobPool(self.network)
-        pool.queue(sleep_y, (5, 0.1))
-        pool.execute()
-        pool = JobPool(self.network)
-        pool.queue(sleep_y, (5, 0.1))
-        pool.execute()
-
-    # @unittest.skip
-    def test_submitting_closed(self):
-        """todo: test is stuck"""
-        pool = self.network.create_job_pool(fail_fast=True)
-        pool.queue(sleep_y, (5, 0.1))
-        pool.execute()
-
+        """Test whether we can open multiple pools sequentially"""
+        pool = self.network.create_job_pool(quiet=True)
+        job = pool.queue(sleep_y, (5, 0.1))
+        results = pool.execute(return_results=True)
+        if pool.is_main():
+            self.assertEqual(5, results[job])
+        pool = self.network.create_job_pool(quiet=True)
         job = pool.queue(sleep_y, (4, 0.1))
-        if MPI.get_rank() == 0:
-            with self.assertRaisesRegex(
-                RuntimeError, "Attempting to submit job to closed pool."
-            ) as err:
-                job._enqueue(pool)
+        results = pool.execute(return_results=True)
+        if pool.is_main():
+            self.assertEqual(4, results[job])
 
+    @timeout(3)
+    def test_submitting_closed(self):
+        """Test that you can't submit a job after the pool has executed already"""
+        pool = self.network.create_job_pool(quiet=True)
+        pool.execute()
+        with self.assertRaises(JobPoolError):
+            pool.queue(sleep_y, (4, 0.1))
+
+    @timeout(3)
     def test_cancel_running_job(self):
         """
         Attempt to cancel a job while running. Should yield a 'could not cancel' warning.
         """
 
-        def try_cancel(jobs, status):
-            if status == PoolStatus.RUNNING:
+        def try_cancel(progress: PoolProgress):
+            if (
+                progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
+                and progress.status == PoolStatus.RUNNING
+            ):
                 with self.assertWarnsRegex(Warning, "Could not cancel"):
-                    jobs[0].cancel("Test")
+                    progress.jobs[0].cancel("Test")
 
         pool = self.network.create_job_pool(quiet=True)
         pool.add_listener(try_cancel, 1)
-        pool.queue(sleep_y, (5, 0.5))
+        pool.queue(sleep_y, (5, 0.1))
         pool.execute()
 
-    # @unittest.skip
-    def test_cancel_pending_job(self):
-        """Test the cancel method on a job that is not submitted todo: Robin, test is stuck"""
-        pool = JobPool(self.network)
-        jobs = [pool.queue(sleep_y, (j_id, 0.1)) for j_id in range(6)]
-        jobs.append(pool.queue(sleep_y, (100, 0.8), deps=[jobs[5]]))
-
-        pool._job_cancel(jobs[6], "Remove Last One")
-        pool.execute()
-
-        self.assertEqual("Remove Last One", str(jobs[6]._error))
-        self.assertEqual(JobStatus.CANCELLED, jobs[6]._status)
-
-    # @unittest.skip
+    @timeout(3)
     def test_cancel_queued_job(self):
-        """todo: test is stuck"""
-        counter = 0
+        """Cancel a job that has been queued, but has not started yet."""
 
-        def job_killer(job_list, status):
-            nonlocal counter
-            counter += 1
-            if status == PoolStatus.RUNNING and counter == 2:
-                job_list[-1].cancel("Testing")
+        def job_killer(progress: PoolProgress):
+            if (
+                progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
+                and progress.status == PoolStatus.RUNNING
+            ):
+                progress.jobs[-1].cancel("Testing")
 
-        self.network.register_listener(job_killer, 0.01)
-        pool = self.network.create_job_pool(fail_fast=True)
-        jobs = [pool.queue(sleep_y, (j_id, 0.1)) for j_id in range(6)]
-        jobs.append(pool.queue(sleep_y, (100, 0.8)))
+        pool = self.network.create_job_pool(quiet=True)
+        pool.add_listener(job_killer)
+        jobs = [pool.queue(sleep_y, (1, 0.001)) for _ in range(200)]
+        jobs.append(pool.queue(sleep_y, (1, 0.1)))
         pool.execute()
 
-        if MPI.get_rank() == 0:
-            self.assertEqual(jobs[6]._status, JobStatus.CANCELLED)
-            self.assertEqual(str(jobs[6]._error), "Testing")
+        if pool.is_main():
+            self.assertEqual(jobs[-1].status, JobStatus.CANCELLED)
+            self.assertEqual(str(jobs[-1].error), "Testing")
 
-    # @unittest.skip
-    # @timeout(3)
+    @timeout(3)
     def test_dependencies(self):
-        """todo: test is stuck"""
+        """
+        Test that when the pool starts the jobs without dependencies are queued, and those with dependencies are not.
+        """
         outcome = None
-        results = [None for x in range(3)]
 
-        def spy(jobs, pool_status):
+        # Add a spy listener that checks that the job with dependencies isn't queued yet
+        def spy_initial_pool_queue(progress):
             nonlocal outcome
             if outcome is None:
                 outcome = (
-                    JobStatus.QUEUED == jobs[0]._status
-                    and not JobStatus.QUEUED == jobs[1]._status
+                    JobStatus.QUEUED == progress.jobs[0].status
+                    and not JobStatus.QUEUED == progress.jobs[1].status
                 )
 
-        def collect(jobs, pool_status):
-            nonlocal results
-            if pool_status is PoolStatus.ENDING:
-                for id, job in enumerate(jobs):
-                    results[id] = job.get_result()
+        pool = self.network.create_job_pool(quiet=True)
+        pool.add_listener(spy_initial_pool_queue)
+        job_without_dep = pool.queue(sleep_y, (4, 0.2))
+        job_with_dep = pool.queue(sleep_y, (5, 0.08), deps=[job_without_dep])
 
-        self.network.register_listener(spy, 0.01)
-        self.network.register_listener(collect, 0.1)
-        pool = self.network.create_job_pool(fail_fast=True)
-        job = pool.queue(sleep_y, (4, 0.2), submitter={"name": "One"})
-        job2 = pool.queue(sleep_y, (5, 0.08), deps=[job], submitter={"name": "Two"})
-        job3 = pool.queue(sleep_y, (10, 0.1), submitter={"name": "Three"})
+        results = pool.execute(return_results=True)
 
-        pool.execute()
-
-        if not MPI.get_rank():
+        if pool.is_main():
             self.assertTrue(outcome, "A job with unfinished dependencies was scheduled.")
-            self.assertEqual(float(results[0]), 4)
-            self.assertEqual(float(results[1]), 5)
+            self.assertEqual(4, results[job_without_dep])
+            self.assertEqual(5, results[job_with_dep])
 
-    @unittest.skip
+    @timeout(3)
     def test_dependency_failure(self):
-        """todo: test is stuck"""
-        pool = self.network.create_job_pool()
-        job = pool.queue(sleep_fail, (4, 0.2), submitter={"name": "One"})
-        job2 = pool.queue(sleep_y, (5, 0.1), deps=[job], submitter={"name": "Two"})
-        job3 = pool.queue(sleep_y, (4, 0.1), submitter={"name": "Three"})
+        """Test that when a dependency fails, the dependents are cancelled"""
+        pool = self.network.create_job_pool(fail_fast=False, quiet=True)
+        job = pool.queue(sleep_fail, (4, 0.2))
+        job2 = pool.queue(sleep_y, (5, 0.1), deps=[job])
+        job3 = pool.queue(sleep_y, (4, 0.1))
 
-        # with self.assertRaises(ZeroDivisionError):
         pool.execute()
 
         if not MPI.get_rank():
-            self.assertEqual(str(job2._error), "Job killed for dependency failure")
-            self.assertEqual(job._status, JobStatus.FAILED)
-            self.assertEqual(job2._status, JobStatus.CANCELLED)
-            self.assertEqual(job3._status, JobStatus.SUCCESS)
+            self.assertEqual(str(job2.error), "Job killed for dependency failure")
+            self.assertEqual(job.status, JobStatus.FAILED)
+            self.assertEqual(job2.status, JobStatus.CANCELLED)
+            self.assertEqual(job3.status, JobStatus.SUCCESS)
+
+    def test_fail_fast(self):
+        """Test that when a single job fails, main raises the error."""
+        pool = self.network.create_job_pool(fail_fast=True, quiet=True)
+        job = pool.queue(sleep_fail, (4, 0.1))
+        job3 = pool.queue(sleep_y, (4, 0.1))
+        job4 = pool.queue(sleep_y, (4, 0.1))
+        job5 = pool.queue(sleep_y, (4, 0.1))
+
+        with self.assertRaises(ZeroDivisionError):
+            pool.execute()
 
     @timeout(3)
     def test_listeners(self):
         """Test that listeners are called and max_wait is set correctly"""
         i = 0
 
-        def spy_lt(_jobs, pool_status=None):
-            if pool_status != PoolStatus.ENDING:
+        def spy_lt(progress: PoolProgress):
+            if progress.reason == PoolProgressReason.MAX_TIMEOUT_PING:
                 nonlocal i
                 i += 1
 
-        pool = self.network.create_job_pool(fail_fast=True)
+        pool = self.network.create_job_pool(quiet=True)
         pool.add_listener(spy_lt, 0.01)
-        pool.queue(sleep_y, (5, 0.027))
+        pool.queue(sleep_y, (5, 0.035))
         pool.execute()
         if pool.is_main():
-            self.assertEqual(3, i, "Listeners not executed.")
+            self.assertGreater(i, 3, "Listeners not executed.")
             self.assertEqual(0.01, pool._max_wait, "_max_wait not properly set.")
 
 
