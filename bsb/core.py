@@ -14,7 +14,7 @@ from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report, warn
 from .services import MPI, JobPool
-from .services._pool_listeners import FailFastListener, NonTTYTerminalListener
+from .services._pool_listeners import NonTTYTerminalListener
 from .services.pool import Job
 from .simulation import get_simulation_adapter
 from .storage import Chunk, Storage, open_storage
@@ -779,8 +779,12 @@ class Scaffold:
         return cs
 
     def create_job_pool(self, fail_fast=None, quiet=False):
-        pool = JobPool(self)
-        if os.isatty(sys.stdout.fileno()):
+        pool = JobPool(self, fail_fast=fail_fast)
+        try:
+            tty = os.isatty(sys.stdout.fileno())
+        except Exception:
+            tty = False
+        if tty:
             # todo: Create the TTY terminal listener
             default_listener = NonTTYTerminalListener
         else:
@@ -790,8 +794,6 @@ class Scaffold:
                 pool.add_listener(listener, max_wait=max_wait)
         elif not quiet:
             pool.add_listener(default_listener())
-        if fail_fast:
-            pool.add_listener(FailFastListener())
         return pool
 
     def register_listener(self, listener, max_wait=None):

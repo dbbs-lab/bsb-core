@@ -20,6 +20,7 @@ import inspect
 import itertools
 from collections import deque
 from pathlib import Path
+from pickle import UnpicklingError
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -329,8 +330,8 @@ class SubTree:
         self._is_shared = False
 
     def __getattr__(self, attr):
-        if attr == "_is_shared":
-            raise RuntimeError("Broken morphology?")
+        if not hasattr(self, "_is_shared"):
+            raise UnpicklingError("Morphology class does not support pickling.")
         if self._is_shared:
             if attr in self._shared._prop:
                 return self._shared._prop[attr]
@@ -1068,7 +1069,9 @@ class Branch:
                 self._properties[prop] = values
 
     def __getattr__(self, attr):
-        if attr != "_properties" and attr in self._properties:
+        if not hasattr(self, "_properties"):
+            raise UnpicklingError("Branch class does not support pickling.")
+        if attr in self._properties:
             return self._properties[attr]
         else:
             super().__getattribute__(attr)
@@ -1077,7 +1080,7 @@ class Branch:
         return self.copy()
 
     def __bool__(self):
-        # Without this, empty branches are False, and messes with parent checking.
+        # Without this, empty branches are False, and `if branch.parent:` checks fail.
         return True
 
     def __eq__(self, other):

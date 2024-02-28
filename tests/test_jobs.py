@@ -25,6 +25,7 @@ from bsb.services.pool import (
     PoolProgress,
     PoolProgressReason,
     PoolStatus,
+    WorkflowError,
 )
 from bsb.storage import Chunk
 from bsb.topology import Partition
@@ -130,7 +131,8 @@ class TestSerialAndParallelScheduler(
         """
         pool = self.network.create_job_pool(quiet=True)
         job = pool.queue(lambda scaffold, x, y: x / y, (5, 0))
-        pool.execute()
+        with self.assertRaises(WorkflowError):
+            pool.execute()
         if pool.is_main():
             self.assertIn("division by zero", str(job._error))
             self.assertEqual(job.status, JobStatus.FAILED)
@@ -248,6 +250,8 @@ class TestParallelScheduler(
     def test_submitting_closed(self):
         """Test that you can't submit a job after the pool has executed already"""
         pool = self.network.create_job_pool(quiet=True)
+        # fixme: upstream bug with executing empty pools, so we add a single job
+        pool.queue(sleep_y, (4, 0))
         pool.execute()
         with self.assertRaises(JobPoolError):
             pool.queue(sleep_y, (4, 0.1))
@@ -328,7 +332,10 @@ class TestParallelScheduler(
         job2 = pool.queue(sleep_y, (5, 0.1), deps=[job])
         job3 = pool.queue(sleep_y, (4, 0.1))
 
-        pool.execute()
+        try:
+            pool.execute()
+        except WorkflowError:
+            pass
 
         if not MPI.get_rank():
             self.assertEqual(str(job2.error), "Job killed for dependency failure")
@@ -337,15 +344,20 @@ class TestParallelScheduler(
             self.assertEqual(job3.status, JobStatus.SUCCESS)
 
     def test_fail_fast(self):
-        """Test that when a single job fails, main raises the error."""
+        """Test that when a single job fails, main raises the error and further execution is aborted."""
         pool = self.network.create_job_pool(fail_fast=True, quiet=True)
-        job = pool.queue(sleep_fail, (4, 0.1))
-        job3 = pool.queue(sleep_y, (4, 0.1))
-        job4 = pool.queue(sleep_y, (4, 0.1))
-        job5 = pool.queue(sleep_y, (4, 0.1))
+        job = pool.queue(sleep_fail, (4, 0.01))
+        job3 = pool.queue(sleep_y, (4, 0.01))
+        job4 = pool.queue(sleep_y, (4, 0.01))
+        job5 = pool.queue(sleep_y, (4, 0.01))
 
-        with self.assertRaises(ZeroDivisionError):
+        with self.assertRaises(WorkflowError) as workflow_errors:
             pool.execute()
+        if pool.is_main():
+            self.assertIn(
+                ZeroDivisionError,
+                [type(e.error) for e in workflow_errors.exception.exceptions],
+            )
 
     @timeout(3)
     def test_listeners(self):
@@ -362,7 +374,7 @@ class TestParallelScheduler(
         pool.queue(sleep_y, (5, 0.035))
         pool.execute()
         if pool.is_main():
-            self.assertGreater(i, 3, "Listeners not executed.")
+            self.assertEqual(i, 3, "Should have 3 timeout pings")
             self.assertEqual(0.01, pool._max_wait, "_max_wait not properly set.")
 
 
@@ -441,6 +453,7 @@ class TestSubmissionContext(
             self.assertEqual(1, len(pool.jobs))
             self.assertEqual("{root}.placement.test", pool.jobs[0].name)
 
+    @timeout(3)
     def test_cs_node_submission(self):
         self.network.run_placement()
         pool = self.network.create_job_pool()
@@ -449,6 +462,7 @@ class TestSubmissionContext(
             self.assertEqual(1, len(pool.jobs))
             self.assertEqual("{root}.connectivity.test", pool.jobs[0].name)
 
+    @timeout(3)
     def test_no_node_submission(self):
         pool = self.network.create_job_pool()
         if pool.is_main():

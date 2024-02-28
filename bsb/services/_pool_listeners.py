@@ -24,11 +24,3 @@ class NonTTYTerminalListener(Listener):
 class TTYTerminalListener(Listener):
     def __call__(self, progress: PoolProgress):
         pass
-
-
-class FailFastListener(Listener):
-    def __call__(self, progress: PoolProgress):
-        if progress.reason == PoolProgressReason.JOB_STATUS_CHANGE:
-            job = cast(PoolJobUpdateProgress, progress).job
-            if job.error:
-                raise job.error

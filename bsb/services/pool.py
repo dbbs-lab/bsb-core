@@ -45,6 +45,8 @@ import typing
 import warnings
 from enum import Enum, auto
 
+from exceptiongroup import ExceptionGroup
+
 from ..exceptions import JobCancelledError, JobPoolError
 from . import MPI
 from ._util import ErrorModule, MockModule
@@ -53,8 +55,14 @@ if typing.TYPE_CHECKING:
     from mpipool import MPIExecutor
 
 
-class AbortPoolSignal(Exception):
+class WorkflowError(ExceptionGroup):
     pass
+
+
+class JobErroredError(Exception):
+    def __init__(self, message, error):
+        super().__init__(message)
+        self.error = error
 
 
 class JobStatus(Enum):
@@ -310,9 +318,14 @@ class Job(abc.ABC):
     def change_status(self, status: JobStatus):
         old_status = self._status
         self._status = status
-        pool = JobPool._pools[self.pool_id]
-        progress = PoolJobUpdateProgress(pool, self, old_status)
-        pool.add_notification(progress)
+        try:
+            # Closed pools may have been removed from this map already.
+            pool = JobPool._pools[self.pool_id]
+        except KeyError:
+            pass
+        else:
+            progress = PoolJobUpdateProgress(pool, self, old_status)
+            pool.add_notification(progress)
 
 
 class PlacementJob(Job):
@@ -376,7 +389,7 @@ class JobPool:
     _pool_owners = {}
     _tmp_folders = {}
 
-    def __init__(self, scaffold):
+    def __init__(self, scaffold, fail_fast=False):
         self._running_futures: list[concurrent.futures.Future] = []
         self._pool: typing.Optional["MPIExecutor"] = None
         self._job_queue: list[Job] = []
@@ -385,7 +398,8 @@ class JobPool:
         self._max_wait = 60
         self._status = PoolStatus.STARTING
         self._progress_notifications: list["PoolProgress"] = []
-        self._aborted = False
+        self._workers_raise_unhandled = False
+        self._fail_fast = fail_fast
         JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = scaffold
         JobPool._pools[self.id] = self
@@ -461,113 +475,136 @@ class JobPool:
         order. In parallel execution this enqueues all jobs into the MPIPool unless they
         have dependencies that need to complete first.
         """
+
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                JobPool._tmp_folders[self.id] = tmp_dirname
+                if self.parallel:
+                    self._execute_parallel()
+                else:
+                    self._execute_serial()
+
+                # fixme: if you unindent this by 1, segmentation faults occur
+                if return_results:
+                    return {
+                        job: job.result
+                        for job in self._job_queue
+                        if job.status == JobStatus.SUCCESS
+                    }
+        finally:
+            # Clean up pool/job references
+            self._job_queue = []
+            del JobPool._pools[self.id]
+
+    def _execute_parallel(self):
         import bsb.options
 
         if bsb.options.debug_pool:
             _MPIPool.enable_serde_logging()
+        # Create the MPI pool
+        self._pool = _MPIPool.MPIExecutor(
+            loglevel=logging.DEBUG if bsb.options.debug_pool else logging.CRITICAL
+        )
 
-        results = None
-        if self.parallel:
-            # Create the MPI pool
-            self._pool = _MPIPool.MPIExecutor(
-                loglevel=logging.DEBUG if bsb.options.debug_pool else logging.CRITICAL
-            )
+        if self._pool.is_worker():
+            # The workers will return out of the pool constructor when they receive
+            # the shutdown signal from the master, they return here skipping the
+            # master logic.
 
-            if self._pool.is_worker():
-                # The workers will return out of the pool constructor when they receive
-                # the shutdown signal from the master, they return here skipping the
-                # master logic.
-                e = MPI.bcast(self._aborted)
-                if e:
-                    raise e
-                return
+            # Check if we need to abort our process due to errors etc.
+            abort = MPI.bcast(None)
+            if abort:
+                raise WorkflowError(
+                    "Unhandled exceptions during parallel execution.",
+                    [RuntimeError("See main node logs for details.")],
+                )
+            return
 
-            with tempfile.TemporaryDirectory() as tmp_dirname:
-                JobPool._tmp_folders[self.id] = tmp_dirname
-                try:
-                    # Tell each job in our queue that they have to put themselves in the pool
-                    # queue; each job will store their own future and will use the futures of
-                    # their previously enqueued dependencies to determine when they can put
-                    # themselves on the pool queue.
+        unhandled = []
+        try:
+            # Tell each job in our queue that they have to put themselves in the pool
+            # queue; each job will store their own future and will use the futures of
+            # their previously enqueued dependencies to determine when they can put
+            # themselves on the pool queue.
+            for job in self._job_queue:
+                job._enqueue(self)
 
-                    for job in self._job_queue:
-                        job._enqueue(self)
+            # Tell the listeners execution is running
+            self.change_status(PoolStatus.RUNNING)
 
-                    # Tell the listeners execution is running
-                    self.change_status(PoolStatus.RUNNING)
-                    # As long as any of the jobs aren't done yet we repeat the wait action with a timeout defined by _max_wait
-                    while any(
-                        job.status == JobStatus.PENDING or job.status == JobStatus.QUEUED
-                        for job in self._job_queue
-                    ):
-                        done, not_done = concurrent.futures.wait(
-                            self._running_futures,
-                            timeout=self._max_wait,
-                            return_when="FIRST_COMPLETED",
-                        )
-                        # Complete any jobs that are done
-                        for job in self._job_queue:
-                            if job._future in done:
-                                job._completed()
-                        # Remove running futures that are done
-                        for future in done:
-                            self._running_futures.remove(future)
-                        if not self._progress_notifications:
-                            self.add_notification(
-                                PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
-                            )
-                        self.notify()
-                    # Call the listeners in the ending of the job pool
-                    self.change_status(PoolStatus.ENDING)
-                finally:
-                    self._pool.shutdown()
-                    MPI.bcast(self._aborted)
-                if return_results:
-                    results = {
-                        job: job.result
-                        for job in self._job_queue
-                        if job.status == JobStatus.SUCCESS
-                    }
-
-        else:
-            with tempfile.TemporaryDirectory() as tmp_dirname:
-                # Create tmp folder
-                JobPool._tmp_folders[self.id] = tmp_dirname
-                # Prepare jobs for local execution
+            # As long as any of the jobs aren't done yet we repeat the wait action with a timeout
+            while any(
+                job.status == JobStatus.PENDING or job.status == JobStatus.QUEUED
+                for job in self._job_queue
+            ):
+                done, not_done = concurrent.futures.wait(
+                    self._running_futures,
+                    timeout=self._max_wait,
+                    return_when="FIRST_COMPLETED",
+                )
+                # Complete any jobs that are done
                 for job in self._job_queue:
-                    job._future = concurrent.futures.Future()
-                    job._status = JobStatus.QUEUED
+                    if job._future in done:
+                        job._completed()
+                # Remove running futures that are done
+                for future in done:
+                    self._running_futures.remove(future)
+                # If nothing finished, post a timeout notification.
+                if not len(done):
+                    self.add_notification(
+                        PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
+                    )
+                # Notify all the listeners, and store/raise any unhandled errors
+                unhandled.extend(self.notify())
+                if unhandled and self._fail_fast:
+                    self.raise_unhandled(unhandled)
 
-                self.change_status(PoolStatus.RUNNING)
+            # Notify listeners that execution is over
+            self.change_status(PoolStatus.ENDING)
+            # Raise any unhandled errors
+            if unhandled:
+                self.raise_unhandled(unhandled)
+        except:
+            # If any exception (including SystemExit and KeyboardInterrupt) happen on main, we should
+            # broadcast the abort to all worker nodes.
+            self._workers_raise_unhandled = True
+            raise
+        finally:
+            # Shut down our internal pool
+            self._pool.shutdown(wait=False, cancel_futures=True)
+            # Broadcast whether the worker nodes should raise an unhandled error.
+            MPI.bcast(self._workers_raise_unhandled)
 
-                # Just run each job serially
-                for job in self._job_queue:
-                    f = job._future
-                    try:
-                        job._status = JobStatus.RUNNING
-                        # Execute the static handler
-                        result = job.execute(self.owner, job._args, job._kwargs)
-                    except Exception as e:
-                        f.set_exception(e)
-                    else:
-                        f.set_result(result)
-                    finally:
-                        f.done()
-                    job._completed()
-                    self.notify()
+    def _execute_serial(self):
+        # Prepare jobs for local execution
+        for job in self._job_queue:
+            job._future = concurrent.futures.Future()
+            job._status = JobStatus.QUEUED
 
-                self.change_status(PoolStatus.ENDING)
-                if return_results:
-                    results = {
-                        job: job.result
-                        for job in self._job_queue
-                        if job.status == JobStatus.SUCCESS
-                    }
+        self.change_status(PoolStatus.RUNNING)
 
-        # Clear the queue after all jobs have been done
-        self._job_queue = []
+        unhandled = []
+        # Just run each job serially
+        for job in self._job_queue:
+            f = job._future
+            try:
+                job._status = JobStatus.RUNNING
+                # Execute the static handler
+                result = job.execute(self.owner, job._args, job._kwargs)
+            except Exception as e:
+                f.set_exception(e)
+            else:
+                f.set_result(result)
+            finally:
+                f.done()
+            job._completed()
+            unhandled.extend(self.notify())
+            if unhandled and self._fail_fast:
+                self.raise_unhandled(unhandled)
+        if unhandled:
+            self.raise_unhandled(unhandled)
 
-        return results
+        self.change_status(PoolStatus.ENDING)
 
     def change_status(self, status: PoolStatus):
         old_status = self._status
@@ -579,11 +616,25 @@ class JobPool:
         self._progress_notifications.append(notification)
 
     def notify(self):
+        unhandled_errors = []
         for notification in self._progress_notifications:
-            for listener in self._listeners:
-                try:
-                    listener(notification)
-                except Exception as e:
-                    self._aborted = e
-                    raise
+            job = getattr(notification, "job", None)
+            has_error = getattr(job, "error", None) is not None
+            handled_error = [bool(listener(notification)) for listener in self._listeners]
+            if has_error and not any(handled_error):
+                unhandled_errors.append(job)
         self._progress_notifications = []
+        return unhandled_errors
+
+    def raise_unhandled(self, unhandled):
+        errors = []
+        # Raise and catch for nicer traceback
+        for job in unhandled:
+            try:
+                raise JobErroredError(f"{job.name} job failed", job.error) from job.error
+            except JobErroredError as e:
+                errors.append(e)
+        raise WorkflowError(
+            f"Your workflow encountered errors.",
+            errors,
+        )

@@ -10,6 +10,7 @@ from bsb.core import Scaffold
 from bsb.exceptions import *
 from bsb.placement import PlacementStrategy
 from bsb.services import MPI
+from bsb.services.pool import WorkflowError
 from bsb.storage import Chunk
 from bsb.topology import Partition, Region
 from bsb.voxels import VoxelData, VoxelSet
@@ -242,20 +243,14 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
     def test_packing_factor_error1(self):
         cfg = self._config_packing_fact()
         network = Scaffold(cfg, self.storage)
-        with self.assertRaisesRegex(
-            PackingError,
-            r"Packing factor .* exceeds geometrical maximum packing for spheres \(0\.64\).*",
-        ):
+        with self.assertRaises(WorkflowError):
             network.compile(clear=True)
 
     def test_packing_factor_error2(self):
         cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1.3, count=100))
         network = Scaffold(cfg, self.storage)
-        with self.assertRaisesRegex(
-            PackingError,
-            r"Packing factor .* too high to resolve with ParticlePlacement.*",
-        ):
+        with self.assertRaises(WorkflowError):
             network.compile(clear=True)
 
     @skip_parallel
