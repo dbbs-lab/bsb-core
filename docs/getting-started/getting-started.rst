@@ -89,7 +89,7 @@ dimensions. See :doc:`/topology/intro` for more explanation on topology componen
 Cell types
 ----------
 
-The :class:`~.cell_types.CellType` is a definition of a cell population. During
+The :doc:`Cell Type </cells/intro>` is a definition of a cell population. During
 placement 3D positions, optionally rotations and morphologies or other properties will be
 created for them. In the simplest case you define a soma :guilabel:`radius` and
 :guilabel:`density` or fixed :guilabel:`count`:
@@ -119,13 +119,10 @@ Placement
     :lines: 19-24
 
 
-The ``placement`` blocks use the cell type indications to place cell types into
-partitions. You can use other :class:`PlacementStrategies
-<.placement.strategy.PlacementStrategy>` by setting the :guilabel:`strategy` attribute.
-The BSB offers some strategies out of the box, or you can implement your own. The
-:class:`~bsb.placement.particle.ParticlePlacement` considers the cells as spheres and
-bumps them around as repelling particles until there is no overlap between them. The data
-is stored in :class:`PlacementSets <.storage.interfaces.PlacementSet>` per cell type.
+The :doc:`placement </placement/intro>` blocks is charge to place cells in the partitions using the cell type indications.
+You can specify the strategy to use  by setting the :guilabel:`strategy` attribute.
+Here we use  the strategy :guilabel:`ParticlePlacement` that considers the cells as spheres and
+bumps them around as repelling particles until there is no overlap between them.
 
 Take another look at your network:
 
