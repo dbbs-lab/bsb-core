@@ -155,9 +155,8 @@ Connectivity
     :lines: 25-30
 
 
-The ``connectivity`` blocks specify connections between systems of cell types. They can
-create connections between single or multiple pre and postsynaptic cell types, and can
-produce one or many :class:`ConnectivitySets <.storage.interfaces.ConnectivitySet>`.
+The :doc:`connectivity </connectivity/defining>` blocks specify connections between systems of cell types. They can
+create connections between single or multiple cell types for both pre and post synaptic groups.
 
 Regenerate the network once more, now it will also contain your connections! With your
 cells and connections in place, you're ready to move to the :ref:`simulations` stage.
