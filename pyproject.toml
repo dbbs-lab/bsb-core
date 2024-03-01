@@ -62,7 +62,7 @@ debug_pool = "bsb._options:debug_pool"
 [project.optional-dependencies]
 parallel = [
     "mpi4py~=3.0",
-    "mpipool~=2.2",
+    "mpipool>=2.2.1,<3",
     "mpilock~=1.1"
 ]
 test = [
