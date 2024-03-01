@@ -135,9 +135,7 @@ class TestVolumetricRotations(unittest.TestCase):
         )
         self.netw = Scaffold(self.cfg)
 
-    @unittest.skip
     def test_distribute(self):
-        """todo: Robin, test is stuck"""
         self.netw.compile(clear=True)
         positions = self.netw.get_placement_set("a").load_positions()
         voxel_set = self.netw.partitions.a.get_voxelset()

@@ -21,7 +21,6 @@ from bsb.placement import FixedPositions, PlacementStrategy, RandomPlacement
 from bsb.services import MPI
 from bsb.services.pool import (
     Job,
-    JobPool,
     JobStatus,
     PoolProgress,
     PoolProgressReason,
@@ -215,7 +214,7 @@ class TestSerialAndParallelScheduler(
             ),
         )
 
-        pool = JobPool(self.network)
+        pool = self.network.create_job_pool(quiet=True)
         pool.queue_placement(
             self.network.placement.test_strat, Chunk((0, 0, 0), (200, 200, 200))
         )
@@ -404,7 +403,7 @@ class TestSerialScheduler(
             def connect(_, pre, post):
                 return 1
 
-        pool = JobPool(self.network)
+        pool = self.network.create_job_pool(quiet=True)
         cstrat = self.network.connectivity.add(
             "test",
             SerialCStrat(
