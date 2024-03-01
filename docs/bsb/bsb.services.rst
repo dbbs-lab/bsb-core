@@ -35,4 +35,9 @@ Developer modules
    :undoc-members:
    :show-inheritance:
 
+
+.. The following stub is required to cover a docstring error because
+   `WorkflowError` inherits from a generic in `exceptiongroup` that uses
+   this typevar.
+
 .. class:: _ExceptionT_co
