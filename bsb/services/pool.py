@@ -203,11 +203,12 @@ class Job(abc.ABC):
         self._submit_ctx = submission_context
         self._completion_cbs = []
         self._status = JobStatus.PENDING
-        for j in self._deps:
-            j.on_completion(self._dep_completed)
-        self._future = None
+        self._future: typing.Optional[concurrent.futures.Future] = None
         self._res_file = None
         self._error = None
+
+        for j in self._deps:
+            j.on_completion(self._dep_completed)
 
     @property
     def name(self):
@@ -390,6 +391,7 @@ class JobPool:
     _tmp_folders = {}
 
     def __init__(self, scaffold, fail_fast=False):
+        self._unhandled_errors = []
         self._running_futures: list[concurrent.futures.Future] = []
         self._pool: typing.Optional["MPIExecutor"] = None
         self._job_queue: list[Job] = []
@@ -476,6 +478,7 @@ class JobPool:
         have dependencies that need to complete first.
         """
 
+        self._unhandled_errors = []
         try:
             with tempfile.TemporaryDirectory() as tmp_dirname:
                 JobPool._tmp_folders[self.id] = tmp_dirname
@@ -499,6 +502,7 @@ class JobPool:
     def _execute_parallel(self):
         import bsb.options
 
+        # Enable full mpipool debugging
         if bsb.options.debug_pool:
             _MPIPool.enable_serde_logging()
         # Create the MPI pool
@@ -516,11 +520,10 @@ class JobPool:
             if abort:
                 raise WorkflowError(
                     "Unhandled exceptions during parallel execution.",
-                    [RuntimeError("See main node logs for details.")],
+                    [JobPoolError("See main node logs for details.")],
                 )
             return
 
-        unhandled = []
         try:
             # Tell each job in our queue that they have to put themselves in the pool
             # queue; each job will store their own future and will use the futures of
@@ -555,15 +558,12 @@ class JobPool:
                         PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
                     )
                 # Notify all the listeners, and store/raise any unhandled errors
-                unhandled.extend(self.notify())
-                if unhandled and self._fail_fast:
-                    self.raise_unhandled(unhandled)
+                self.notify()
 
             # Notify listeners that execution is over
             self.change_status(PoolStatus.ENDING)
             # Raise any unhandled errors
-            if unhandled:
-                self.raise_unhandled(unhandled)
+            self.raise_unhandled()
         except:
             # If any exception (including SystemExit and KeyboardInterrupt) happen on main, we should
             # broadcast the abort to all worker nodes.
@@ -579,16 +579,20 @@ class JobPool:
         # Prepare jobs for local execution
         for job in self._job_queue:
             job._future = concurrent.futures.Future()
-            job._status = JobStatus.QUEUED
+            if job.status != JobStatus.CANCELLED and job.status != JobStatus.ABORTED:
+                job._status = JobStatus.QUEUED
+            else:
+                job._future.cancel()
 
         self.change_status(PoolStatus.RUNNING)
-
-        unhandled = []
         # Just run each job serially
         for job in self._job_queue:
             f = job._future
+            if not f.set_running_or_notify_cancel():
+                continue
+            job.change_status(JobStatus.RUNNING)
+            self.notify()
             try:
-                job._status = JobStatus.RUNNING
                 # Execute the static handler
                 result = job.execute(self.owner, job._args, job._kwargs)
             except Exception as e:
@@ -598,11 +602,9 @@ class JobPool:
             finally:
                 f.done()
             job._completed()
-            unhandled.extend(self.notify())
-            if unhandled and self._fail_fast:
-                self.raise_unhandled(unhandled)
-        if unhandled:
-            self.raise_unhandled(unhandled)
+            self.notify()
+        # Raise any unhandled errors
+        self.raise_unhandled()
 
         self.change_status(PoolStatus.ENDING)
 
@@ -616,24 +618,28 @@ class JobPool:
         self._progress_notifications.append(notification)
 
     def notify(self):
-        unhandled_errors = []
         for notification in self._progress_notifications:
             job = getattr(notification, "job", None)
-            has_error = getattr(job, "error", None) is not None
+            job_error = getattr(job, "error", None)
+            has_error = job_error is not None and type(job_error) is not JobCancelledError
             handled_error = [bool(listener(notification)) for listener in self._listeners]
             if has_error and not any(handled_error):
-                unhandled_errors.append(job)
+                self._unhandled_errors.append(job)
+        if self._fail_fast:
+            self.raise_unhandled()
         self._progress_notifications = []
-        return unhandled_errors
 
-    def raise_unhandled(self, unhandled):
+    def raise_unhandled(self):
+        if not self._unhandled_errors:
+            return
         errors = []
         # Raise and catch for nicer traceback
-        for job in unhandled:
+        for job in self._unhandled_errors:
             try:
                 raise JobErroredError(f"{job.name} job failed", job.error) from job.error
             except JobErroredError as e:
                 errors.append(e)
+        self._unhandled_errors = []
         raise WorkflowError(
             f"Your workflow encountered errors.",
             errors,
