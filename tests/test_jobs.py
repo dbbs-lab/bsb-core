@@ -370,12 +370,12 @@ class TestParallelScheduler(
                 i += 1
 
         pool = self.network.create_job_pool(quiet=True)
-        pool.add_listener(spy_lt, 0.01)
-        pool.queue(sleep_y, (5, 0.035))
+        pool.add_listener(spy_lt, 0.1)
+        pool.queue(sleep_y, (5, 0.35))
         pool.execute()
         if pool.is_main():
             self.assertEqual(i, 3, "Should have 3 timeout pings")
-            self.assertEqual(0.01, pool._max_wait, "_max_wait not properly set.")
+            self.assertEqual(0.1, pool._max_wait, "_max_wait not properly set.")
 
 
 @skip_parallel
