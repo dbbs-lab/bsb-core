@@ -61,9 +61,6 @@ class TestMorphologyDistributor(unittest.TestCase):
         if not MPI.get_rank():
             self.assertEqual(1, len(wfe.exception.exceptions))
             err = wfe.exception.exceptions[0].error
-            import traceback
-
-            traceback.print_exception(type(err), err, err.__traceback__)
             self.assertEqual(DistributorError, type(err))
             self.assertIn("NameSelector", str(err))
 
