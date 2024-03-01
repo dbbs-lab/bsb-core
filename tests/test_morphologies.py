@@ -22,7 +22,6 @@ from bsb.morphologies import (
     parse_morphology_file,
 )
 from bsb.morphologies.parsers.parser import BsbParser
-from bsb.services import JobPool
 from bsb.storage._files import (
     MorphologyDependencyNode,
     MorphologyOperation,
@@ -1236,7 +1235,7 @@ class TestMorphologyPipelineNode(
             ]
         )
         scaffold = Scaffold(cfg, self.storage)
-        pool = JobPool(scaffold)
+        pool = scaffold.create_job_pool(quiet=True)
         cfg.morphologies[0].queue(pool)
         self.assertEqual(1, len(pool.jobs))
         pool.execute()
@@ -1268,7 +1267,7 @@ class TestMorphologyPipelineNode(
             ]
         )
         scaffold = Scaffold(cfg, self.storage)
-        pool = scaffold.create_job_pool(quiet=True, fail_fast=True)
+        pool = scaffold.create_job_pool(quiet=True)
         cfg.morphologies[0].queue(pool)
         self.assertEqual(2, len(pool.jobs))
         pool.execute()
