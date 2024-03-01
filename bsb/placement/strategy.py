@@ -7,13 +7,8 @@ import numpy as np
 from .. import config
 from .._util import obj_str_insert
 from ..config import refs, types
-from ..config._attrs import cfgdict, cfglist
-from ..exceptions import (
-    DistributorError,
-    EmptySelectionError,
-    MissingSourceError,
-    SourceQualityError,
-)
+from ..config._attrs import cfgdict
+from ..exceptions import DistributorError, EmptySelectionError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
 from ..reporting import report
@@ -102,7 +97,6 @@ class PlacementStrategy(abc.ABC, HasDependencies):
                     "%property% distribution of `%strategy.name%` couldn't find any"
                     + f" morphologies with the following selector(s): {selectors}",
                     "Morphology",
-                    self,
                 ) from None
         elif self.distribute._has_rdistr():
             rotations = self.distribute(

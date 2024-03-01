@@ -12,6 +12,7 @@ from bsb.placement.distributor import (
     MorphologyGenerator,
     VolumetricRotations,
 )
+from bsb.services import MPI
 from bsb.services.pool import WorkflowError
 
 
@@ -57,10 +58,11 @@ class TestMorphologyDistributor(unittest.TestCase):
         with self.assertRaises(WorkflowError) as wfe:
             self.netw.compile(append=True)
 
-        self.assertEqual(1, len(wfe.exception.exceptions))
-        err = wfe.exception.exceptions[0].error
-        self.assertEqual(DistributorError, type(err))
-        self.assertIn("NameSelector", str(err))
+        if not MPI.get_rank():
+            self.assertEqual(1, len(wfe.exception.exceptions))
+            err = wfe.exception.exceptions[0].error
+            self.assertEqual(DistributorError, type(err))
+            self.assertIn("NameSelector", str(err))
 
     def test_none_returns(self):
         self.netw.morphologies.save("bs", Morphology.empty(), overwrite=True)
