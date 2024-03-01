@@ -462,6 +462,7 @@ Currently unspecified, up to the Storage and MorphologyRepository support to ret
 dictionary of available metadata from
 :meth:`~.storage.interfaces.MorphologyRepository.get_meta`.
 
+.. _MorphologiesDistributors:
 
 Morphology distributors
 -----------------------

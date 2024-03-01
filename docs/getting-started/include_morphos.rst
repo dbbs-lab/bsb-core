@@ -83,10 +83,10 @@ change the name we can use a node with a :guilabel:`name` and :guilabel:`file`:
     :emphasize-lines: 3
 
 It is also possible to add a pipeline to perform transformations on the loaded
-morphology. Pipelines can be added by adding a :guilabel`pipeline` list to the morphology node.
+morphology. Pipelines can be added by adding a :guilabel:`pipeline` list to the morphology node.
 Each item in the list may either be a string reference to an importable function or a method of
 the :class:`~bsb.morphologies.Morphology` class. To pass parameters, use a node with the
-function reference placed in the guilabel:`func` attribute, and a :guilabel:`parameters` list.
+function reference placed in the :guilabel:`func` attribute, and a :guilabel:`parameters` list.
 Here is an example what that would look like:
 
 .. tab-set-code::
@@ -157,7 +157,7 @@ Morphology intersection
 -----------------------
 
 Now that we have assigned morphologies to our cell types, we can use morphology-based
-connection strategies such as :class:`~.connectivity.detailed.voxel_intersection.VoxelIntersection`:
+connection strategies such as :doc:`VoxelIntersection </connectivity/connection-strategies>`:
 
 .. tab-set-code::
 
@@ -176,7 +176,7 @@ connection strategies such as :class:`~.connectivity.detailed.voxel_intersection
 .. note::
 
   If there's multiple morphologies per cell type, they'll be assigned randomly, unless you
-  specify a :class:`~.placement.distributor.MorphologyDistributor`.
+  specify a :ref:`MorphologyDistributor <MorphologiesDistributors>`.
 
 
 Recap
