@@ -251,8 +251,6 @@ class TestParallelScheduler(
     def test_submitting_closed(self):
         """Test that you can't submit a job after the pool has executed already"""
         pool = self.network.create_job_pool(quiet=True)
-        # fixme: upstream bug with executing empty pools, so we add a single job
-        pool.queue(sleep_y, (4, 0))
         pool.execute()
         with self.assertRaises(JobPoolError):
             pool.queue(sleep_y, (4, 0.1))

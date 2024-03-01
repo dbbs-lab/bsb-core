@@ -500,7 +500,6 @@ class JobPool:
                 else:
                     self._execute_serial()
 
-                # fixme: if you unindent this by 1, segmentation faults occur
                 if return_results:
                     return {
                         job: job.result
