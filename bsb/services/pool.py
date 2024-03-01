@@ -5,12 +5,14 @@ Jobs derive from the base :class:`.Job` class which can be put on the queue of a
 :class:`.JobPool`. In order to submit themselves to the pool Jobs will
 :meth:`~.Job.serialize` themselves into a predefined set of variables::
 
-    job.serialize() -> (job_type, f, args, kwargs)
+   job.serialize() -> (job_type, f, args, kwargs)
 
 * ``job_type`` should be a string that is a class name defined in this module.
-  (e.g. ``"PlacementJob")
+   (e.g. ``"PlacementJob"``)
+
 * ``f`` should be the function object that the job's ``execute`` method should
-  execute.
+   execute.
+
 * ``args`` and ``kwargs`` are the args to be passed to that ``f``.
 
 The :meth:`.Job.execute` handler can help interpret ``args`` and ``kwargs``
@@ -18,7 +20,7 @@ before running ``f``. The execute handler has access to the scaffold on the MPI
 process so one best serializes just the name of some part of the configuration,
 rather than trying to pickle the complex objects. For example, the
 :class:`.PlacementJob` uses the first ``args`` element to store the
-:class:`~bsb.placement.PlacementStrategy` name and then retrieve it from the
+:class:`~bsb.placement.strategy.PlacementStrategy` name and then retrieve it from the
 scaffold:
 
 .. code-block:: python
@@ -98,6 +100,10 @@ class PoolProgressReason(Enum):
 
 
 class PoolProgress:
+    """
+    Class used to report pool progression to listeners.
+    """
+
     def __init__(self, pool: "JobPool", reason: PoolProgressReason):
         self._pool = pool
         self._reason = reason
@@ -162,6 +168,10 @@ def dispatcher(pool_id, job_args):
 
 
 class SubmissionContext:
+    """
+    Context information on who submitted a certain job.
+    """
+
     def __init__(self, submitter, chunks=None, **kwargs):
         self._submitter = submitter
         self._chunks = chunks
@@ -235,6 +245,9 @@ class Job(abc.ABC):
         return self._error
 
     def serialize(self):
+        """
+        Convert the job to a (de)serializable representation
+        """
         name = self.__class__.__name__
         # First arg is to find the static `execute` method so that we don't have to
         # serialize any of the job objects themselves but can still use different handlers
