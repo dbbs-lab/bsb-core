@@ -1,17 +1,18 @@
 import unittest
 
 import numpy as np
-from bsb_test import get_data_path, skip_parallel
+from bsb_test import get_data_path
 
 from bsb.config import Configuration
 from bsb.core import Scaffold
-from bsb.exceptions import DatasetNotFoundError, DistributorError, EmptySelectionError
+from bsb.exceptions import DatasetNotFoundError, DistributorError
 from bsb.morphologies import Morphology
 from bsb.placement.distributor import (
     MorphologyDistributor,
     MorphologyGenerator,
     VolumetricRotations,
 )
+from bsb.services.pool import WorkflowError
 
 
 class OneNoneDistributor(MorphologyDistributor):
@@ -52,15 +53,15 @@ class TestMorphologyDistributor(unittest.TestCase):
         )
         self.netw = Scaffold(self.cfg)
 
-    @unittest.expectedFailure
-    @skip_parallel
-    # Errors during parallel jobs cause MPI_Abort, untestable scenario.
     def test_empty_selection(self):
-        with self.assertRaisesRegex(DistributorError, "NameSelector"):
+        with self.assertRaises(WorkflowError) as wfe:
             self.netw.compile(append=True)
 
-    @skip_parallel
-    # Errors during parallel jobs cause MPI_Abort, untestable scenario.
+        self.assertEqual(1, len(wfe.exception.exceptions))
+        err = wfe.exception.exceptions[0].error
+        self.assertEqual(DistributorError, type(err))
+        self.assertIn("NameSelector", str(err))
+
     def test_none_returns(self):
         self.netw.morphologies.save("bs", Morphology.empty(), overwrite=True)
         self.netw.cell_types.a.spatial.morphologies = [{"names": ["*"]}]
@@ -76,9 +77,7 @@ class TestMorphologyDistributor(unittest.TestCase):
         with self.assertRaises(DatasetNotFoundError, msg="shouldnt have morphos"):
             ps.load_morphologies()
 
-    @unittest.skip
     def test_same_generators(self):
-        """todo: Robin, test is stuck"""
         self.netw.placement.a.distribute.morphologies = SameEmptyGenerator()
         self.netw.compile()
         ps = self.netw.get_placement_set("a")
@@ -91,7 +90,6 @@ class TestMorphologyDistributor(unittest.TestCase):
             "expected each chunk to generate 1 unique empty morphology",
         )
 
-    @unittest.expectedFailure
     def test_many_generators(self):
         self.netw.placement.a.distribute.morphologies = ManyEmptyGenerator()
         self.netw.compile()

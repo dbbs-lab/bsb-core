@@ -20,6 +20,7 @@ from bsb.mixins import NotParallel
 from bsb.placement import FixedPositions, PlacementStrategy, RandomPlacement
 from bsb.services import MPI
 from bsb.services.pool import (
+    Job,
     JobPool,
     JobStatus,
     PoolProgress,
@@ -161,7 +162,7 @@ class TestSerialAndParallelScheduler(
         """
         pool = self.network.create_job_pool(quiet=True)
         t = time.time()
-        job = pool.queue(sleep_y, (5, 2))
+        job: "Job" = pool.queue(sleep_y, (5, 2))
         job.cancel("Test")
         pool.execute()
         # Confirm the cancellation error
@@ -383,7 +384,7 @@ class TestSerialScheduler(
     RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
 ):
     def setUp(self):
-        self.config = create_config()
+        self.cfg = create_config()
         super().setUp()
 
     def test_notparallel_ps_job(self):
@@ -392,7 +393,7 @@ class TestSerialScheduler(
             def place(_, chunk, indicators):
                 return 1
 
-        pool = JobPool(self.network)
+        pool = self.network.create_job_pool(quiet=True)
         pstrat = self.network.placement.add(
             "test", SerialPStrat(strategy="", cell_types=[], partitions=[])
         )
