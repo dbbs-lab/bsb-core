@@ -7,7 +7,7 @@ import typing as _t
 
 import numpy as _np
 
-_ichain = _it.chain.from_iterable
+ichain = _it.chain.from_iterable
 
 
 def merge_dicts(a, b):

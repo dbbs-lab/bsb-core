@@ -11,7 +11,6 @@ from ..reporting import report, warn
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
-    from ..connectivity import ConnectionStrategy
     from ..core import Scaffold
     from ..morphologies import MorphologySet
     from ..storage.interfaces import PlacementSet
