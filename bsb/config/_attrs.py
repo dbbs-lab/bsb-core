@@ -394,6 +394,7 @@ def _boot_nodes(top_node, scaffold):
             run_hook(node, "boot")
         except Exception as e:
             errr.wrap(BootError, e, prepend=f"Failed to boot {node}:")
+    # fixme: why is this here? Will deadlock in case of BootError on specific node only.
     MPI.barrier()
 
 
