@@ -706,11 +706,9 @@ def register_classmap(cls_name, classmap):
 
 
 def get_classmap(cls):
-    print("PLUGINS THO?", load_component_plugins())
+    load_component_plugins()
     classmap = getattr(cls, "_config_dynamic_classmap", {})
-    print("base classmap?", classmap)
     classmap.update(_classmap_registry[get_qualified_class_name(cls)])
-    print("registry?", cls, get_qualified_class_name(cls), _classmap_registry)
     return classmap
 
 
