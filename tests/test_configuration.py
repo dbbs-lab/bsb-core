@@ -432,17 +432,9 @@ class BootRoot:
     none = config.reflist(lambda r, h: h, default=None)
 
 
-def _bootstrap(cfg, scaffold):
-    for node in config.walk_nodes(cfg):
-        node.scaffold = scaffold
-        config.run_hook(node, "boot")
-    return cfg
-
-
 class TestConfigRefList(unittest.TestCase):
     def test_reflist_defaults(self):
         root = BootRoot({})
-        _bootstrap(root, None)
         self.assertEqual([], root.empty_list)
         self.assertEqual([], root.none)
 
@@ -519,7 +511,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"ref_cfg": "lists", "ref": "lists"}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.cfglist), "`populate` config.list failure")
         self.assertEqual(
             pop_root.referrers,
@@ -533,7 +524,6 @@ class TestPopulate(unittest.TestCase):
 
     def test_populate_reflist(self):
         pop_root = PopRoot({"lists": {}, "referrers": {"ref_ref": "lists"}})
-        _bootstrap(pop_root, None)
         self.assertEqual(
             1, len(pop_root.lists.reflist), "`populate` config.reflist failure"
         )
@@ -549,7 +539,6 @@ class TestPopulate(unittest.TestCase):
             "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
         }
         pop_root = PopRoot(conf)
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
@@ -561,7 +550,6 @@ class TestPopulate(unittest.TestCase):
                 "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
             },
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
@@ -574,7 +562,6 @@ class TestPopulate(unittest.TestCase):
                 "refs2": {"ref_ref": "lists"},
             }
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(4, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
         HasRefs.ref_ref.pop_unique = True
@@ -583,7 +570,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.list), "Reflist did not populate uniquely")
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
 
@@ -592,7 +578,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(3, len(pop_root.lists.list))
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
         HasRefs.reflist.pop_unique = True
