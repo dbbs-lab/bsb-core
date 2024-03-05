@@ -1,9 +1,11 @@
 # A module to read HDF5 data
 import h5py
+
 # A module to run NEURON simulations in isolation
 import nrnsub
 
 from bsb.core import from_storage
+
 
 # This decorator runs each call to the function in isolation
 # on a separate process. Does not work with MPI.
