@@ -102,7 +102,6 @@ class FileStore(IFileStore):
         :raises Exception: When there's no active configuration in the file store.
         """
         from bsb.config import Configuration
-        from bsb.config._config import _bootstrap_components
 
         stored = self.find_meta("active_config", True)
         if stored is None:
@@ -110,8 +109,7 @@ class FileStore(IFileStore):
         else:
             content, meta = stored.load()
             tree = json.loads(content)
-            _bootstrap_components(tree.get("components", []), self)
-            cfg = Configuration(**tree)
+            cfg = Configuration(**tree, _store=self)
             cfg._meta = meta
             return cfg
 

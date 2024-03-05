@@ -150,10 +150,3 @@ class Configuration:
 
     def __repr__(self):
         return f"{type(self).__qualname__}({self})"
-
-
-def _bootstrap_components(components, file_store=None):
-    for component in components:
-        component_node = CodeDependencyNode(component)
-        component_node.file_store = file_store
-        component_node.load_object()
