@@ -1,13 +1,16 @@
+import functools
 import importlib
 import inspect
 import os
 import sys
 import types
 import warnings
+from collections import defaultdict
 from re import sub
 
 import errr
 
+from .._util import get_qualified_class_name
 from ..exceptions import (
     CastError,
     ConfigurationError,
@@ -421,7 +424,10 @@ def _try_catch(catch, node, key, value):
 
 def _get_dynamic_class(node_cls, kwargs):
     if node_cls is not node_cls._config_dynamic_root:
+        # When the node is already a subclass of its dynamic root, we don't need to cast
+        # it anymore.
         return node_cls
+
     attr_name = node_cls._config_dynamic_attr
     dynamic_attr = getattr(node_cls, attr_name)
     if attr_name in kwargs:
@@ -431,9 +437,10 @@ def _get_dynamic_class(node_cls, kwargs):
     elif dynamic_attr.should_call_default():  # pragma: nocover
         loaded_cls_name = dynamic_attr.default()
     else:
+        # Fall back to the default value, or the current class.
         loaded_cls_name = dynamic_attr.default or node_cls.__name__
     module_path = ["__main__", node_cls.__module__]
-    classmap = getattr(node_cls, "_config_dynamic_classmap", None)
+    classmap = get_classmap(node_cls)
     interface = getattr(node_cls, "_config_dynamic_root")
     try:
         dynamic_cls = _load_class(
@@ -488,6 +495,7 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
         class_ref = cfg_classname
         class_name = cfg_classname.__name__
     else:
+        print("classname?", cfg_classname, classmap)
         class_ref = _load_object(cfg_classname, module_path)
         class_name = class_ref.__name__
 
@@ -675,6 +683,35 @@ def _get_walkable_iterator(node):
         for i, value in enumerate(node):
             walkiter[i] = WalkIterDescriptor(i, value)
         return walkiter
+
+
+_classmap_registry = defaultdict(dict)
+
+
+@functools.cache
+def load_component_plugins():
+    from ..plugins import discover
+
+    plugins = discover("components")
+    for plugin in plugins.values():
+        if isinstance(plugin, dict):
+            for class_name, classmap in plugin.items():
+                register_classmap(class_name, classmap)
+
+    return plugins
+
+
+def register_classmap(cls_name, classmap):
+    _classmap_registry[cls_name].update(classmap)
+
+
+def get_classmap(cls):
+    print("PLUGINS THO?", load_component_plugins())
+    classmap = getattr(cls, "_config_dynamic_classmap", {})
+    print("base classmap?", classmap)
+    classmap.update(_classmap_registry[get_qualified_class_name(cls)])
+    print("registry?", cls, get_qualified_class_name(cls), _classmap_registry)
+    return classmap
 
 
 MISSING = object()
