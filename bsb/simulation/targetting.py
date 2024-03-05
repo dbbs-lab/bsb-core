@@ -16,9 +16,9 @@ if typing.TYPE_CHECKING:
 
 @config.dynamic(attr_name="strategy", default="all", auto_classmap=True)
 class Targetting:
-    type: typing.Union[
-        typing.Literal["cell"], typing.Literal["connection"]
-    ] = config.attr(type=types.in_(["cell", "connection"]), default="cell")
+    type: typing.Union[typing.Literal["cell"], typing.Literal["connection"]] = (
+        config.attr(type=types.in_(["cell", "connection"]), default="cell")
+    )
 
     def get_targets(self, adapter, simulation, simdata):
         if self.type == "cell":
@@ -180,9 +180,9 @@ class CylindricalTargetting(
     """
 
     origin: list[float] = config.attr(type=types.list(type=float, size=2))
-    axis: typing.Union[
-        typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
-    ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
+    axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
+        config.attr(type=types.in_(["x", "y", "z"]), default="y")
+    )
     radius: float = config.attr(type=float, required=True)
 
     @FractionFilter.filter

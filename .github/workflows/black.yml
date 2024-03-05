@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Black Check
-      uses: jpetrucciani/black-check@master
+    - uses: actions/checkout@v4
+    - uses: psf/black@stable
       with:
-        path: 'bsb'
+        options: "--check --verbose"
+        version: "24.1.1"

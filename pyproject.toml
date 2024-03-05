@@ -19,7 +19,6 @@ dependencies = [
     "rtree~=1.0",
     "psutil~=5.8",
     "pynrrd~=1.0",
-    "PyYAML~=6.0",
     "morphio~=3.3",
     "toml",
     "requests~=2.30",
@@ -65,11 +64,10 @@ parallel = [
     "mpilock~=1.1"
 ]
 test = [
-    "coverage~=7.3",
+    "bsb-arbor==0.0.0b1",
     "bsb-hdf5==1.0.0b1",
-    "bsb-test==0.0.0b2",
-    "bsb-json==0.0.0b0",
-    "bsb-arbor==0.0.0b0"
+    "bsb-test==0.0.0b8",
+    "coverage~=7.3",
 ]
 docs = [
     "sphinx~=7.0",
@@ -77,13 +75,15 @@ docs = [
     "sphinxemoji~=0.2.0",
     "sphinx_design~=0.5.0",
     "sphinx-copybutton~=0.5.0",
-    "sphinxext-bsb~=0.2.1"
+    "sphinxext-bsb~=0.2.1",
+    "bsb-json>=0.0.0b5",
+    "bsb-yaml>=0.0.0b4",
 ]
 dev = [
     "build~=1.0",
     "twine~=4.0",
     "pre-commit~=3.5",
-    "black~=23.11",
+    "black~=24.1.1",
     "isort~=5.12",
     "snakeviz~=2.1",
     "bump2version~=1.0"

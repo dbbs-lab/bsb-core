@@ -1,6 +1,7 @@
 """
 Module for the Region types.
 """
+
 import abc
 import typing
 
@@ -87,9 +88,9 @@ class Stack(RegionGroup, classmap_entry="stack"):
     own height accordingly.
     """
 
-    axis: typing.Union[
-        typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
-    ] = config.attr(type=types.in_(["x", "y", "z"]), default="z")
+    axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
+        config.attr(type=types.in_(["x", "y", "z"]), default="z")
+    )
 
     def get_layout(self, hint):
         layout = super().get_layout(hint)
