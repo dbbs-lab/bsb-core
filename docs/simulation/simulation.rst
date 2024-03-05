@@ -4,17 +4,13 @@
 Simulating networks
 ###################
 
-.. The BSB manages simulations by deferring as soon as possible to the simulation backends.
-.. Each simulator has good reasons to make their design choices, befitting of their
-.. simulation paradigm. These choices lead to divergence in how simulations are described,
-.. and each simulator has their own niche functions. This means that if you are already
-.. familiar with a simulator, writing simulation config should feel familiar, on top of that
-.. the BSB is able to offer you access to each simulator's full set of features. The downside
-.. is that you're required to write a separate simulation config block per backend.
-..
-.. Now, let's get started.
+Simulations can be run through the CLI:
 
-Simulations can be run through the CLI tool, or through the ``bsb`` library for more
+.. code-block:: bash
+
+  bsb simulate my_network.hdf5 my_sim_name
+
+or through the ``bsb`` library for more
 control. When using the CLI, the framework sets up a "hands off" simulation workflow:
 
 * Read the network file
@@ -24,13 +20,7 @@ control. When using the CLI, the framework sets up a "hands off" simulation work
 * Run the simulation
 * Collect all the output
 
-.. code-block:: bash
-
-  bsb simulate my_network.hdf5 my_sim_name
-
-When you use the library, you can set up more complex workflows. For example a parameter
-sweep that loops and modifies the release probability of the AMPA synapse in the
-cerebellar granule cell:
+When you use the library, you can set up more complex workflows, such as parameter sweeps:
 
 .. literalinclude:: ../../examples/simulation/parameter_sweep.py
   :language: python
@@ -247,21 +237,18 @@ NEURON
 Cell models
 -----------
 
-A cell model is described by loading external ``arborize.CellModel`` classes:
+By default the NEURON adapter uses an ``ArborizedCellModel``, which loads
+external ``arborize`` definition to instantiate cells.
 
 .. code-block:: json
 
   {
     "cell_models": {
       "cell_type_A": {
-        "model": "dbbs_models.GranuleCell",
-        "record_soma": true,
-        "record_spikes": true
+        "model": "dbbs_models.GranuleCell"
       },
       "cell_type_B": {
-        "model": "dbbs_models.PurkinjeCell",
-        "record_soma": true,
-        "record_spikes": true
+        "model": "dbbs_models.PurkinjeCell"
       }
     }
   }
@@ -290,11 +277,9 @@ can be referenced by name:
 Devices
 -------
 
-In NEURON an assortment of devices is provided by the BSB to send input, or
-record output.
+Devices send input, or record output.
 
-In addition to voltage and spike recording we'll place a spike generator and a
-voltage clamp:
+Here we'll place a spike generator and a voltage clamp:
 
 .. code-block:: json
 
