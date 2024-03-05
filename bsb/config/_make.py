@@ -280,6 +280,8 @@ def compile_postnew(cls):
         for attr in attrs.values():
             name = attr.attr_name
             if attr.key and attr.attr_name not in kwargs:
+                # If this is a "key" attribute, and the user didn't overwrite it,
+                # set the attribute to the config key
                 setattr(self, name, self._config_key)
                 attr.flag_pristine(self)
             elif (value := values[name]) is None:

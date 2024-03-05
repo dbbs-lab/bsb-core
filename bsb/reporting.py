@@ -45,6 +45,10 @@ def in_notebook():
     return True
 
 
+def in_pytest():
+    return "pytest" in sys.modules
+
+
 def set_report_file(v):
     """
     Set a file to which the scaffold package should report instead of stdout.
@@ -91,7 +95,7 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
             print(message, end="\n" if not ongoing else "\r", flush=True)
 
 
-def warn(message, category=None, stacklevel=2):
+def warn(message, category=None, stacklevel=2, log_exc=None):
     """
     Send a warning.
 
@@ -101,7 +105,18 @@ def warn(message, category=None, stacklevel=2):
     """
     from . import options
 
-    if options.verbosity > 0:
+    if log_exc:
+        import traceback
+
+        from .storage._util import cache
+
+        log = f"{message}\n\n{traceback.format_exception(type(log_exc), log_exc, log_exc.__traceback__)}"
+        id = cache.files.store(log)
+        path = cache.files.id_to_file_path(id)
+        message += f" See '{path}' for full error log."
+
+    # Avoid infinite loop looking up verbosity when verbosity option is broken.
+    if "Error retrieving option 'verbosity'" in message or options.verbosity > 0:
         if _report_file:
             with open(_report_file, "a") as f:
                 f.write(_encode(str(category or "warning"), message))
@@ -136,7 +151,7 @@ def _decode(payload: str):
 def setup_reporting():
     warnings.formatwarning = warning_on_one_line
     # Don't touch stdout if we're in IPython
-    if in_notebook():
+    if in_notebook() or in_pytest():
         return
     # Otherwise, tinker with stdout so that we autoflush after each write, better for MPI.
     try:

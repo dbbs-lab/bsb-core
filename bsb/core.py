@@ -413,7 +413,7 @@ class Scaffold:
             pool.execute()
 
     @meter()
-    def run_simulation(self, simulation_name: str, quit=False):
+    def run_simulation(self, simulation_name: str):
         """
         Run a simulation starting from the default single-instance adapter.
 
@@ -422,7 +422,7 @@ class Scaffold:
         """
         simulation = self.get_simulation(simulation_name)
         adapter = get_simulation_adapter(simulation.simulator)
-        return adapter.simulate(simulation)
+        return adapter.simulate(simulation)[0]
 
     def get_simulation(self, sim_name: str) -> "Simulation":
         """

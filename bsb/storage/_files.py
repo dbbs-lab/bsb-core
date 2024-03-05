@@ -15,7 +15,6 @@ import urllib.request as _ur
 
 import nrrd as _nrrd
 import requests as _rq
-import yaml
 
 from .. import config
 from .._util import obj_str_insert
@@ -45,16 +44,18 @@ def _uri_to_path(uri):
 class FileDependency:
     def __init__(
         self,
-        source: str,
+        source: typing.Union[str, _os.PathLike],
         file_store: "FileStore" = None,
         ext: str = None,
         cache=True,
     ):
-        self._given_source: str = source
-        if _is_uri(source):
-            self._uri = source
+        self._given_source: str = str(source)
+        if _is_uri(self._given_source):
+            self._uri = self._given_source
         else:
-            self._uri: str = _pl.Path(source).absolute().as_uri()
+            path = _pl.Path(source).absolute()
+            self._uri: str = path.as_uri()
+            ext = ext or path.suffix[1:] or None
         self._scheme: "FileScheme" = _get_scheme(_up.urlparse(self._uri).scheme)
         self.file_store = file_store
         self.extension = ext
@@ -582,17 +583,6 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
                 i
             ].load_object()
         )
-
-
-@config.node
-class YamlDependencyNode(FileDependencyNode):
-    """
-    Configuration dependency node to load yaml files.
-    """
-
-    def load_object(self):
-        with self.file.provide_locally() as (path, encoding):
-            return yaml.safe_load(open(path, "r"))
 
 
 @config.node

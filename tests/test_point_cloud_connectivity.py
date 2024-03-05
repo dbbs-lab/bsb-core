@@ -14,10 +14,10 @@ from bsb.exceptions import DatasetNotFoundError
 
 
 class TestPointCloudConnectivity(
-    MorphologiesFixture,
-    NetworkFixture,
-    FixedPosConfigFixture,
     RandomStorageFixture,
+    FixedPosConfigFixture,
+    NetworkFixture,
+    MorphologiesFixture,
     NumpyTestCase,
     unittest.TestCase,
     engine_name="hdf5",

@@ -1,6 +1,7 @@
 """
 This module contains the classes required to construct options.
 """
+
 import argparse
 import functools
 import os
@@ -9,6 +10,7 @@ import pathlib
 import toml
 
 from .exceptions import OptionError
+from .reporting import warn
 
 
 class OptionDescriptor:
@@ -280,7 +282,8 @@ class BsbOption:
                 return self.env
             return self.get_default()
         except Exception as e:
-            print(e)
+            warn(f"Error retrieving option '{self.name}'.", log_exc=e)
+            return self.get_default()
 
     def is_set(self, slug):
         if descriptor := getattr(type(self), slug, None):

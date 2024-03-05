@@ -1,9 +1,15 @@
+import inspect
 import json
 import sys
 import unittest
 
 import numpy as np
-from bsb_test import RandomStorageFixture, get_config_path, get_data_path
+from bsb_test import (
+    RandomStorageFixture,
+    get_data_path,
+    get_test_config,
+    list_test_configs,
+)
 
 from bsb import config
 from bsb.config import Configuration, _attrs, compose_nodes, types
@@ -21,8 +27,7 @@ from bsb.exceptions import (
     UnfitClassCastError,
     UnresolvedClassCastError,
 )
-from bsb.storage import NrrdDependencyNode, YamlDependencyNode
-from bsb.topology.partition import Partition
+from bsb.storage import NrrdDependencyNode
 from bsb.topology.region import RegionGroup
 
 
@@ -43,30 +48,25 @@ class TestConfiguration(
             Configuration({})
 
     def test_no_unknown_attributes(self):
-        try:
-            with self.assertWarns(ConfigurationWarning) as cm:
-                Configuration.default()
-            self.fail(f"Unknown configuration attributes detected: {cm.warning}")
-        except AssertionError:
-            pass
+        names = ["default", *list_test_configs()]
+        for name in names:
+            with self.subTest(name=name):
+                try:
+                    with self.assertWarns(ConfigurationWarning) as cm:
+                        if name == "default":
+                            Configuration.default()
+                        else:
+                            get_test_config(name)
+                except AssertionError:
+                    pass
+                else:
+                    self.fail(f"Unknown configuration attributes detected: {cm.warning}")
 
     def test_unknown_attributes(self):
         tree = Configuration.default().__tree__()
         tree["shouldntexistasattr"] = 15
         with self.assertRaises(ConfigurationError) as e:
             Configuration(tree)
-
-    def test_readonly_attributes(self):
-        tree = Configuration.default().__tree__()
-        tree["partitions"] = {
-            "base_layer": {"type": "layer", "thickness": 100, "region": "x"}
-        }
-        with self.assertRaises(CastError) as ec:
-            Configuration(tree)
-        # Need a further check since CastError is raised before AttributeError
-        check_str = "Configuration attribute key 'region' conflicts with readonly"
-        msg_str = "Readonly class attribute conflicts"
-        self.assertIn(check_str, str(ec.exception), msg_str)
 
 
 class TestConfigAttrs(unittest.TestCase):
@@ -194,6 +194,50 @@ class TestConfigAttrs(unittest.TestCase):
 
         t = Test(name="hello")
         self.assertEqual(t, Test(t), "Already cast object should not be altered")
+
+    def test_readonly_attributes(self):
+        """
+        Test that readonly configuration properties can not be set.
+        """
+
+        @config.node
+        class Test:
+            @config.property
+            def x(self):
+                return 5
+
+        y = Test()
+        with self.assertRaisesRegex(
+            AttributeError,
+            "Can't set attribute 'x'",
+            msg="Readonly attribute should not be set",
+        ):
+            y.x = 6
+        with self.assertRaisesRegex(
+            AttributeError,
+            "Can't set attribute 'x'",
+            msg="Readonly attribute should not be set",
+        ):
+            Test(x=6)
+
+    def test_readonly_overlap(self):
+        """
+        Test that the configuration system does not overwrite readonly attributes on the
+        node class.
+        """
+
+        @config.node
+        class Test:
+            @property
+            def x(self):
+                return 5
+
+        with self.assertRaisesRegex(
+            AttributeError,
+            "Configuration attribute key 'x' conflicts with readonly",
+            msg="Readonly attribute should not be set",
+        ):
+            Test(x=6)
 
 
 class TestConfigDict(unittest.TestCase):
@@ -1106,14 +1150,27 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(3, _eval("np.array([v - 2])[0]", v=5))
 
     def test_class(self):
+        """
+        Check that class retrieval fetches the right objects. The test is somewhat
+        complicated to make sure that this test can be run in a directory independent way.
+        """
+
         @config.root
         class Test:
             a = config.attr(type=types.class_())
             b = config.attr(type=types.class_(module_path=["test_configuration"]))
 
-        cfg = Test({"a": "test_configuration.MyTestClass", "b": "MyTestClass"})
-        self.assertEqual(MyTestClass, cfg.a)
-        self.assertEqual(MyTestClass, cfg.b)
+        import pathlib
+        import sys
+
+        sys.path.insert(0, str(pathlib.Path(__file__).parent))
+        try:
+            cfg = Test({"a": "test_configuration.MyTestClass", "b": "MyTestClass"})
+        finally:
+            sys.path.pop(0)
+
+        self.assertEqual(inspect.getsource(MyTestClass), inspect.getsource(cfg.a))
+        self.assertEqual(inspect.getsource(MyTestClass), inspect.getsource(cfg.b))
 
         with self.assertRaises(CastError):
             cfg = Test({"a": "MyTestClass"})
@@ -1160,18 +1217,53 @@ class TestTypes(unittest.TestCase):
         d = Test(c="test.nrrd", _parent=TestRoot())
         self.assertRaises(FileNotFoundError, d.c.load_object)
 
-    def test_yaml(self):
-        @config.node
-        class Test:
-            c = config.attr(type=YamlDependencyNode)
+    def test_mutexcl_required(self):
+        """test the types.mut_excl function"""
 
-        b = Test(c=get_data_path("configs", "test_yaml.yaml"), _parent=TestRoot())
-        tested = b.c.load_object()
-        expected = dict(testKey={"testSubKey": ["content1", 2, 3.0], 4: None})
-        self.assertEqual(expected, tested, "Yaml parsing failed")
-        self.assertRaises(CastError, Test, c=2, _parent=TestRoot())
-        d = Test(c="test.yaml", _parent=TestRoot())
-        self.assertRaises(FileNotFoundError, d.c.load_object)
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b"))
+            b = config.attr(required=types.mut_excl("a", "b"))
+
+        TestClass(a="1")
+        TestClass(b="6")
+        with self.assertRaises(RequirementError):
+            TestClass(a="5", b="6")
+        with self.assertRaises(RequirementError):
+            TestClass()
+
+    def test_mutexcl_optional(self):
+        """test the types.mut_excl function with optional values"""
+
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b", required=False))
+            b = config.attr(required=types.mut_excl("a", "b", required=False))
+
+        TestClass()
+
+    def test_mutexcl_maxval(self):
+        """test the max variable"""
+
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b", max=2))
+            b = config.attr(required=types.mut_excl("a", "b", max=2))
+
+        TestClass(a="1", b="6")
+
+    def test_mutexcl_threecase(self):
+        """test the types.mut_excl function with three arguments"""
+
+        @config.node
+        class TestClass:
+            a = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+            b = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+            c = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+
+        TestClass(a="1", c="3")
+        with self.assertRaises(RequirementError):
+            TestClass(a="1", b="6", c="3")
 
 
 @config.dynamic(
@@ -1195,6 +1287,10 @@ class Classmap2ChildB(Classmap2Parent):
 
 
 class MyTestClass:
+    """
+    Test class used for testing class object retrieval from a module.
+    """
+
     pass
 
 

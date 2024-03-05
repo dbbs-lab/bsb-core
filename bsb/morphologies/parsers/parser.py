@@ -45,7 +45,7 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
     def parse(self, file: typing.Union["FileDependency", str]):
         from ...storage import FileDependency
 
-        if isinstance(file, str):
+        if not isinstance(file, FileDependency):
             file = FileDependency(file)
         content, encoding = file.get_content(check_store=False)
         return self.parse_content(content.decode(encoding or "utf8"))
@@ -64,7 +64,7 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
             ]
         except Exception:
             raise RuntimeError(f"Could not parse SWC content")
-        err_lines = ", ".join(i for i, d in enumerate(data) if len(d) != 7)
+        err_lines = ", ".join(str(i) for i, d in enumerate(data) if len(d) != 7)
         if err_lines:
             raise ValueError(f"SWC incorrect on lines: {err_lines}")
         return np.array(data)

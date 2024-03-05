@@ -28,9 +28,11 @@ class EncodedLabels(np.ndarray):
     @obj_str_insert
     def __repr__(self):
         labellist = ", ".join(
-            f"{sum(self == k)} labelled {list(ls)}"
-            if len(ls)
-            else f"{sum(self == k)} unlabelled"
+            (
+                f"{sum(self == k)} labelled {list(ls)}"
+                if len(ls)
+                else f"{sum(self == k)} unlabelled"
+            )
             for k, ls in self.labels.items()
         )
         return f"with {len(self)} elements, of which {labellist}"

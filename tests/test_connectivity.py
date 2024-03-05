@@ -8,11 +8,11 @@ from bsb_test import (
     NetworkFixture,
     NumpyTestCase,
     RandomStorageFixture,
-    get_config_path,
+    get_test_config,
     skip_parallel,
 )
 
-from bsb.config import Configuration, from_file
+from bsb.config import Configuration
 from bsb.core import Scaffold
 from bsb.morphologies import Branch, Morphology
 from bsb.services import MPI
@@ -346,10 +346,10 @@ class TestConnWithLabels(
 
 
 class TestConnWithSubCellLabels(
-    MorphologiesFixture,
-    NetworkFixture,
-    FixedPosConfigFixture,
     RandomStorageFixture,
+    FixedPosConfigFixture,
+    NetworkFixture,
+    MorphologiesFixture,
     NumpyTestCase,
     unittest.TestCase,
     engine_name="hdf5",
@@ -453,8 +453,8 @@ class TestConnWithSubCellLabels(
 
 
 class TestVoxelIntersection(
-    NetworkFixture,
     RandomStorageFixture,
+    NetworkFixture,
     NumpyTestCase,
     unittest.TestCase,
     engine_name="hdf5",
@@ -652,10 +652,10 @@ class TestVoxelIntersection(
 
 
 class TestFixedIndegree(
-    NetworkFixture, RandomStorageFixture, unittest.TestCase, engine_name="hdf5"
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
 ):
     def setUp(self) -> None:
-        self.cfg = from_file(get_config_path("test_indegree.json"))
+        self.cfg = get_test_config("indegree")
         super().setUp()
 
     def test_indegree(self):
