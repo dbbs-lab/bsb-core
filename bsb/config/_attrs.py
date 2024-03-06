@@ -503,9 +503,11 @@ class ConfigurationAttribute:
         return self._config_type
 
     def get_hint(self):
+        if self.hint is not MISSING:
+            return self.hint
         if hasattr(self.type, "__hint__"):
             return self.type.__hint__()
-        return self.hint
+        return MISSING
 
     def get_node_name(self, instance):
         return instance.get_node_name() + "." + self.attr_name
@@ -691,6 +693,13 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         val = _getattr(instance, self.attr_name)
         return [self.tree_of(e) for e in val]
 
+    def get_hint(self):
+        if self.hint is not MISSING:
+            return self.hint
+        if hasattr(self.child_type, "__hint__"):
+            return [self.child_type.__hint__(), self.child_type.__hint__()]
+        return MISSING
+
 
 class cfgdict(builtins.dict):
     """
@@ -834,6 +843,16 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
     def tree(self, instance):
         val = _getattr(instance, self.attr_name).items()
         return {k: self.tree_of(v) for k, v in val}
+
+    def get_hint(self):
+        if self.hint is not MISSING:
+            return self.hint
+        if hasattr(self.child_type, "__hint__"):
+            return {
+                "key1": self.child_type.__hint__(),
+                "key2": self.child_type.__hint__(),
+            }
+        return MISSING
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):

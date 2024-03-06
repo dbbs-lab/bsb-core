@@ -20,7 +20,7 @@ from . import types
 from ._attrs import _boot_nodes, cfgdict, cfglist
 
 if typing.TYPE_CHECKING:
-    from packaging.requirements import Requirement
+    import packaging.requirements
 
     from ..core import Scaffold
 
@@ -65,35 +65,63 @@ class Configuration:
     components: cfglist[CodeDependencyNode] = config.list(
         type=CodeDependencyNode,
     )
-    packages: cfglist["Requirement"] = config.list(
+    """
+    List of modules relative to the project root containing extension components.
+    """
+    packages: cfglist["packaging.requirements.Requirement"] = config.list(
         type=types.PackageRequirement(),
     )
+    """
+    List of package requirement specifiers the model depends on.
+    
+    """
     morphologies: cfglist[MorphologyDependencyNode] = config.list(
         type=types.or_(MorphologyDependencyNode, MorphologyPipelineNode),
     )
+    """
+    Morphology files and processing pipelines.
+    """
     storage: StorageNode = config.attr(
         type=StorageNode,
         required=True,
     )
+    """
+    Network storage configuration
+    """
     network: NetworkNode = config.attr(
         type=NetworkNode,
         required=True,
     )
+    """
+    Network description
+    """
     regions: cfgdict[str, Region] = config.dict(
         type=Region,
     )
+    """
+    Network regions
+    """
     partitions: cfgdict[str, Partition] = config.dict(
         type=Partition,
         required=True,
     )
+    """
+    Network partitions
+    """
     cell_types: cfgdict[str, CellType] = config.dict(
         type=CellType,
         required=True,
     )
+    """
+    Network cell types
+    """
     placement: cfgdict[str, PlacementStrategy] = config.dict(
         type=PlacementStrategy,
         required=True,
     )
+    """
+    Network placement strategies
+    """
     after_placement: cfgdict[str, PostProcessingHook] = config.dict(
         type=PostProcessingHook,
     )
@@ -101,12 +129,18 @@ class Configuration:
         type=ConnectionStrategy,
         required=True,
     )
+    """
+    Network connectivity strategies
+    """
     after_connectivity: cfgdict[str, PostProcessingHook] = config.dict(
         type=PostProcessingHook,
     )
     simulations: cfgdict[str, Simulation] = config.dict(
         type=Simulation,
     )
+    """
+    Network simulation configuration
+    """
     __module__ = "bsb.config"
 
     @classmethod

@@ -778,3 +778,6 @@ class PackageRequirement(TypeHandler):
 
     def __inv__(self, value):
         return str(value)
+
+    def __hint__(self):
+        return "numpy==1.24.0"
