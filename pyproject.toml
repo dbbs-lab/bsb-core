@@ -28,6 +28,7 @@ dependencies = [
     "tqdm~=4.50",
     "shortuuid",
     "quantities",
+    "exceptiongroup",
 ]
 
 [tool.flit.module]
