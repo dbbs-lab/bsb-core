@@ -12,6 +12,7 @@ from bsb_test import (
 )
 
 from bsb import config
+from bsb._package_spec import get_missing_requirement_reason
 from bsb.config import Configuration, _attrs, compose_nodes, types
 from bsb.config.refs import Reference
 from bsb.core import Scaffold
