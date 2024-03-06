@@ -1,12 +1,13 @@
 import contextlib as _ctxlib
-import functools
+import functools as _ft
+import inspect as _inspect
 import itertools as _it
 import os as _os
 import sys as _sys
 import typing
 
-import numpy as np
 import numpy as _np
+import numpy as np
 
 ichain = _it.chain.from_iterable
 
@@ -21,7 +22,7 @@ def merge_dicts(a, b):
 
 
 def obj_str_insert(__str__):
-    @functools.wraps(__str__)
+    @_ft.wraps(__str__)
     def wrapper(self):
         obj_str = object.__repr__(self)
         return obj_str.replace("at 0x", f"{__str__(self)} at 0x")
@@ -44,6 +45,9 @@ def suppress_stdout():
 
 
 def get_qualified_class_name(x):
+    """Return an object's module and class name"""
+    if _inspect.isclass(x):
+        return f"{x.__module__}.{str(x.__name__)}"
     return f"{x.__class__.__module__}.{str(x.__class__.__name__)}"
 
 
@@ -80,7 +84,7 @@ def assert_samelen(*args):
 
 def immutable():
     def immutable_decorator(f):
-        @functools.wraps(f)
+        @_ft.wraps(f)
         def immutable_action(self, *args, **kwargs):
             new_instance = self.__copy__()
             f(new_instance, *args, **kwargs)
