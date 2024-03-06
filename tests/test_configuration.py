@@ -1404,9 +1404,9 @@ class TestCopy(unittest.TestCase):
         self.assertEqual(instance.b, copied.b)
 
 
-class TestDictScripting(unittest.TestCase):
+class TestDictScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def test_add(self):
-        netw = Scaffold()
+        netw = Scaffold(Configuration.default(), self.storage)
         cfg = netw.configuration
         ct = cfg.cell_types.add("test", spatial=dict(radius=2))
         # Check that the dict operation completed succesfully
@@ -1428,7 +1428,7 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(reg, part.region, "reference not resolved")
 
     def test_clear(self):
-        netw = Scaffold()
+        netw = Scaffold(Configuration.default(), self.storage)
         netw.regions.add("ello", children=[])
         netw.regions.add("ello2", children=[])
         r3 = netw.regions.add("ello3", children=[])
@@ -1442,7 +1442,7 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
 
     def test_pop(self):
-        netw = Scaffold()
+        netw = Scaffold(Configuration.default(), self.storage)
         netw.regions.add("ello", children=[])
         netw.regions.add("ello2", children=[])
         r3 = netw.regions.add("ello3", children=[])
@@ -1457,7 +1457,7 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
 
     def test_popitem(self):
-        netw = Scaffold()
+        netw = Scaffold(Configuration.default(), self.storage)
         netw.regions.add("ello", children=[])
         netw.regions.add("ello2", children=[])
         r3 = netw.regions.add("ello3", children=[])
@@ -1472,15 +1472,15 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
 
     def test_setdefault(self):
-        netw = Scaffold()
+        netw = Scaffold(Configuration.default(), self.storage)
         default = netw.regions.setdefault("ello", dict(children=[]))
         self.assertEqual(RegionGroup, type(default), "expected group")
         newer = netw.regions.setdefault("ello", dict(children=[]))
         self.assertIs(default, newer, "default not respected")
 
     def test_ior(self):
-        n1 = Scaffold()
-        n2 = Scaffold()
+        n1 = Scaffold(Configuration.default(), self.random_storage())
+        n2 = Scaffold(Configuration.default(), self.random_storage())
         n1.regions.add("test", children=[])
         n2.regions.add("test2", children=[])
         n2.regions.add("test", children=[], type="stack")
@@ -1489,9 +1489,10 @@ class TestDictScripting(unittest.TestCase):
         self.assertEqual("stack", n1.regions.test.type, "merge right failed")
 
 
-class TestListScripting(unittest.TestCase):
+class TestListScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def setUp(self):
-        self.netw = Scaffold()
+        super().setUp()
+        self.netw = Scaffold(Configuration.default(), self.storage)
         self.list = self.netw.cell_types.add(
             "test", spatial=dict(radius=2, morphologies=[])
         ).spatial.morphologies
@@ -1565,12 +1566,12 @@ class TestListScripting(unittest.TestCase):
         self.assertList(0)
 
 
-class TestScripting(unittest.TestCase):
+class TestScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def test_booted_root(self):
         cfg = Configuration.default()
         self.assertIsNone(_attrs._booted_root(cfg), "shouldnt be booted yet")
         self.assertIsNone(_attrs._booted_root(cfg.partitions), "shouldnt be booted yet")
-        Scaffold(cfg)
+        Scaffold(cfg, self.storage)
         self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
 
 

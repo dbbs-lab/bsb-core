@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-from bsb_test import get_data_path
+from bsb_test import NetworkFixture, RandomStorageFixture, get_data_path, skip_parallel
 
 from bsb.config import Configuration
 from bsb.core import Scaffold
@@ -36,7 +36,9 @@ class ManyEmptyGenerator(MorphologyGenerator):
         return [Morphology.empty() for _ in range(len(pos))]
 
 
-class TestMorphologyDistributor(unittest.TestCase):
+class TestMorphologyDistributor(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
+):
     def setUp(self):
         self.cfg = Configuration.default(
             regions=dict(reg=dict(children=["a"])),
@@ -52,7 +54,7 @@ class TestMorphologyDistributor(unittest.TestCase):
                 )
             ),
         )
-        self.netw = Scaffold(self.cfg)
+        super().setUp()
 
     def test_empty_selection(self):
         with self.assertRaises(WorkflowError) as wfe:
@@ -65,24 +67,24 @@ class TestMorphologyDistributor(unittest.TestCase):
             self.assertIn("NameSelector", str(err))
 
     def test_none_returns(self):
-        self.netw.morphologies.save("bs", Morphology.empty(), overwrite=True)
-        self.netw.cell_types.a.spatial.morphologies = [{"names": ["*"]}]
-        self.netw.placement.a.distribute.morphologies = OneNoneDistributor()
-        self.netw.compile(append=True)
-        ps = self.netw.get_placement_set("a")
+        self.network.morphologies.save("bs", Morphology.empty(), overwrite=True)
+        self.network.cell_types.a.spatial.morphologies = [{"names": ["*"]}]
+        self.network.placement.a.distribute.morphologies = OneNoneDistributor()
+        self.network.compile(append=True)
+        ps = self.network.get_placement_set("a")
         self.assertTrue(len(ps) > 0, "should've still placed cells")
         with self.assertRaises(DatasetNotFoundError, msg="shouldnt have morphos"):
             ps.load_morphologies()
-        self.netw.placement.a.distribute.morphologies = TupleNoneDistributor()
-        self.netw.compile(append=True)
+        self.network.placement.a.distribute.morphologies = TupleNoneDistributor()
+        self.network.compile(append=True)
         self.assertTrue(len(ps) > 0, "should've still placed cells")
         with self.assertRaises(DatasetNotFoundError, msg="shouldnt have morphos"):
             ps.load_morphologies()
 
     def test_same_generators(self):
-        self.netw.placement.a.distribute.morphologies = SameEmptyGenerator()
-        self.netw.compile()
-        ps = self.netw.get_placement_set("a")
+        self.network.placement.a.distribute.morphologies = SameEmptyGenerator()
+        self.network.compile()
+        ps = self.network.get_placement_set("a")
         ms = ps.load_morphologies()
         morphologies = list(ms.iter_morphologies(unique=True))
         self.assertEqual(len(ps), len(ms), "equal data")
@@ -93,9 +95,9 @@ class TestMorphologyDistributor(unittest.TestCase):
         )
 
     def test_many_generators(self):
-        self.netw.placement.a.distribute.morphologies = ManyEmptyGenerator()
-        self.netw.compile()
-        ps = self.netw.get_placement_set("a")
+        self.network.placement.a.distribute.morphologies = ManyEmptyGenerator()
+        self.network.compile()
+        ps = self.network.get_placement_set("a")
         ms = ps.load_morphologies()
         morphologies = list(ms.iter_morphologies(unique=True))
         self.assertEqual(len(ps), len(ms), "equal data")
@@ -104,7 +106,9 @@ class TestMorphologyDistributor(unittest.TestCase):
         )
 
 
-class TestVolumetricRotations(unittest.TestCase):
+class TestVolumetricRotations(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
+):
     def setUp(self):
         self.cfg = Configuration.default(
             regions=dict(reg=dict(children=["a"])),
@@ -133,16 +137,16 @@ class TestVolumetricRotations(unittest.TestCase):
                 ),
             ),
         )
-        self.netw = Scaffold(self.cfg)
+        super().setUp()
 
     def test_distribute(self):
-        self.netw.compile(clear=True)
-        positions = self.netw.get_placement_set("a").load_positions()
-        voxel_set = self.netw.partitions.a.get_voxelset()
+        self.network.compile(clear=True)
+        positions = self.network.get_placement_set("a").load_positions()
+        voxel_set = self.network.partitions.a.get_voxelset()
         region_ids = np.asarray(
             voxel_set.data[:, 0][voxel_set.index_of(positions)], dtype=int
         )
-        rotations = np.array(self.netw.get_placement_set("a").load_rotations())
+        rotations = np.array(self.network.get_placement_set("a").load_rotations())
         # Regions without orientation field -> no rotation
         self.assertTrue(
             np.array_equal(
@@ -166,7 +170,7 @@ class TestVolumetricRotations(unittest.TestCase):
             1000,
             1000,
         ]
-        self.netw = Scaffold(self.cfg)
-        self.netw.compile(clear=True)
-        rotations = np.array(self.netw.get_placement_set("a").load_rotations())
+
+        self.network.compile(clear=True)
+        rotations = np.array(self.network.get_placement_set("a").load_rotations())
         self.assertTrue(np.array_equal(np.all(rotations == 0.0, axis=1), region_ids > 0))
