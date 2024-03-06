@@ -103,9 +103,41 @@ considered first for when parsing files of unknown content.
 Storage engines
 ---------------
 
-**Category:** ``bsb.engines``
+**Category:** ``bsb.storage.engines``
 
-Simulator adapters
+Simulator backends
 ------------------
 
-**Category:** ``bsb.adapters``
+**Category:** ``bsb.simulation_backends``
+
+Components
+----------
+
+**Category:** ``bsb.components``
+
+Using component plugins, plugin authors can distribute reusable components. You can
+either eagerly load your components by loading the module, or lazy load them by
+registering a classmap extension:
+
+.. code-block:: toml
+
+   [project.entry-points."bsb.components"]
+   my_components = "my_package.my_module:classmap"
+
+And in ``my_package/my_module.py`` you can give a ``classmap`` dictionary that is
+keyed by the fully qualified class name of the components's classmaps you would like to
+extend. E.g., to add a placement strategy:
+
+.. code-block:: python
+
+   classmap = {
+     "bsb.placement.strategy.PlacementStrategy": {
+       "super_placement": "my_package.placement_module.SuperPlacementStrategy"
+     }
+   }
+
+A user can then use this placement strategy as follows:
+
+.. code-block:: python
+
+   strat = PlacementStrategy(strategy="super_placement", ...)
