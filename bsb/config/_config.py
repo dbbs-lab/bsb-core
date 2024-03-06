@@ -20,6 +20,8 @@ from . import types
 from ._attrs import _boot_nodes, cfgdict, cfglist
 
 if typing.TYPE_CHECKING:
+    from packaging.requirements import Requirement
+
     from ..core import Scaffold
 
 
@@ -62,6 +64,9 @@ class Configuration:
     """
     components: cfglist[CodeDependencyNode] = config.list(
         type=CodeDependencyNode,
+    )
+    packages: cfglist["Requirement"] = config.list(
+        type=types.PackageRequirement(),
     )
     morphologies: cfglist[MorphologyDependencyNode] = config.list(
         type=types.or_(MorphologyDependencyNode, MorphologyPipelineNode),

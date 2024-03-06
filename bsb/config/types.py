@@ -764,3 +764,17 @@ class ndarray(TypeHandler):
 
     def __inv__(self, value):
         return value.tolist()
+
+
+class PackageRequirement(TypeHandler):
+    def __call__(self, value):
+        from packaging.requirements import Requirement
+
+        return Requirement(value)
+
+    @property
+    def __name__(self):
+        return "package requirement"
+
+    def __inv__(self, value):
+        return str(value)

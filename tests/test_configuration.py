@@ -1594,3 +1594,25 @@ class TestNodeComposition(unittest.TestCase):
         assert type(self.tested.attrB == config.ConfigurationAttribute)
         assert hasattr(self.tested, "attrC")
         assert type(self.tested.attrC == config.ConfigurationAttribute)
+
+
+class TestPackageRequirements(unittest.TestCase):
+    def test_basic_version(self):
+        self.assertIsNone(get_missing_requirement_reason("bsb-core==" + bsb.__version__))
+
+    def test_invalid_requirement(self):
+        self.assertIsNotNone(
+            get_missing_requirement_reason("==" + bsb.__version__ + "@@==@@")
+        )
+        with self.assertRaises(CastError):
+            Configuration.default(packages=["==" + bsb.__version__ + "@@==@@"])
+
+    def test_different_version(self):
+        self.assertIsNotNone(get_missing_requirement_reason("bsb-core==0"))
+        with self.assertWarns(PackageRequirementWarning):
+            Configuration.default(packages=["bsb-core==0"])
+
+    def test_uninstalled_package(self):
+        self.assertIsNotNone(get_missing_requirement_reason("bsb-core-soup==4.0"))
+        with self.assertWarns(PackageRequirementWarning):
+            Configuration.default(packages=["bsb-core-soup==4.0"])

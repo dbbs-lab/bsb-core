@@ -138,10 +138,6 @@ class ConfigurationWarning(ScaffoldWarning):
     pass
 
 
-class UserUserDeprecationWarning(ScaffoldWarning):
-    pass
-
-
 class PlacementWarning(ScaffoldWarning):
     pass
 
@@ -162,17 +158,5 @@ class QuiverFieldWarning(ScaffoldWarning):
     pass
 
 
-class RepositoryWarning(ScaffoldWarning):
-    pass
-
-
-class SimulationWarning(ScaffoldWarning):
-    pass
-
-
-class KernelWarning(SimulationWarning):
-    pass
-
-
-class CriticalDataWarning(ScaffoldWarning):
+class PackageRequirementWarning(ScaffoldWarning):
     pass

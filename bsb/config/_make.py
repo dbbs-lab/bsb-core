@@ -8,6 +8,7 @@ from re import sub
 
 import errr
 
+from .._package_spec import warn_missing_packages
 from ..exceptions import (
     BootError,
     CastError,
@@ -314,9 +315,10 @@ def wrap_root_postnew(post_new):
         if not hasattr(self, "_meta"):
             self._meta = {"path": None, "produced": True}
 
-        # Root node bootstrapping sequence
         try:
+            # Root node bootstrapping sequence
             _bootstrap_components(kwargs.get("components", []), file_store=_store)
+            warn_missing_packages(kwargs.get("packages", []))
         except Exception as e:
             raise BootError("Failed to bootstrap configuration.") from e
 
