@@ -274,9 +274,7 @@ class ShapesComposition:
         :return: The number of points to generate.
         :rtype: numpy.ndarray[int]
         """
-        return [
-            int(shape.get_volume() // self._voxel_size**3) for shape in self._shapes
-        ]
+        return [int(shape.get_volume() // self._voxel_size**3) for shape in self._shapes]
 
     def generate_point_cloud(self) -> numpy.ndarray[float] | None:
         """
