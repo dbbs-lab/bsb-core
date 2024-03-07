@@ -387,7 +387,10 @@ def _get_node_name(self):
             return "{removed}"
         else:
             name = "[" + str(self._config_index) + "]"
-    return self._config_parent.get_node_name() + name
+    if getattr(self, "_config_parent", None):
+        return self._config_parent.get_node_name() + name
+    else:
+        return "{standalone}" + name
 
 
 def make_get_node_name(node_cls, root):
