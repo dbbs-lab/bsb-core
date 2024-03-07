@@ -7,16 +7,11 @@ import numpy as np
 from .. import config
 from .._util import obj_str_insert
 from ..config import refs, types
-from ..config._attrs import cfgdict, cfglist
-from ..exceptions import (
-    DistributorError,
-    EmptySelectionError,
-    MissingSourceError,
-    SourceQualityError,
-)
+from ..config._attrs import cfgdict
+from ..exceptions import DistributorError, EmptySelectionError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
-from ..reporting import report
+from ..reporting import report, warn
 from ..storage import Chunk
 from ..voxels import VoxelSet
 from .distributor import DistributorsNode
@@ -171,6 +166,9 @@ class FixedPositions(PlacementStrategy):
             raise ValueError(
                 f"Please set `.positions` on '{self.name}' before placement."
             )
+        if not len(self.positions):
+            warn(f"No positions given to {self.get_node_name()}.")
+            return
         for indicator in indicators.values():
             inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
             self.place_cells(indicator, self.positions[inside_chunk], chunk)
