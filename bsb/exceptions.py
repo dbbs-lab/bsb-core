@@ -115,6 +115,7 @@ _t(
             DataNotFoundError=_e(),
             AttributeMissingError=_e(),
             UnknownStorageEngineError=_e(),
+            MissingActiveConfigError=_e(),
         ),
         DataNotProvidedError=_e(),
         PluginError=_e("plugin"),

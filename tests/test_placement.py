@@ -2,17 +2,23 @@ import unittest
 from time import sleep
 
 import numpy as np
-from bsb_test import NumpyTestCase, RandomStorageFixture, get_test_config, skip_parallel
+from bsb_test import (
+    NetworkFixture,
+    NumpyTestCase,
+    RandomStorageFixture,
+    get_test_config,
+    skip_parallel,
+)
 
 from bsb.cell_types import CellType
 from bsb.config import Configuration
 from bsb.core import Scaffold
-from bsb.exceptions import *
+from bsb.exceptions import IndicatorError, PackingWarning
 from bsb.placement import PlacementStrategy
 from bsb.services import MPI
 from bsb.services.pool import WorkflowError
 from bsb.storage import Chunk
-from bsb.topology import Partition, Region
+from bsb.topology import Partition
 from bsb.voxels import VoxelData, VoxelSet
 
 
@@ -32,10 +38,11 @@ class PlacementDud(PlacementStrategy):
         pass
 
 
-def single_layer_placement(offset=[0.0, 0.0, 0.0]):
-    network = Scaffold()
-    network.partitions["dud_layer"] = part = Partition(name="dud_layer", thickness=120)
-    network.regions["dud_region"] = Region(name="dud_region", children=[part])
+def single_layer_placement(network, offset=None):
+    # fixme: https://github.com/dbbs-lab/bsb-core/issues/812
+    network.topology.children.append(part := Partition(name="dud_layer", thickness=120))
+    network.network.origin = offset if offset is not None else [0.0, 0.0, 0.0]
+    network.resize()
     dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
     network.cell_types["dud"] = dud_cell
     dud = PlacementDud(
@@ -45,39 +52,40 @@ def single_layer_placement(offset=[0.0, 0.0, 0.0]):
         cell_types=[dud_cell],
         overrides={"dud": {}},
     )
-    network.network.origin = offset
     network.placement["dud"] = dud
-    network.configuration._bootstrap(network)
-    return dud, network
-
-
-_dud, _net = single_layer_placement()
+    return dud
 
 
 def _chunk(x, y, z):
     return Chunk((x, y, z), (100, 100, 100))
 
 
-class TestIndicators(unittest.TestCase):
+class TestIndicators(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="fs"
+):
+    def setUp(self):
+        self.cfg = Configuration.default()
+        super().setUp()
+        self.placement = single_layer_placement(self.network)
+
     def test_cascade(self):
-        indicators = _dud.get_indicators()
+        indicators = self.placement.get_indicators()
         dud_ind = indicators["dud"]
         self.assertEqual(2, dud_ind.indication("radius"))
         self.assertEqual(40, dud_ind.indication("count"))
         self.assertEqual(2, dud_ind.get_radius())
-        _dud.overrides.dud.radius = 4
+        self.placement.overrides.dud.radius = 4
         self.assertEqual(4, dud_ind.indication("radius"))
-        _dud.overrides.dud.radius = None
-        _dud.cell_types[0].spatial.radius = None
+        self.placement.overrides.dud.radius = None
+        self.placement.cell_types[0].spatial.radius = None
         self.assertEqual(None, dud_ind.indication("radius"))
         self.assertRaises(IndicatorError, dud_ind.get_radius)
 
     def test_guess(self):
-        dud, network = single_layer_placement()
-        indicators = dud.get_indicators()
+        indicators = self.placement.get_indicators()
         dud_ind = indicators["dud"]
         self.assertEqual(40, dud_ind.guess())
-        dud.overrides.dud.count = 400
+        self.placement.overrides.dud.count = 400
         self.assertEqual(400, dud_ind.guess())
         bottom_ratio = 1 / 1.2
         bottom = 400 * bottom_ratio / 4
@@ -97,8 +105,10 @@ class TestIndicators(unittest.TestCase):
                 self.assertEqual(0, guess)
 
     def test_negative_guess(self):
-        dud, network = single_layer_placement(offset=np.array([-300.0, -300.0, -300.0]))
-        indicators = dud.get_indicators()
+        self.placement = single_layer_placement(
+            self.network, offset=np.array([-300.0, -300.0, -300.0])
+        )
+        indicators = self.placement.get_indicators()
         dud_ind = indicators["dud"]
         bottom_ratio = 1 / 1.2
         bottom = 40 * bottom_ratio / 4

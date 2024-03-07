@@ -70,10 +70,13 @@ class TestRotationUtils(unittest.TestCase):
             rotation_matrix_from_vectors(vec1, err2)
 
 
-class TestUriSchemes(unittest.TestCase):
+class TestUriSchemes(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     @skipIfOffline(scheme=NeuroMorphoScheme())
     def test_nm_scheme(self):
-        file = FileDependency("nm://AX2_scaled", Scaffold().files)
+        file = FileDependency(
+            "nm://AX2_scaled",
+            Scaffold(storage=self.storage).files,
+        )
         self.assertIs(NeuroMorphoScheme, type(file._scheme), "Expected NM scheme")
         meta = file.get_meta()
         self.assertIn("neuromorpho_data", meta)
@@ -84,7 +87,10 @@ class TestUriSchemes(unittest.TestCase):
         # Consistently trigger a 404 response in the NM scheme
         NeuroMorphoScheme._nm_url = "https://google.com/404"
         try:
-            file = FileDependency("nm://AX2_scaled", Scaffold().files)
+            file = FileDependency(
+                "nm://AX2_scaled",
+                Scaffold(storage=self.storage).files,
+            )
             with self.assertWarns(UserWarning) as w:
                 file.get_meta()
         finally:
