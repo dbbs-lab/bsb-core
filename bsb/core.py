@@ -394,7 +394,6 @@ class Scaffold:
         if pool.is_main():
             for pipeline in pipelines:
                 pipeline.queue(pool)
-            loop = self._progress_terminal_loop(pool, debug=DEBUG)
             try:
                 pool.execute()
             except Exception:
