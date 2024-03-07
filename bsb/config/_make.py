@@ -388,7 +388,7 @@ def _get_node_name(self):
         else:
             name = "[" + str(self._config_index) + "]"
     if hasattr(self, "name"):
-        name = self.name
+        name = "." + self.name
     if getattr(self, "_config_parent", None):
         return self._config_parent.get_node_name() + name
     else:
