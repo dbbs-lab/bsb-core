@@ -264,9 +264,7 @@ class Scaffold:
         if pool.is_main():
             for strategy in strategies:
                 strategy.queue(pool, self.network.chunk_size)
-            pool.execute()
-        else:
-            pool.execute()
+        pool.execute()
 
     @meter()
     def run_connectivity(self, strategies=None, fail_fast=True, pipelines=True):
@@ -282,10 +280,7 @@ class Scaffold:
         if pool.is_main():
             for strategy in strategies:
                 strategy.queue(pool)
-            pool.execute()
-
-        else:
-            pool.execute()
+        pool.execute()
 
     @meter()
     def run_placement_strategy(self, strategy):
@@ -387,22 +382,14 @@ class Scaffold:
         self.storage._preexisted = True
 
     @meter()
-    def run_pipelines(self, fail_fast=True, pipelines=None, DEBUG=True):
+    def run_pipelines(self, fail_fast=True, pipelines=None):
         if pipelines is None:
             pipelines = self.get_dependency_pipelines()
         pool = self.create_job_pool(fail_fast=fail_fast)
         if pool.is_main():
             for pipeline in pipelines:
                 pipeline.queue(pool)
-            try:
-                pool.execute()
-            except Exception:
-                self._stop_progress_loop(loop, debug=DEBUG)
-                raise
-            finally:
-                self._stop_progress_loop(loop, debug=DEBUG)
-        else:
-            pool.execute()
+        pool.execute()
 
     @meter()
     def run_simulation(self, simulation_name: str):
