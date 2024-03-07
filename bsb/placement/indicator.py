@@ -192,3 +192,6 @@ class PlacementIndicator:
         return voxels.get_data(key).ravel().astype(float) * np.prod(
             voxels.get_size_matrix(copy=False), axis=1
         )
+
+
+__all__ = ["PlacementIndicator"]

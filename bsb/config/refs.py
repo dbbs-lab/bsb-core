@@ -121,4 +121,13 @@ regional_ref = RegionalReference()
 region_ref = RegionReference()
 sim_cell_model_ref = SimCellModelReference()
 
-__all__ = [k for k in vars().keys() if k.endswith("_ref") or k.endswith("__")]
+__all__ = [
+    "cell_type_ref",
+    "conn_type_ref",
+    "partition_ref",
+    "placement_ref",
+    "connectivity_ref",
+    "regional_ref",
+    "region_ref",
+    "sim_cell_model_ref",
+]

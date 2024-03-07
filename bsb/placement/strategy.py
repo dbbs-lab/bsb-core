@@ -195,13 +195,12 @@ class FixedPositions(PlacementStrategy):
         report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
 
+@config.node
 class Entities(PlacementStrategy):
     """
     Implementation of the placement of entities that do not have a 3D position,
     but that need to be connected with other cells of the network.
     """
-
-    entities = True
 
     def queue(self, pool, chunk_size):
         # Entities ignore chunks since they don't intrinsically store any data.
@@ -217,3 +216,6 @@ class Entities(PlacementStrategy):
                 for p in self.partitions
             )
             self.scaffold.create_entities(cell_type, n)
+
+
+__all__ = ["Entities", "FixedPositions", "PlacementStrategy"]

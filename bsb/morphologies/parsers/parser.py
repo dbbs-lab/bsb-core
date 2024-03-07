@@ -264,3 +264,6 @@ class MorphIOParser(MorphologyParser, classmap_entry="morphio"):
             morpho._check_shared()
         ), "MorphIO import didn't result in shareable buffers."
         return morpho
+
+
+__all__ = ["BsbParser", "MorphIOParser", "MorphologyParser"]

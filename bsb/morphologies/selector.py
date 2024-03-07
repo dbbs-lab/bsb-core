@@ -153,3 +153,6 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
                         + "."
                     )
                 return morphos
+
+
+__all__ = ["MorphologySelector", "NameSelector", "NeuroMorphoSelector"]

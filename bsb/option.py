@@ -398,3 +398,13 @@ def _save_pyproject_bsb(project):
     content.setdefault("tools", {})["bsb"] = project
     with open(path, "w") as f:
         toml.dump(content, f)
+
+
+__all__ = [
+    "BsbOption",
+    "CLIOptionDescriptor",
+    "EnvOptionDescriptor",
+    "OptionDescriptor",
+    "ProjectOptionDescriptor",
+    "ScriptOptionDescriptor",
+]

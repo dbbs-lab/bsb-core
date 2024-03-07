@@ -9,7 +9,11 @@ install the `bsb` package instead.
 
 __version__ = "4.0.0b9"
 
+import ast
 import functools
+import importlib
+import sys
+from pathlib import Path
 
 # Patch functools on 3.8
 try:
@@ -43,3 +47,45 @@ reporting.setup_reporting()
 
 if _pr:
     meter.stop()
+
+
+@functools.cache
+def _get_public_api_map():
+    root = Path(__file__).parent
+
+    public_api_map = {}
+    for file in root.rglob("*.py"):
+        module_parts = file.relative_to(root).parts
+        module = ".".join(
+            module_parts[:-1]
+            + ((module_parts[-1][:-3],) if module_parts[-1] != "__init__.py" else tuple())
+        )
+        module_api = []
+        for assign in ast.parse(file.read_text()).body:
+            if isinstance(assign, ast.Assign) and any(
+                target.id == "__all__"
+                for target in assign.targets
+                if isinstance(target, ast.Name)
+            ):
+                if isinstance(assign.value, ast.List):
+                    module_api = [
+                        el.value
+                        for el in assign.value.elts
+                        if isinstance(el, ast.Constant)
+                    ]
+        for api in module_api:
+            public_api_map[api] = module
+
+    return public_api_map
+
+
+@functools.cache
+def __getattr__(name):
+    if name == "config":
+        return object.__getattribute__(sys.modules[__name__], name)
+    api = _get_public_api_map()
+    module = api.get(name, None)
+    if module is None:
+        return object.__getattribute__(sys.modules[__name__], name)
+    else:
+        return getattr(importlib.import_module("." + module, package="bsb"), name)

@@ -143,3 +143,6 @@ class InvertedRoI:
             job = pool.queue_connectivity(self, roi, [chunk], deps=deps)
             self._queued_jobs.append(job)
         report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
+
+
+__all__ = ["HasDependencies", "InvertedRoI", "NotParallel"]

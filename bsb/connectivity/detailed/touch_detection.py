@@ -4,7 +4,7 @@ import numpy as np
 
 from ... import config
 from ...config import types
-from ...reporting import report, warn
+from ...reporting import report
 from ..strategy import ConnectionStrategy
 from .shared import Intersectional
 
@@ -216,3 +216,6 @@ class TouchDetector(Intersectional, ConnectionStrategy):
                 ),
             )
         return max_radius
+
+
+__all__ = ["TouchDetector", "TouchInformation"]

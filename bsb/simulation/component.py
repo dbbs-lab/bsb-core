@@ -15,3 +15,6 @@ class SimulationComponent(abc.ABC):
     @obj_str_insert
     def __str__(self):
         return f"'{self.name}'"
+
+
+__all__ = ["SimulationComponent"]
