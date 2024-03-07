@@ -1586,6 +1586,55 @@ class TestScripting(unittest.TestCase):
         self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
 
 
+class TestNodeClass(unittest.TestCase):
+    def test_standalone_node_name(self):
+        """
+        Test the node name of a node without any name information
+        """
+
+        @config.node
+        class Test:
+            pass
+
+        self.assertEqual("{standalone}.<missing>", Test().get_node_name())
+
+    def test_standalone_named_node_name(self):
+        """
+        Test the node name of a node with name information
+        """
+
+        @config.node
+        class Test:
+            name = "hello"
+
+        self.assertEqual("{standalone}.hello", Test().get_node_name())
+
+    def test_standalone_keyed_node_name(self):
+        """
+        Test the node name of a node with key information
+        """
+
+        @config.node
+        class Test:
+            other_key = config.attr(key=True)
+
+        @config.node
+        class Parent:
+            d = config.dict(type=Test)
+
+        self.assertEqual(
+            "{standalone}.<missing>.d.myname",
+            Parent(d={"myname": Test()}).d.myname.get_node_name(),
+        )
+
+    def test_root_node_name(self):
+        @config.root
+        class Test:
+            pass
+
+        self.assertEqual("{root}", Test().get_node_name())
+
+
 class TestNodeComposition(unittest.TestCase):
     def setUp(self):
         @config.node

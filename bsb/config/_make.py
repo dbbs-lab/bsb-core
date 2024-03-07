@@ -378,15 +378,17 @@ def get_config_attributes(cls):
 
 def _get_node_name(self):
     name = ".<missing>"
-    if hasattr(self, "attr_name"):
+    if getattr(self, "attr_name", None) is not None:
         name = "." + str(self.attr_name)
-    if hasattr(self, "_config_key"):
+    if getattr(self, "_config_key", None) is not None:
         name = "." + str(self._config_key)
     if hasattr(self, "_config_index"):
         if self._config_index is None:
             return "{removed}"
         else:
             name = "[" + str(self._config_index) + "]"
+    if hasattr(self, "name"):
+        name = self.name
     if getattr(self, "_config_parent", None):
         return self._config_parent.get_node_name() + name
     else:
