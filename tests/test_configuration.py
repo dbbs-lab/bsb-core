@@ -11,6 +11,7 @@ from bsb_test import (
     list_test_configs,
 )
 
+import bsb
 from bsb import config
 from bsb._package_spec import get_missing_requirement_reason
 from bsb.config import Configuration, _attrs, compose_nodes, types
@@ -24,6 +25,7 @@ from bsb.exceptions import (
     ConfigurationWarning,
     DynamicClassInheritanceError,
     DynamicObjectNotFoundError,
+    PackageRequirementWarning,
     RequirementError,
     UnfitClassCastError,
     UnresolvedClassCastError,
