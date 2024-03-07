@@ -146,7 +146,7 @@ class Configuration:
     @classmethod
     def default(cls, **kwargs):
         default_args = dict(
-            storage={"engine": "hdf5"},
+            storage={"engine": "fs"},
             network={"x": 200, "y": 200, "z": 200},
             partitions={},
             cell_types={},

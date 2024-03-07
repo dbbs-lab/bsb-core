@@ -519,7 +519,6 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
         class_ref = cfg_classname
         class_name = cfg_classname.__name__
     else:
-        print("classname?", cfg_classname, classmap)
         class_ref = _load_object(cfg_classname, module_path)
         class_name = class_ref.__name__
 

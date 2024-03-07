@@ -5,6 +5,7 @@ import time
 import typing
 from uuid import uuid4
 
+from ...exceptions import MissingActiveConfigError
 from ..interfaces import FileStore as IFileStore
 
 
@@ -105,7 +106,7 @@ class FileStore(IFileStore):
 
         stored = self.find_meta("active_config", True)
         if stored is None:
-            raise Exception("No active config")
+            raise MissingActiveConfigError("No active config")
         else:
             content, meta = stored.load()
             tree = json.loads(content)
