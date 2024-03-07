@@ -1,5 +1,6 @@
 import contextlib as _ctxlib
 import functools as _ft
+import inspect as _inspect
 import itertools as _it
 import os as _os
 import sys as _sys
@@ -56,6 +57,8 @@ def suppress_stdout():
 
 def get_qualified_class_name(x):
     """Return an object's module and class name"""
+    if _inspect.isclass(x):
+        return f"{x.__module__}.{str(x.__name__)}"
     return f"{x.__class__.__module__}.{str(x.__class__.__name__)}"
 
 

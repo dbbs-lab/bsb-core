@@ -11,7 +11,9 @@ from bsb_test import (
     list_test_configs,
 )
 
+import bsb
 from bsb import config
+from bsb._package_spec import get_missing_requirement_reason
 from bsb.config import Configuration, _attrs, compose_nodes, types
 from bsb.config.refs import Reference
 from bsb.core import Scaffold
@@ -23,6 +25,7 @@ from bsb.exceptions import (
     ConfigurationWarning,
     DynamicClassInheritanceError,
     DynamicObjectNotFoundError,
+    PackageRequirementWarning,
     RequirementError,
     UnfitClassCastError,
     UnresolvedClassCastError,
@@ -432,17 +435,9 @@ class BootRoot:
     none = config.reflist(lambda r, h: h, default=None)
 
 
-def _bootstrap(cfg, scaffold):
-    for node in config.walk_nodes(cfg):
-        node.scaffold = scaffold
-        config.run_hook(node, "boot")
-    return cfg
-
-
 class TestConfigRefList(unittest.TestCase):
     def test_reflist_defaults(self):
         root = BootRoot({})
-        _bootstrap(root, None)
         self.assertEqual([], root.empty_list)
         self.assertEqual([], root.none)
 
@@ -519,7 +514,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"ref_cfg": "lists", "ref": "lists"}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.cfglist), "`populate` config.list failure")
         self.assertEqual(
             pop_root.referrers,
@@ -533,7 +527,6 @@ class TestPopulate(unittest.TestCase):
 
     def test_populate_reflist(self):
         pop_root = PopRoot({"lists": {}, "referrers": {"ref_ref": "lists"}})
-        _bootstrap(pop_root, None)
         self.assertEqual(
             1, len(pop_root.lists.reflist), "`populate` config.reflist failure"
         )
@@ -549,7 +542,6 @@ class TestPopulate(unittest.TestCase):
             "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
         }
         pop_root = PopRoot(conf)
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
@@ -561,7 +553,6 @@ class TestPopulate(unittest.TestCase):
                 "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
             },
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
@@ -574,7 +565,6 @@ class TestPopulate(unittest.TestCase):
                 "refs2": {"ref_ref": "lists"},
             }
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(4, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
         HasRefs.ref_ref.pop_unique = True
@@ -583,7 +573,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.list), "Reflist did not populate uniquely")
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
 
@@ -592,7 +581,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(3, len(pop_root.lists.list))
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
         HasRefs.reflist.pop_unique = True
@@ -1586,6 +1574,55 @@ class TestScripting(unittest.TestCase):
         self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
 
 
+class TestNodeClass(unittest.TestCase):
+    def test_standalone_node_name(self):
+        """
+        Test the node name of a node without any name information
+        """
+
+        @config.node
+        class Test:
+            pass
+
+        self.assertEqual("{standalone}.<missing>", Test().get_node_name())
+
+    def test_standalone_named_node_name(self):
+        """
+        Test the node name of a node with name information
+        """
+
+        @config.node
+        class Test:
+            name = "hello"
+
+        self.assertEqual("{standalone}.hello", Test().get_node_name())
+
+    def test_standalone_keyed_node_name(self):
+        """
+        Test the node name of a node with key information
+        """
+
+        @config.node
+        class Test:
+            other_key = config.attr(key=True)
+
+        @config.node
+        class Parent:
+            d = config.dict(type=Test)
+
+        self.assertEqual(
+            "{standalone}.<missing>.d.myname",
+            Parent(d={"myname": Test()}).d.myname.get_node_name(),
+        )
+
+    def test_root_node_name(self):
+        @config.root
+        class Test:
+            pass
+
+        self.assertEqual("{root}", Test().get_node_name())
+
+
 class TestNodeComposition(unittest.TestCase):
     def setUp(self):
         @config.node
@@ -1609,3 +1646,25 @@ class TestNodeComposition(unittest.TestCase):
         assert type(self.tested.attrB == config.ConfigurationAttribute)
         assert hasattr(self.tested, "attrC")
         assert type(self.tested.attrC == config.ConfigurationAttribute)
+
+
+class TestPackageRequirements(unittest.TestCase):
+    def test_basic_version(self):
+        self.assertIsNone(get_missing_requirement_reason("bsb-core==" + bsb.__version__))
+
+    def test_invalid_requirement(self):
+        self.assertIsNotNone(
+            get_missing_requirement_reason("==" + bsb.__version__ + "@@==@@")
+        )
+        with self.assertRaises(CastError):
+            Configuration.default(packages=["==" + bsb.__version__ + "@@==@@"])
+
+    def test_different_version(self):
+        self.assertIsNotNone(get_missing_requirement_reason("bsb-core==0"))
+        with self.assertWarns(PackageRequirementWarning):
+            Configuration.default(packages=["bsb-core==0"])
+
+    def test_uninstalled_package(self):
+        self.assertIsNotNone(get_missing_requirement_reason("bsb-core-soup==4.0"))
+        with self.assertWarns(PackageRequirementWarning):
+            Configuration.default(packages=["bsb-core-soup==4.0"])
