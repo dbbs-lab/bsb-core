@@ -10,8 +10,10 @@ from re import sub
 
 import errr
 
+from .._package_spec import warn_missing_packages
 from .._util import get_qualified_class_name
 from ..exceptions import (
+    BootError,
     CastError,
     ConfigurationError,
     DynamicClassError,
@@ -312,9 +314,17 @@ def compile_postnew(cls):
 
 
 def wrap_root_postnew(post_new):
-    def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
+    def __post_new__(self, *args, _parent=None, _key=None, _store=None, **kwargs):
         if not hasattr(self, "_meta"):
             self._meta = {"path": None, "produced": True}
+
+        try:
+            # Root node bootstrapping sequence
+            _bootstrap_components(kwargs.get("components", []), file_store=_store)
+            warn_missing_packages(kwargs.get("packages", []))
+        except Exception as e:
+            raise BootError("Failed to bootstrap configuration.") from e
+
         try:
             with warnings.catch_warnings(record=True) as log:
                 try:
@@ -351,6 +361,15 @@ def _bubble_up_warnings(log):
             warn(str(m) + " in " + m.node.get_node_name() + attr, type(m), stacklevel=4)
         else:
             warn(str(m), w.category, stacklevel=4)
+
+
+def _bootstrap_components(components, file_store=None):
+    from bsb.storage._files import CodeDependencyNode
+
+    for component in components:
+        component_node = CodeDependencyNode(component)
+        component_node.file_store = file_store
+        component_node.load_object()
 
 
 def get_config_attributes(cls):

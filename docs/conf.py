@@ -73,6 +73,7 @@ autodoc_mock_imports = [
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "packaging": ("https://packaging.pypa.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://scipy.github.io/devdocs/", None),
     "errr": ("https://errr.readthedocs.io/en/latest/", None),
