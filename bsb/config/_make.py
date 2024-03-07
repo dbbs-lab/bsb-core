@@ -387,7 +387,7 @@ def _get_node_name(self):
             return "{removed}"
         else:
             name = "[" + str(self._config_index) + "]"
-    if hasattr(self, "name"):
+    if getattr(self, "name", None) is not None:
         name = "." + self.name
     if getattr(self, "_config_parent", None):
         return self._config_parent.get_node_name() + name
