@@ -67,8 +67,8 @@ parallel = [
 ]
 test = [
     "bsb-arbor==0.0.0b1",
-    "bsb-hdf5==1.0.0b2",
-    "bsb-test==0.0.0b14",
+    "bsb-hdf5==1.0.0b3",
+    "bsb-test==0.0.0b15",
     "coverage~=7.3",
 ]
 docs = [
