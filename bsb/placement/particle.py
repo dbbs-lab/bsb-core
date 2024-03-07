@@ -1,11 +1,9 @@
-import itertools
-
 import numpy as np
 from rtree import index
 from sklearn.neighbors import KDTree
 
 from .. import config
-from ..exceptions import *
+from ..exceptions import PackingError, PackingWarning
 from ..reporting import report, warn
 from ..voxels import VoxelSet
 from .strategy import PlacementStrategy
@@ -235,11 +233,11 @@ class ParticleSystem:
                 count, pvol, vol = self._get_packing_factors()
                 raise PackingError(
                     f"{msg}. Can not fit {round(count)} particles for a total of "
-                    f"{round(pvol, 3)}μm³ micrometers into {round(vol, 3)}μm³ using strategy {strat_name} for {self.strat.name}."
+                    f"{round(pvol, 3)}μm³ micrometers into {round(vol, 3)}μm³."
                 )
             elif pf > 0.2:
                 warn(
-                    f"{msg} is too high for good {strat_name} performance in {self.strat.name}.",
+                    f"{msg} is too high for good performance.",
                     PackingWarning,
                 )
         # Reset particles
@@ -257,7 +255,7 @@ class ParticleSystem:
         radius = particle_type["radius"]
         if len(voxel_counts) != len(self.voxels):
             raise Exception(
-                f"In {self.strat.name} using {self.strat.strategy} particle system voxel mismatch. Given {len(voxel_counts)} expected {len(self.voxels)}"
+                f"Particle system voxel mismatch. Given {len(voxel_counts)} expected {len(self.voxels)}"
             )
         for voxel, count in zip(self.voxels, voxel_counts):
             particle_type["placed"] = particle_type.get("placed", 0) + count
@@ -395,7 +393,7 @@ class ParticleSystem:
             )
             if expansions > 100:
                 raise Exception(
-                    f"ERROR! Unable to find suited neighbourhood around {epicenter}. In {self.strat.name} using {self.strat.strategy}"
+                    f"Unable to find suited neighbourhood around {epicenter}."
                 )
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
@@ -676,7 +674,7 @@ class AdaptiveNeighbourhood(ParticleSystem):
             neighbourhood_ok = neighbourhood_packing_factor < 0.5
             if expansions > 100:
                 raise Exception(
-                    f"ERROR! Unable to find suited neighbourhood around {epicenter} for {self.strat.name} placement using {self.strat.strategy}"
+                    f"Unable to find suited neighbourhood around {epicenter}."
                 )
 
         return Neighbourhood(

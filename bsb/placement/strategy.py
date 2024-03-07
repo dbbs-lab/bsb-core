@@ -168,7 +168,7 @@ class FixedPositions(PlacementStrategy):
     def place(self, chunk, indicators):
         if self.positions is None:
             raise ValueError(
-                f"Please set `.positions` on '{self.name}' before placement for '{self.strategy}'."
+                f"Please set `.positions` on '{self.name}' before placement."
             )
         for indicator in indicators.values():
             inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
@@ -176,16 +176,12 @@ class FixedPositions(PlacementStrategy):
 
     def guess_cell_count(self):
         if self.positions is None:
-            raise ValueError(
-                f"Please set `.positions` on '{self.name}' for '{self.strategy}'."
-            )
+            raise ValueError(f"Please set `.positions` on '{self.name}'.")
         return len(self.positions)
 
     def queue(self, pool, chunk_size):
         if self.positions is None:
-            raise ValueError(
-                f"Please set `.positions` on '{self.name}' for '{self.strategy}'."
-            )
+            raise ValueError(f"Please set `.positions` on '{self.name}'.")
         # Reset jobs that we own
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
