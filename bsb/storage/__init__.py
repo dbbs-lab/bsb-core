@@ -19,7 +19,15 @@ from .. import plugins
 from ..exceptions import UnknownStorageEngineError
 from ..services import MPI
 from ._chunks import Chunk, chunklist
-from ._files import FileDependency, FileDependencyNode, NrrdDependencyNode
+from ._files import (
+    CodeDependencyNode,
+    FileDependency,
+    FileDependencyNode,
+    MorphologyDependencyNode,
+    MorphologyOperation,
+    NrrdDependencyNode,
+    Operation,
+)
 from .interfaces import ConnectivitySet, FileStore, MorphologyRepository, PlacementSet
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
@@ -449,10 +457,14 @@ _available_engines = discover_engines()
 
 __all__ = [
     "Chunk",
+    "CodeDependencyNode",
     "FileDependency",
     "FileDependencyNode",
     "NotSupported",
+    "MorphologyDependencyNode",
+    "MorphologyOperation",
     "NrrdDependencyNode",
+    "Operation",
     "Storage",
     "chunklist",
     "create_engine",

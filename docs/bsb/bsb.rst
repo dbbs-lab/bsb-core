@@ -97,6 +97,8 @@ bsb.trees module
 .. automodule:: bsb.trees
    :members:
 
+.. autoclass:: bsb.trees._BoxRTree
+
 bsb.voxels module
 -----------------
 

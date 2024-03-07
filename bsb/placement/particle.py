@@ -639,5 +639,6 @@ __all__ = [
     "ParticlePlacement",
     "ParticleSystem",
     "ParticleVoxel",
+    "RandomPlacement",
     "SmallestNeighbourhood",
 ]
