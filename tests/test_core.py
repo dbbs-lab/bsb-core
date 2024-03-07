@@ -1,4 +1,3 @@
-import os
 import unittest
 
 from bsb_test import NetworkFixture, RandomStorageFixture
@@ -8,7 +7,9 @@ from bsb.config import Configuration
 from bsb.storage.interfaces import PlacementSet
 
 
-class TestCore(RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="fs"):
+class TestCore(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
+):
     def setUp(self):
         self.cfg = Configuration.default()
         super().setUp()
@@ -21,13 +22,6 @@ class TestCore(RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_n
     def test_missing_storage(self):
         with self.assertRaises(FileNotFoundError):
             core.from_storage("does_not_exist")
-
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            os.unlink("does_not_exist2")
-        except Exception:
-            pass
 
     def test_set_netw_root_nodes(self):
         """
@@ -55,6 +49,8 @@ class TestCore(RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_n
     def test_resize(self):
         self.network.partitions.add("layer", thickness=100)
         self.network.regions.add("region", children=["layer"])
+        # fixme: https://github.com/dbbs-lab/bsb-core/issues/812
+        self.network.topology.children.append(self.network.regions.region)
         self.network.resize(x=500, y=500, z=500)
         self.assertEqual(500, self.network.network.x, "resize didnt update network node")
         self.assertEqual(

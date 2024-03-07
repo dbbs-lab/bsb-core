@@ -1,10 +1,9 @@
 import unittest
 
 import numpy as np
-from bsb_test import NetworkFixture, RandomStorageFixture, get_data_path, skip_parallel
+from bsb_test import NetworkFixture, RandomStorageFixture, get_data_path
 
 from bsb.config import Configuration
-from bsb.core import Scaffold
 from bsb.exceptions import DatasetNotFoundError, DistributorError
 from bsb.morphologies import Morphology
 from bsb.placement.distributor import (
@@ -58,7 +57,7 @@ class TestMorphologyDistributor(
 
     def test_empty_selection(self):
         with self.assertRaises(WorkflowError) as wfe:
-            self.netw.compile(append=True)
+            self.network.compile(append=True)
 
         if not MPI.get_rank():
             self.assertEqual(1, len(wfe.exception.exceptions))

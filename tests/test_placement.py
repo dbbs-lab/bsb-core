@@ -8,19 +8,17 @@ from bsb_test import (
     RandomStorageFixture,
     get_test_config,
     skip_parallel,
-    timeout,
 )
 
 from bsb.cell_types import CellType
 from bsb.config import Configuration
 from bsb.core import Scaffold
-from bsb.exceptions import IndicatorError
-from bsb.mixins import NotParallel
+from bsb.exceptions import IndicatorError, PackingWarning
 from bsb.placement import PlacementStrategy
 from bsb.services import MPI
 from bsb.services.pool import WorkflowError
 from bsb.storage import Chunk
-from bsb.topology import Partition, Region
+from bsb.topology import Partition
 from bsb.voxels import VoxelData, VoxelSet
 
 
@@ -40,9 +38,11 @@ class PlacementDud(PlacementStrategy):
         pass
 
 
-def single_layer_placement(network, offset=[0.0, 0.0, 0.0]):
-    network.partitions["dud_layer"] = part = Partition(name="dud_layer", thickness=120)
-    network.regions["dud_region"] = Region(name="dud_region", children=[part])
+def single_layer_placement(network, offset=None):
+    # fixme: https://github.com/dbbs-lab/bsb-core/issues/812
+    network.topology.children.append(part := Partition(name="dud_layer", thickness=120))
+    network.network.origin = offset if offset is not None else [0.0, 0.0, 0.0]
+    network.resize()
     dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
     network.cell_types["dud"] = dud_cell
     dud = PlacementDud(
@@ -52,7 +52,6 @@ def single_layer_placement(network, offset=[0.0, 0.0, 0.0]):
         cell_types=[dud_cell],
         overrides={"dud": {}},
     )
-    network.network.origin = offset
     network.placement["dud"] = dud
     return dud
 
@@ -106,7 +105,9 @@ class TestIndicators(
                 self.assertEqual(0, guess)
 
     def test_negative_guess(self):
-        self.placement = single_layer_placement(offset=np.array([-300.0, -300.0, -300.0]))
+        self.placement = single_layer_placement(
+            self.network, offset=np.array([-300.0, -300.0, -300.0])
+        )
         indicators = self.placement.get_indicators()
         dud_ind = indicators["dud"]
         bottom_ratio = 1 / 1.2
