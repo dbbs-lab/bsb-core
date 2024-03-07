@@ -685,7 +685,6 @@ class AdaptiveNeighbourhood(ParticleSystem):
 class SmallestNeighbourhood(ParticleSystem):
     def find_neighbourhood(self, particle):
         epicenter = particle.position
-        # print("Finding collision neighbourhood for particle", particle.id)
         neighbourhood_radius = particle.radius + self.min_radius
         neighbourhood_ok = False
         expansions = 0
