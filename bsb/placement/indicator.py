@@ -121,14 +121,12 @@ class PlacementIndicator:
                     )
                 else:
                     raise PlacementRelationError(
-                        "%cell_type.name% requires relation %relation.name%"
-                        + "to specify density information.",
-                        self.cell_type,
-                        relation,
+                        f"{self.cell_type.name} requires relation {relation.name}"
+                        + "to specify density information."
                     )
             else:
                 raise PlacementError(
-                    "Relation specified but no ratio indications provided."
+                    f"Relation specified but no ratio indications provided."
                 )
         if density_key is not None:
             if voxels is None:

@@ -1,6 +1,5 @@
 import functools
 import os
-import warnings
 
 from ..exceptions import DependencyError
 from ._util import MockModule
@@ -52,6 +51,10 @@ class MPIService:
 
 
 class MPIModule(MockModule):
+    """
+    Module provider of the MPI interface.
+    """
+
     @property
     @functools.cache
     def COMM_WORLD(self):

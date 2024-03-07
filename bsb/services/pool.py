@@ -5,12 +5,14 @@ Jobs derive from the base :class:`.Job` class which can be put on the queue of a
 :class:`.JobPool`. In order to submit themselves to the pool Jobs will
 :meth:`~.Job.serialize` themselves into a predefined set of variables::
 
-    job.serialize() -> (job_type, f, args, kwargs)
+   job.serialize() -> (job_type, f, args, kwargs)
 
 * ``job_type`` should be a string that is a class name defined in this module.
-  (e.g. ``"PlacementJob")
+   (e.g. ``"PlacementJob"``)
+
 * ``f`` should be the function object that the job's ``execute`` method should
-  execute.
+   execute.
+
 * ``args`` and ``kwargs`` are the args to be passed to that ``f``.
 
 The :meth:`.Job.execute` handler can help interpret ``args`` and ``kwargs``
@@ -18,7 +20,7 @@ before running ``f``. The execute handler has access to the scaffold on the MPI
 process so one best serializes just the name of some part of the configuration,
 rather than trying to pickle the complex objects. For example, the
 :class:`.PlacementJob` uses the first ``args`` element to store the
-:class:`~bsb.placement.PlacementStrategy` name and then retrieve it from the
+:class:`~bsb.placement.strategy.PlacementStrategy` name and then retrieve it from the
 scaffold:
 
 .. code-block:: python
@@ -36,162 +38,398 @@ API and subject to sudden change in the future.
 
 """
 
+import abc
 import concurrent.futures
+import logging
+import pickle
+import tempfile
+import typing
+import warnings
+from enum import Enum, auto
 
+from exceptiongroup import ExceptionGroup
+
+from ..exceptions import JobCancelledError, JobPoolError
 from . import MPI
 from ._util import ErrorModule, MockModule
 
+if typing.TYPE_CHECKING:
+    from mpipool import MPIExecutor
 
-class _MissingMPIPoolExecutor(ErrorModule):
+
+class WorkflowError(ExceptionGroup):
+    pass
+
+
+class JobErroredError(Exception):
+    def __init__(self, message, error):
+        super().__init__(message)
+        self.error = error
+
+
+class JobStatus(Enum):
+    # Job has not been queued yet, waiting for dependencies to resolve.
+    PENDING = "pending"
+    # Job is on the queue.
+    QUEUED = "queued"
+    # Job is currently running on a worker.
+    RUNNING = "running"
+    # Job ran successfully.
+    SUCCESS = "success"
+    # Job failed (an exception was raised).
+    FAILED = "failed"
+    # Job was cancelled before it started running.
+    CANCELLED = "cancelled"
+    # Job was killed for some reason.
+    ABORTED = "aborted"
+
+
+class PoolStatus(Enum):
+    # Pool Starting
+    STARTING = "Starting"
+    # Pool Running
+    RUNNING = "Running"
+    # Pool Ending
+    ENDING = "Ending"
+
+
+class PoolProgressReason(Enum):
+    POOL_STATUS_CHANGE = auto()
+    JOB_STATUS_CHANGE = auto()
+    MAX_TIMEOUT_PING = auto()
+
+
+class PoolProgress:
+    """
+    Class used to report pool progression to listeners.
+    """
+
+    def __init__(self, pool: "JobPool", reason: PoolProgressReason):
+        self._pool = pool
+        self._reason = reason
+
+    @property
+    def reason(self):
+        return self._reason
+
+    @property
+    def jobs(self):
+        return self._pool.jobs
+
+    @property
+    def status(self):
+        return self._pool.status
+
+
+class PoolJobUpdateProgress(PoolProgress):
+    def __init__(self, pool: "JobPool", job: "Job", old_status: "JobStatus"):
+        super().__init__(pool, PoolProgressReason.JOB_STATUS_CHANGE)
+        self._job = job
+        self._old_status = old_status
+
+    @property
+    def job(self):
+        return self._job
+
+
+class PoolStatusProgress(PoolProgress):
+    def __init__(self, pool: "JobPool", old_status: PoolStatus):
+        super().__init__(pool, PoolProgressReason.POOL_STATUS_CHANGE)
+        self._old_status = old_status
+
+
+class _MissingMPIExecutor(ErrorModule):
     pass
 
 
 class _MPIPoolModule(MockModule):
     @property
-    def MPIPoolExecutor(self):
-        return _MissingMPIPoolExecutor(
+    def MPIExecutor(self) -> typing.Type["MPIExecutor"]:
+        return _MissingMPIExecutor(
             "This is not a public interface. Use `.services.JobPool` instead."
         )
 
+    def enable_serde_logging(self):
+        import mpipool
 
-_MPIPool = _MPIPoolModule("zwembad")
+        mpipool.enable_serde_logging()
+
+
+_MPIPool = _MPIPoolModule("mpipool")
 
 
 def dispatcher(pool_id, job_args):
-    job_type, f, args, kwargs = job_args
+    job_type, args, kwargs = job_args
     # Get the static job execution handler from this module
     handler = globals()[job_type].execute
     owner = JobPool.get_owner(pool_id)
     # Execute it.
-    handler(owner, f, args, kwargs)
+    return handler(owner, args, kwargs)
 
 
-class FakeFuture(concurrent.futures.Future):
-    pass
+class SubmissionContext:
+    """
+    Context information on who submitted a certain job.
+    """
+
+    def __init__(self, submitter, chunks=None, **kwargs):
+        self._submitter = submitter
+        self._chunks = chunks
+        self._context = kwargs
+
+    @property
+    def name(self):
+        if hasattr(self._submitter, "get_node_name"):
+            name = self._submitter.get_node_name()
+        else:
+            name = str(self._submitter)
+        return name
+
+    @property
+    def chunks(self):
+        from ..storage import chunklist
+
+        return chunklist(self._chunks) if self._chunks is not None else None
+
+    def __getattr__(self, key):
+        if key in self._context:
+            return self._context[key]
+        else:
+            return self.__getattribute__(key)
 
 
-class Job:
+class Job(abc.ABC):
     """
     Dispatches the execution of a function through a JobPool
     """
 
-    def __init__(self, pool, f, args, kwargs, deps=None):
+    def __init__(
+        self, pool, submission_context: SubmissionContext, args, kwargs, deps=None
+    ):
         self.pool_id = pool.id
-        self.f = f
-        self._cname = None
-        self._name = None
-        self._c = None
         self._args = args
         self._kwargs = kwargs
         self._deps = set(deps or [])
+        self._submit_ctx = submission_context
         self._completion_cbs = []
+        self._status = JobStatus.PENDING
+        self._future: typing.Optional[concurrent.futures.Future] = None
+        self._res_file = None
+        self._error = None
+
         for j in self._deps:
             j.on_completion(self._dep_completed)
-        self._future = FakeFuture()
+
+    @property
+    def name(self):
+        return self._submit_ctx.name
+
+    @property
+    def context(self):
+        return self._submit_ctx._context
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def result(self):
+        try:
+            with open(self._res_file, "rb") as f:
+                return pickle.load(f)
+        except Exception:
+            raise JobPoolError(f"Result of {self} is not available.") from None
+
+    @property
+    def error(self):
+        return self._error
 
     def serialize(self):
+        """
+        Convert the job to a (de)serializable representation
+        """
         name = self.__class__.__name__
         # First arg is to find the static `execute` method so that we don't have to
         # serialize any of the job objects themselves but can still use different handlers
         # for different job types.
-        return (name, self.f, self._args, self._kwargs)
+        return (name, self._args, self._kwargs)
 
     @staticmethod
-    def execute(job_owner, f, args, kwargs):
+    @abc.abstractmethod
+    def execute(job_owner, args, kwargs):
         """
-        Default job handler, invokes ``f`` passing it the scaffold object that owns the
-        job + the args and kwargs given at job creation.
+        Job handler
         """
-        return f(job_owner, *args, **kwargs)
+        pass
 
     def on_completion(self, cb):
         self._completion_cbs.append(cb)
 
-    def _completion(self, _):
+    def set_result(self, value):
+        dirname = JobPool.get_tmp_folder(self.pool_id)
+        try:
+            with tempfile.NamedTemporaryFile(
+                prefix=dirname + "/", delete=False, mode="wb"
+            ) as fp:
+                pickle.dump(value, fp)
+                self._res_file = fp.name
+        except FileNotFoundError as e:
+            self.set_exception(e)
+        else:
+            self.change_status(JobStatus.SUCCESS)
+
+    def set_exception(self, e: Exception):
+        self._error = e
+        self.change_status(JobStatus.FAILED)
+
+    def _completed(self):
+        if self._status != JobStatus.CANCELLED:
+            try:
+                result = self._future.result()
+            except Exception as e:
+                self.set_exception(e)
+            else:
+                self.set_result(result)
         for cb in self._completion_cbs:
             cb(self)
 
     def _dep_completed(self, dep):
         # Earlier we registered this callback on the completion of our dependencies.
         # When a dep completes we end up here and we discard it as a dependency as it has
-        # finished.
+        # finished. If the dep returns an error remove the job from the pool, since the dependency have failed.
         self._deps.discard(dep)
-        # When all our dependencies have been discarded we can queue ourselves. Unless the
-        # pool is serial, then the pool itself just runs all jobs in order.
-        if not self._deps and MPI.get_size() > 1:
-            self._enqueue(self._pool)
+        if dep._status is not JobStatus.SUCCESS:
+            self.cancel("Job killed for dependency failure")
+        else:
+            # When all our dependencies have been discarded we can queue ourselves. Unless the
+            # pool is serial, then the pool itself just runs all jobs in order.
+            if not self._deps and MPI.get_size() > 1:
+                # self._pool is set when the pool first tried to enqueue us, but we were still
+                # waiting for deps, in the `_enqueue` method below.
+                self._enqueue(self._pool)
 
     def _enqueue(self, pool):
-        if not self._deps:
-            # Notify anyone waiting on the spaceholder `FakeFuture` that we're
-            # now actually queueing ourselves
-            self._future.set_result("ENQUEUED")
+        if not self._deps and self._status is not JobStatus.CANCELLED:
             # Go ahead and submit ourselves to the pool, no dependencies to wait for
             # The dispatcher is run on the remote worker and unpacks the data required
             # to execute the job contents.
-            self._future = pool.submit(dispatcher, self.pool_id, self.serialize())
-            # Invoke our completion callbacks when the future completes.
-            self._future.add_done_callback(self._completion)
+            self.change_status(JobStatus.QUEUED)
+            self._future = pool._submit(dispatcher, self.pool_id, self.serialize())
         else:
             # We have unfinished dependencies and should wait until we can enqueue
             # ourselves when our dependencies haved all notified us of their completion.
+            # Store the reference to the pool though, so later in `_dep_completed` we can
+            # call `_enqueue` again ourselves!
             self._pool = pool
 
+    def cancel(self, reason: typing.Optional[str] = None):
+        self.change_status(JobStatus.CANCELLED)
+        self._error = JobCancelledError() if reason is None else JobCancelledError(reason)
+        if self._future:
+            if not self._future.cancel():
+                warnings.warn(f"Could not cancel {self}, the job is already running.")
 
-class ChunkedJob(Job):
-    def __init__(self, pool, f, chunk, deps=None):
-        super().__init__(pool, f, (chunk,), {}, deps=deps)
+    def change_status(self, status: JobStatus):
+        old_status = self._status
+        self._status = status
+        try:
+            # Closed pools may have been removed from this map already.
+            pool = JobPool._pools[self.pool_id]
+        except KeyError:
+            pass
+        else:
+            progress = PoolJobUpdateProgress(pool, self, old_status)
+            pool.add_notification(progress)
 
 
-class PlacementJob(ChunkedJob):
+class PlacementJob(Job):
     """
     Dispatches the execution of a chunk of a placement strategy through a JobPool.
     """
 
     def __init__(self, pool, strategy, chunk, deps=None):
         args = (strategy.name, chunk)
-        Job.__init__(self, pool, strategy.place.__func__, args, {}, deps=deps)
-        self._cname = strategy.__class__.__name__
-        self._name = strategy.name
-        self._c = chunk
+        context = SubmissionContext(strategy, [chunk])
+        super().__init__(pool, context, args, {}, deps=deps)
 
     @staticmethod
-    def execute(job_owner, f, args, kwargs):
-        name = args[0]
+    def execute(job_owner, args, kwargs):
+        name, chunk = args
         placement = job_owner.placement[name]
         indicators = placement.get_indicators()
-        return f(placement, *args[1:], indicators, **kwargs)
+        return placement.place(chunk, indicators, **kwargs)
 
 
-class ConnectivityJob(ChunkedJob):
+class ConnectivityJob(Job):
     """
-    Dispatches the execution of a chunk of a placement strategy through a JobPool.
+    Dispatches the execution of a chunk of a connectivity strategy through a JobPool.
     """
 
     def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
+        from bsb.storage import chunklist
+
         args = (strategy.name, pre_roi, post_roi)
-        Job.__init__(self, pool, strategy.connect.__func__, args, {}, deps=deps)
-        self._cname = strategy.__class__.__name__
-        self._name = strategy.name
+        context = SubmissionContext(
+            strategy, chunks=chunklist((*(pre_roi or []), *(post_roi or [])))
+        )
+        super().__init__(pool, context, args, {}, deps=deps)
 
     @staticmethod
-    def execute(job_owner, f, args, kwargs):
+    def execute(job_owner, args, kwargs):
         name = args[0]
         connectivity = job_owner.connectivity[name]
         collections = connectivity._get_connect_args_from_job(*args[1:])
-        return f(connectivity, *collections, **kwargs)
+        return connectivity.connect(*collections, **kwargs)
+
+
+class FunctionJob(Job):
+    def __init__(self, pool, f, args, kwargs, deps=None, submitter={}):
+        self._f = f
+        new_args = [f]
+        new_args.extend(args)
+        context = SubmissionContext(f, chunks=new_args, **submitter)
+        super().__init__(pool, context, new_args, kwargs, deps=deps)
+
+    @staticmethod
+    def execute(job_owner, args, kwargs):
+        f = args[0]
+        result = f(job_owner, *args[1:], **kwargs)
+        return result
 
 
 class JobPool:
     _next_pool_id = 0
+    _pools = {}
     _pool_owners = {}
+    _tmp_folders = {}
 
-    def __init__(self, scaffold, listeners=None):
-        self._queue = []
+    def __init__(self, scaffold, fail_fast=False):
+        self._unhandled_errors = []
+        self._running_futures: list[concurrent.futures.Future] = []
+        self._pool: typing.Optional["MPIExecutor"] = None
+        self._job_queue: list[Job] = []
         self.id = JobPool._next_pool_id
-        self._listeners = listeners or []
+        self._listeners = []
+        self._max_wait = 60
+        self._status = PoolStatus.STARTING
+        self._progress_notifications: list["PoolProgress"] = []
+        self._workers_raise_unhandled = False
+        self._fail_fast = fail_fast
         JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = scaffold
+        JobPool._pools[self.id] = self
+
+    def add_listener(self, listener, max_wait=None):
+        self._max_wait = min(self._max_wait, max_wait or float("+inf"))
+        self._listeners.append(listener)
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def jobs(self):
+        return [*self._job_queue]
 
     @property
     def parallel(self):
@@ -201,32 +439,36 @@ class JobPool:
     def get_owner(cls, id):
         return cls._pool_owners[id]
 
+    @classmethod
+    def get_tmp_folder(cls, id):
+        return cls._tmp_folders[id]
+
     @property
     def owner(self):
         return self.get_owner(self.id)
 
-    def is_master(self):
+    def is_main(self):
         return MPI.get_rank() == 0
 
     def _put(self, job):
         """
-        Puts a job onto our internal queue. Putting items in the queue does not mean they
-        will be executed. For this ``self.execute()`` must be called.
+        Puts a job onto our internal queue.
         """
-        # Use an observer pattern to allow the creator of the pool to listen for job
-        # completion. This complements the event loop in parallel execution and is
-        # executed synchronously in serial execution.
-        for listener in self._listeners:
-            job.on_completion(listener)
-        self._queue.append(job)
+        if self._pool and not self._pool.open:
+            raise JobPoolError("No job pool available for job submission.")
+        else:
+            self._job_queue.append(job)
 
-    def queue(self, f, args=None, kwargs=None, deps=None):
-        job = Job(self, f, args or (), kwargs or {}, deps)
-        self._put(job)
-        return job
+    def _submit(self, fn, *args, **kwargs):
+        if not self._pool or not self._pool.open:
+            raise JobPoolError("No job pool available for job submission.")
+        else:
+            future = self._pool.submit(fn, *args, **kwargs)
+            self._running_futures.append(future)
+            return future
 
-    def queue_chunk(self, f, chunk, deps=None):
-        job = ChunkedJob(self, f, chunk, deps)
+    def queue(self, f, args=None, kwargs=None, deps=None, submitter={}):
+        job = FunctionJob(self, f, args or [], kwargs or {}, deps, submitter=submitter)
         self._put(job)
         return job
 
@@ -240,56 +482,177 @@ class JobPool:
         self._put(job)
         return job
 
-    def execute(self, master_event_loop=None):
+    def execute(self, return_results=False):
         """
         Execute the jobs in the queue
 
         In serial execution this runs all of the jobs in the queue in First In First Out
         order. In parallel execution this enqueues all jobs into the MPIPool unless they
         have dependencies that need to complete first.
-
-        :param master_event_loop: A function that is continuously called while waiting for
-          the jobs to finish in parallel execution
-        :type master_event_loop: Callable
         """
-        if self.parallel:
-            # Create the MPI pool
-            pool = _MPIPool.MPIPoolExecutor()
 
-            if pool.is_worker():
-                # The workers will return out of the pool constructor when they receive
-                # the shutdown signal from the master, they return here skipping the
-                # master logic.
-                return
+        self._unhandled_errors = []
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dirname:
+                JobPool._tmp_folders[self.id] = tmp_dirname
+                if self.parallel:
+                    self._execute_parallel()
+                else:
+                    self._execute_serial()
+
+                if return_results:
+                    return {
+                        job: job.result
+                        for job in self._job_queue
+                        if job.status == JobStatus.SUCCESS
+                    }
+        finally:
+            # Clean up pool/job references
+            self._job_queue = []
+            del JobPool._pools[self.id]
+
+    def _execute_parallel(self):
+        import bsb.options
+
+        # Enable full mpipool debugging
+        if bsb.options.debug_pool:
+            _MPIPool.enable_serde_logging()
+        # Create the MPI pool
+        self._pool = _MPIPool.MPIExecutor(
+            loglevel=logging.DEBUG if bsb.options.debug_pool else logging.CRITICAL
+        )
+
+        if self._pool.is_worker():
+            # The workers will return out of the pool constructor when they receive
+            # the shutdown signal from the master, they return here skipping the
+            # master logic.
+
+            # Check if we need to abort our process due to errors etc.
+            abort = MPI.bcast(None)
+            if abort:
+                raise WorkflowError(
+                    "Unhandled exceptions during parallel execution.",
+                    [JobPoolError("See main node logs for details.")],
+                )
+            return
+
+        try:
             # Tell each job in our queue that they have to put themselves in the pool
             # queue; each job will store their own future and will use the futures of
             # their previously enqueued dependencies to determine when they can put
             # themselves on the pool queue.
-            for job in self._queue:
-                job._enqueue(pool)
+            for job in self._job_queue:
+                job._enqueue(self)
 
-            q = self._queue.copy()
-            # As long as any of the jobs aren't done yet we repeat the master_event_loop
-            while open_jobs := [j._future for j in self._queue if not j._future.done()]:
-                if master_event_loop:
-                    # If there is an event loop, run it and hand it a copy of the jobqueue
-                    master_event_loop(q)
-                else:
-                    # If there is no event loop just let the master idle until execution
-                    # has completed.
-                    concurrent.futures.wait(open_jobs)
-            pool.shutdown()
-        else:
-            # Just run each job serially
-            for job in self._queue:
+            # Tell the listeners execution is running
+            self.change_status(PoolStatus.RUNNING)
+
+            # As long as any of the jobs aren't done yet we repeat the wait action with a timeout
+            while any(
+                job.status == JobStatus.PENDING or job.status == JobStatus.QUEUED
+                for job in self._job_queue
+            ):
+                done, not_done = concurrent.futures.wait(
+                    self._running_futures,
+                    timeout=self._max_wait,
+                    return_when="FIRST_COMPLETED",
+                )
+                # Complete any jobs that are done
+                for job in self._job_queue:
+                    if job._future in done:
+                        job._completed()
+                # Remove running futures that are done
+                for future in done:
+                    self._running_futures.remove(future)
+                # If nothing finished, post a timeout notification.
+                if not len(done):
+                    self.add_notification(
+                        PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
+                    )
+                # Notify all the listeners, and store/raise any unhandled errors
+                self.notify()
+
+            # Notify listeners that execution is over
+            self.change_status(PoolStatus.ENDING)
+            # Raise any unhandled errors
+            self.raise_unhandled()
+        except:
+            # If any exception (including SystemExit and KeyboardInterrupt) happen on main, we should
+            # broadcast the abort to all worker nodes.
+            self._workers_raise_unhandled = True
+            raise
+        finally:
+            # Shut down our internal pool
+            self._pool.shutdown(wait=False, cancel_futures=True)
+            # Broadcast whether the worker nodes should raise an unhandled error.
+            MPI.bcast(self._workers_raise_unhandled)
+
+    def _execute_serial(self):
+        # Prepare jobs for local execution
+        for job in self._job_queue:
+            job._future = concurrent.futures.Future()
+            if job.status != JobStatus.CANCELLED and job.status != JobStatus.ABORTED:
+                job._status = JobStatus.QUEUED
+            else:
+                job._future.cancel()
+
+        self.change_status(PoolStatus.RUNNING)
+        # Just run each job serially
+        for job in self._job_queue:
+            f = job._future
+            if not f.set_running_or_notify_cancel():
+                continue
+            job.change_status(JobStatus.RUNNING)
+            self.notify()
+            try:
                 # Execute the static handler
-                job.execute(self.owner, job.f, job._args, job._kwargs)
-                # Trigger job completion manually as there is no async future object
-                # like in parallel execution.
-                job._completion(None)
-            # Clear the queue after all jobs have been done
-            self._queue = []
+                result = job.execute(self.owner, job._args, job._kwargs)
+            except Exception as e:
+                f.set_exception(e)
+            else:
+                f.set_result(result)
+            finally:
+                f.done()
+            job._completed()
+            self.notify()
+        # Raise any unhandled errors
+        self.raise_unhandled()
 
+        self.change_status(PoolStatus.ENDING)
 
-def create_job_pool(scaffold):
-    return JobPool(scaffold)
+    def change_status(self, status: PoolStatus):
+        old_status = self._status
+        self._status = status
+        self.add_notification(PoolStatusProgress(self, old_status))
+        self.notify()
+
+    def add_notification(self, notification: PoolProgress):
+        self._progress_notifications.append(notification)
+
+    def notify(self):
+        for notification in self._progress_notifications:
+            job = getattr(notification, "job", None)
+            job_error = getattr(job, "error", None)
+            has_error = job_error is not None and type(job_error) is not JobCancelledError
+            handled_error = [bool(listener(notification)) for listener in self._listeners]
+            if has_error and not any(handled_error):
+                self._unhandled_errors.append(job)
+        if self._fail_fast:
+            self.raise_unhandled()
+        self._progress_notifications = []
+
+    def raise_unhandled(self):
+        if not self._unhandled_errors:
+            return
+        errors = []
+        # Raise and catch for nicer traceback
+        for job in self._unhandled_errors:
+            try:
+                raise JobErroredError(f"{job.name} job failed", job.error) from job.error
+            except JobErroredError as e:
+                errors.append(e)
+        self._unhandled_errors = []
+        raise WorkflowError(
+            f"Your workflow encountered errors.",
+            errors,
+        )

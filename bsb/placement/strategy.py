@@ -87,18 +87,22 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         if additional is None:
             additional = {}
         if self.distribute._has_mdistr() or indicator.use_morphologies():
+            selector_error = None
             try:
                 morphologies, rotations = self.distribute._specials(
                     self.partitions, indicator, positions
                 )
             except EmptySelectionError as e:
-                selectors = ", ".join(f"{s}" for s in e.selectors)
+                selector_error = ", ".join(str(s) for s in e.selectors)
+            if selector_error:
+                # Starting from Python 3.11, even though we raise from None, the original
+                # EmptySelectionError somehow still gets pickled and contains unpicklable
+                # elements. So we work around by raising here, outside of the exception
+                # context.
                 raise DistributorError(
-                    "%property% distribution of `%strategy.name%` couldn't find any"
-                    + f" morphologies with the following selector(s): {selectors}",
-                    "Morphology",
-                    self,
-                ) from None
+                    "Morphology distribution couldn't find any"
+                    + f" morphologies with the following selector(s): {selector_error}"
+                )
         elif self.distribute._has_rdistr():
             rotations = self.distribute(
                 "rotations", self.partitions, indicator, positions

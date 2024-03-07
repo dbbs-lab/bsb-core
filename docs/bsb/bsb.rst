@@ -14,6 +14,7 @@ Subpackages
    bsb.placement
    bsb.connectivity
    bsb.simulation
+   bsb.services
    bsb.storage
 
 Submodules

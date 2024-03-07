@@ -1,11 +1,9 @@
-import itertools
-
 import numpy as np
 from rtree import index
 from sklearn.neighbors import KDTree
 
 from .. import config
-from ..exceptions import *
+from ..exceptions import PackingError, PackingWarning
 from ..reporting import report, warn
 from ..voxels import VoxelSet
 from .strategy import PlacementStrategy
@@ -239,7 +237,7 @@ class ParticleSystem:
                 )
             elif pf > 0.2:
                 warn(
-                    f"{msg} is too high for good {strat_name} performance.",
+                    f"{msg} is too high for good performance.",
                     PackingWarning,
                 )
         # Reset particles
@@ -395,7 +393,7 @@ class ParticleSystem:
             )
             if expansions > 100:
                 raise Exception(
-                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                    f"Unable to find suited neighbourhood around {epicenter}."
                 )
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
@@ -676,7 +674,7 @@ class AdaptiveNeighbourhood(ParticleSystem):
             neighbourhood_ok = neighbourhood_packing_factor < 0.5
             if expansions > 100:
                 raise Exception(
-                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                    f"Unable to find suited neighbourhood around {epicenter}."
                 )
 
         return Neighbourhood(
@@ -687,7 +685,6 @@ class AdaptiveNeighbourhood(ParticleSystem):
 class SmallestNeighbourhood(ParticleSystem):
     def find_neighbourhood(self, particle):
         epicenter = particle.position
-        # print("Finding collision neighbourhood for particle", particle.id)
         neighbourhood_radius = particle.radius + self.min_radius
         neighbourhood_ok = False
         expansions = 0

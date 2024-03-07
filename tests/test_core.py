@@ -101,7 +101,6 @@ class TestProfiling(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
         self.netw = Scaffold(Configuration.default(), storage=self.storage)
 
     def test_profiling(self):
-        import bsb.options
         import bsb.profiling
 
         bsb.options.profiling = True

@@ -1,17 +1,19 @@
 import unittest
 
 import numpy as np
-from bsb_test import get_data_path, skip_parallel
+from bsb_test import get_data_path
 
 from bsb.config import Configuration
 from bsb.core import Scaffold
-from bsb.exceptions import DatasetNotFoundError, DistributorError, EmptySelectionError
+from bsb.exceptions import DatasetNotFoundError, DistributorError
 from bsb.morphologies import Morphology
 from bsb.placement.distributor import (
     MorphologyDistributor,
     MorphologyGenerator,
     VolumetricRotations,
 )
+from bsb.services import MPI
+from bsb.services.pool import WorkflowError
 
 
 class OneNoneDistributor(MorphologyDistributor):
@@ -52,14 +54,16 @@ class TestMorphologyDistributor(unittest.TestCase):
         )
         self.netw = Scaffold(self.cfg)
 
-    @skip_parallel
-    # Errors during parallel jobs cause MPI_Abort, untestable scenario.
     def test_empty_selection(self):
-        with self.assertRaisesRegex(DistributorError, "NameSelector"):
+        with self.assertRaises(WorkflowError) as wfe:
             self.netw.compile(append=True)
 
-    @skip_parallel
-    # Errors during parallel jobs cause MPI_Abort, untestable scenario.
+        if not MPI.get_rank():
+            self.assertEqual(1, len(wfe.exception.exceptions))
+            err = wfe.exception.exceptions[0].error
+            self.assertEqual(DistributorError, type(err))
+            self.assertIn("NameSelector", str(err))
+
     def test_none_returns(self):
         self.netw.morphologies.save("bs", Morphology.empty(), overwrite=True)
         self.netw.cell_types.a.spatial.morphologies = [{"names": ["*"]}]

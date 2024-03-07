@@ -4,8 +4,6 @@ import unittest
 import bsb.options
 from bsb import profiling
 
-print("BSB_PROFILING" in os.environ, os.environ.get("BSB_PROFILING"))
-
 
 class TestEnvProfiling(unittest.TestCase):
     @unittest.skipIf(
