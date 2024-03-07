@@ -9,7 +9,12 @@ import numpy as np
 from ._util import obj_str_insert
 from .config._config import Configuration
 from .connectivity import ConnectionStrategy
-from .exceptions import InputError, NodeNotFoundError, RedoError
+from .exceptions import (
+    InputError,
+    MissingActiveConfigError,
+    NodeNotFoundError,
+    RedoError,
+)
 from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report, warn
@@ -159,7 +164,10 @@ class Scaffold:
                 report(f"Pulling configuration from linked {linked}.", level=2)
                 config = linked
             elif storage is not None:
-                config = storage.load_active_config()
+                try:
+                    config = storage.load_active_config()
+                except MissingActiveConfigError:
+                    config = Configuration.default()
             else:
                 config = Configuration.default()
         if not storage:
