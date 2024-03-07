@@ -253,9 +253,13 @@ class Scaffold:
         if y is not None:
             self.network.y = y
         if z is not None:
-            z = self.network.z
+            self.network.z = z
         self.topology.do_layout(
-            box_layout([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
+            box_layout(
+                self.network.origin,
+                np.array(self.network.origin)
+                + [self.network.x, self.network.y, self.network.z],
+            )
         )
 
     @meter()
