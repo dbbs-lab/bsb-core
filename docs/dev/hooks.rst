@@ -36,9 +36,7 @@ hooked onto the given class:
 
 .. code-block:: python
 
-  from bsb import config
-  from bsb.core import Scaffold
-  from bsb.simulation import Simulation
+  from bsb import config, Scaffold, Simulation
 
   @config.on(Simulation, "boot")
   def print_something(self):

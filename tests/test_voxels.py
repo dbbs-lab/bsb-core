@@ -6,10 +6,7 @@ from itertools import count as _ico
 import bsb_test
 import numpy as np
 
-from bsb.exceptions import EmptyVoxelSetError
-from bsb.morphologies import Branch, Morphology
-from bsb.storage import Chunk
-from bsb.voxels import VoxelData, VoxelSet
+from bsb import Branch, Chunk, EmptyVoxelSetError, Morphology, VoxelData, VoxelSet
 
 
 class TestVoxelSet(bsb_test.NumpyTestCase, unittest.TestCase):

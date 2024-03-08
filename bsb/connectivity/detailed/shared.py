@@ -83,3 +83,6 @@ class Intersectional:
                 return int(np.floor(ln * aff) + (np.random.rand() < ((ln * aff) % 1)))
 
             return (np.random.choice(q, sizemod(q), replace=False) for q in query)
+
+
+__all__ = ["Intersectional"]

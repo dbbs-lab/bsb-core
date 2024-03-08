@@ -33,3 +33,6 @@ class CellModel(SimulationComponent):
 
     def get_placement_set(self, chunks=None):
         return self.cell_type.get_placement_set(chunks=chunks)
+
+
+__all__ = ["CellModel"]

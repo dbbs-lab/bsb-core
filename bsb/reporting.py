@@ -169,3 +169,15 @@ def setup_reporting():
                 "Unable to create unbuffered wrapper around `sys.stdout`"
                 + f" ({sys.stdout.__class__.__name__})."
             )
+
+
+__all__ = [
+    "get_report_file",
+    "in_notebook",
+    "in_pytest",
+    "read_report_file",
+    "report",
+    "set_report_file",
+    "setup_reporting",
+    "warn",
+]

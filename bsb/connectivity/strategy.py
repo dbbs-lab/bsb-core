@@ -164,3 +164,6 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
         all_ps = (ct.get_placement_set() for ct in self.postsynaptic.cell_types)
         chunks = set(ichain(ps.get_all_chunks() for ps in all_ps))
         return list(chunks)
+
+
+__all__ = ["ConnectionStrategy", "Hemitype", "HemitypeCollection"]

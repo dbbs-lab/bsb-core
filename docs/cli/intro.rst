@@ -31,7 +31,7 @@ If no parent is given the command is added under the root ``bsb`` command:
 
   # BaseCommand inherits from BsbCommand too but contains the default CLI command
   # functions already implemented.
-  from bsb.commands import BaseCommand
+  from bsb import BaseCommand
 
   class MyCommand(BaseCommand, name="test"):
     def handler(self, namespace):

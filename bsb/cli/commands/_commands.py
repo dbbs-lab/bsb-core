@@ -56,12 +56,6 @@ class Output(BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FIL
     pass
 
 
-class Plot(
-    BsbOption, name="plot", cli=("plot", "p"), env=("BSB_PLOT_NETWORK",), flag=True
-):
-    pass
-
-
 class SkipPlacement(
     BsbOption,
     name="skip_placement",
@@ -97,6 +91,16 @@ class SkipAfterConnectivity(
     name="skip_after_connectivity",
     cli=("nac", "skip-after-connectivity"),
     env=("BSB_SKIP_AFTER_CONNECTIVITY",),
+    flag=True,
+):
+    pass
+
+
+class IgnoreErrors(
+    BsbOption,
+    name="ignore_errors",
+    cli=("ignore", "ignore-errors"),
+    env=("BSB_IGNORE_ERRORS",),
     flag=True,
 ):
     pass
@@ -147,12 +151,8 @@ class BsbCompile(BaseCommand, name="compile"):
             force=context.force,
             append=context.append,
             redo=context.redo,
+            fail_fast=not context.ignore_errors,
         )
-
-        if context.plot:
-            from bsb.plotting import plot_network
-
-            plot_network(network)
 
     def get_options(self):
         return {
@@ -169,8 +169,8 @@ class BsbCompile(BaseCommand, name="compile"):
             "append": Append(),
             "redo": Redo(),
             "clear": Clear(),
-            "plot": Plot(),
             "output": Output(),
+            "ignore_errors": IgnoreErrors(),
         }
 
     def add_parser_arguments(self, parser):

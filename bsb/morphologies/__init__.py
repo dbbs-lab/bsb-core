@@ -1701,3 +1701,14 @@ def _morpho_to_swc(morpho):
         data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
 
     return data[data != np.array(None)].reshape(-1, 7)
+
+
+__all__ = [
+    "Branch",
+    "Morphology",
+    "MorphologySet",
+    "RotationSet",
+    "SubTree",
+    "branch_iter",
+    "parse_morphology_file",
+]

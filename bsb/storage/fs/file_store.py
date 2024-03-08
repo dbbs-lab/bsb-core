@@ -102,7 +102,7 @@ class FileStore(IFileStore):
         :rtype: :class:`~.config.Configuration`
         :raises Exception: When there's no active configuration in the file store.
         """
-        from bsb.config import Configuration
+        from ...config import Configuration
 
         stored = self.find_meta("active_config", True)
         if stored is None:

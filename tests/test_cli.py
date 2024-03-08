@@ -23,7 +23,6 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(our_version, cli_version, "Could not access the BSB through CLI")
 
     def test_defaults(self):
-        import bsb.exceptions
         import bsb.options
 
         # Test the default verbosity
@@ -36,7 +35,7 @@ class TestCLI(unittest.TestCase):
         import os
 
         import bsb.options
-        from bsb.option import BsbOption
+        from bsb import BsbOption
 
         class TestOption(BsbOption, name="_test_", env=("GRZLGRK",), script=("GRZLGRK",)):
             pass
@@ -62,7 +61,7 @@ class TestCLI(unittest.TestCase):
 
 class TestOptions(unittest.TestCase):
     def test_get_cli_tags(self):
-        from bsb.option import BsbOption
+        from bsb import BsbOption
 
         class t1(BsbOption, name="t1", cli=("a",)):
             pass
@@ -88,7 +87,7 @@ class TestOptions(unittest.TestCase):
     def test_register(self):
         import bsb.exceptions
         import bsb.options
-        from bsb.option import BsbOption
+        from bsb import BsbOption
 
         # Test that registering an option into the module works
         class t1(BsbOption, name="testTTTT", script=("aaa",)):

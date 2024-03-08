@@ -2,11 +2,10 @@ import abc
 import datetime
 from typing import cast
 
-from bsb.services.pool import PoolJobUpdateProgress, PoolProgress, PoolProgressReason
+from .pool import PoolJobUpdateProgress, PoolProgress, PoolProgressReason
 
 
 class Listener(abc.ABC):
-
     @abc.abstractmethod
     def __call__(self, progress: PoolProgress):
         pass

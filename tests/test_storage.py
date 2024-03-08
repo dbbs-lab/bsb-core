@@ -1,7 +1,7 @@
 import pathlib
 import unittest
 
-from bsb.storage import FileDependency
+from bsb import FileDependency
 
 
 class TestUtil(unittest.TestCase):

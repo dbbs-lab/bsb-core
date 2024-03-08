@@ -174,3 +174,12 @@ class BidirectionalContact(PostProcessingHook):
 
     def _invert_append(self, old):
         return np.concatenate((old, np.stack((old[:, 1], old[:, 0]), axis=1)), axis=0)
+
+
+__all__ = [
+    "BidirectionalContact",
+    "MissingAxon",
+    "PostProcessingHook",
+    "Relay",
+    "SpoofDetails",
+]

@@ -11,14 +11,21 @@ from bsb_test import (
     timeout,
 )
 
-from bsb import config
-from bsb.cell_types import CellType
-from bsb.config import Configuration
-from bsb.connectivity import ConnectionStrategy
-from bsb.exceptions import JobCancelledError, JobPoolError
-from bsb.mixins import NotParallel
-from bsb.placement import FixedPositions, PlacementStrategy, RandomPlacement
-from bsb.services import MPI
+from bsb import (
+    MPI,
+    CellType,
+    Chunk,
+    Configuration,
+    ConnectionStrategy,
+    FixedPositions,
+    JobCancelledError,
+    JobPoolError,
+    NotParallel,
+    Partition,
+    PlacementStrategy,
+    RandomPlacement,
+    config,
+)
 from bsb.services.pool import (
     Job,
     JobStatus,
@@ -27,8 +34,6 @@ from bsb.services.pool import (
     PoolStatus,
     WorkflowError,
 )
-from bsb.storage import Chunk
-from bsb.topology import Partition
 
 
 def sleep_y(scaffold, x, y):

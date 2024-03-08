@@ -22,14 +22,13 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: chunklist
 
 Dev
 ---
 
-.. autoclass:: bsb.storage._files.FileDependency
+.. autoclass:: bsb.storage._files.FilePipelineMixin
 
-.. autoclass:: bsb.storage._files.CodeDependencyNode
+.. autoclass:: bsb.storage._files.MorphologyOperationCallable
 
-.. autoclass:: bsb.storage._files.MorphologyDependencyNode
-
-.. autoclass:: bsb.storage._files.NrrdDependencyNode
+.. autoclass:: bsb.storage._files.OperationCallable

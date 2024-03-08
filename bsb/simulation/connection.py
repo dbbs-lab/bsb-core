@@ -1,10 +1,5 @@
-import typing
-
 from .. import config
 from .component import SimulationComponent
-
-if typing.TYPE_CHECKING:
-    from ..connectivity import ConnectionStrategy
 
 
 @config.node
@@ -13,3 +8,6 @@ class ConnectionModel(SimulationComponent):
 
     def get_connectivity_set(self):
         return self.scaffold.get_connectivity_set(self.tag)
+
+
+__all__ = ["ConnectionModel"]

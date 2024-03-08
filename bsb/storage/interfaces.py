@@ -7,7 +7,6 @@ import numpy as np
 
 from .. import config, plugins
 from .._util import immutable, obj_str_insert
-from ..morphologies import Morphology
 from ..trees import BoxTree
 from ._chunks import Chunk
 
@@ -1190,3 +1189,21 @@ class StoredMorphology:
 class GeneratedMorphology(StoredMorphology):
     def __init__(self, name, generated, meta):
         super().__init__(name, lambda: generated, meta)
+
+
+__all__ = [
+    "ConnectivityIterator",
+    "ConnectivitySet",
+    "Engine",
+    "FileStore",
+    "GeneratedMorphology",
+    "Interface",
+    "MorphologyRepository",
+    "NetworkDescription",
+    "NoopLock",
+    "PlacementSet",
+    "ReadOnlyManager",
+    "StorageNode",
+    "StoredFile",
+    "StoredMorphology",
+]

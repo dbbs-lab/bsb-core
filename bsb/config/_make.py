@@ -364,7 +364,7 @@ def _bubble_up_warnings(log):
 
 
 def _bootstrap_components(components, file_store=None):
-    from bsb.storage._files import CodeDependencyNode
+    from ..storage._files import CodeDependencyNode
 
     for component in components:
         component_node = CodeDependencyNode(component)

@@ -1,9 +1,5 @@
-import itertools
-import types
 import typing
 from time import time
-
-import numpy as np
 
 from .. import config
 from ..config import types as cfgtypes
@@ -65,3 +61,6 @@ class Simulation:
             model: self.scaffold.get_connectivity_set(model.name)
             for model in sorted(self.connection_models.values())
         }
+
+
+__all__ = ["ProgressEvent", "Simulation"]

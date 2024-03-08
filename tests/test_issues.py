@@ -1,13 +1,15 @@
 import os
 import unittest
 
-from bsb import config
-from bsb.cell_types import CellType
-from bsb.config.refs import Reference
-from bsb.exceptions import CfgReferenceError
-from bsb.placement import FixedPositions
-from bsb.placement.indicator import PlacementIndications
-from bsb.storage import Chunk
+from bsb import (
+    CellType,
+    CfgReferenceError,
+    Chunk,
+    FixedPositions,
+    PlacementIndications,
+    Reference,
+    config,
+)
 
 
 def relative_to_tests_folder(path):

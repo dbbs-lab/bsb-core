@@ -57,3 +57,6 @@ class SimulationResult:
 class SimulationRecorder:
     def flush(self, segment: "neo.core.Segment"):
         raise NotImplementedError("Recorders need to implement the `flush` function.")
+
+
+__all__ = ["SimulationResult", "SimulationRecorder"]

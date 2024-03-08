@@ -5,8 +5,8 @@ from itertools import chain
 import numpy as np
 
 from .. import config
-from ..config import refs, types
-from ..exceptions import *
+from ..config import refs
+from ..exceptions import PlacementWarning
 from ..reporting import report, warn
 from .indicator import PlacementIndicator
 from .strategy import PlacementStrategy
@@ -101,9 +101,7 @@ class Satellite(PlacementStrategy):
             # Initialise satellite position array
             self.satellites_pos = np.empty([len(planet_cells), 3])
             report(
-                "Checking overlap and bounds of satellite {} cells...".format(
-                    cell_type.name,
-                ),
+                f"Checking overlap and bounds of satellite {cell_type.name} cells...",
                 level=3,
             )
             # To keep track of not placed particles that are not respecting the bounds or distances.
@@ -183,3 +181,6 @@ class Satellite(PlacementStrategy):
             scaffold._planets[cell_type.name].extend(planet_ids)
 
         self.place_cells(indicator, satellites_pos, chunk=chunk)
+
+
+__all__ = ["Satellite", "SatelliteIndicator"]

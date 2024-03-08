@@ -366,7 +366,7 @@ class ConnectivityJob(Job):
     """
 
     def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
-        from bsb.storage import chunklist
+        from ..storage import chunklist
 
         args = (strategy.name, pre_roi, post_roi)
         context = SubmissionContext(

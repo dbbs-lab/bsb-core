@@ -3,16 +3,17 @@ import unittest
 import numpy as np
 from bsb_test import NetworkFixture, RandomStorageFixture, get_data_path
 
-from bsb.config import Configuration
-from bsb.exceptions import DatasetNotFoundError, DistributorError
-from bsb.morphologies import Morphology
-from bsb.placement.distributor import (
+from bsb import (
+    MPI,
+    Configuration,
+    DatasetNotFoundError,
+    DistributorError,
+    Morphology,
     MorphologyDistributor,
     MorphologyGenerator,
     VolumetricRotations,
+    WorkflowError,
 )
-from bsb.services import MPI
-from bsb.services.pool import WorkflowError
 
 
 class OneNoneDistributor(MorphologyDistributor):

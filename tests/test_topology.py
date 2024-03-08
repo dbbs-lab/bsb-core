@@ -3,9 +3,7 @@ import unittest
 import numpy as np
 from bsb_test import get_data_path
 
-from bsb import topology
-from bsb.config import Configuration
-from bsb.exceptions import *
+from bsb import Configuration, LayoutError, topology
 
 
 def single_layer():

@@ -1,7 +1,7 @@
 import nrrd
 import numpy as np
 
-from bsb.topology import AllenStructure
+from bsb import AllenStructure
 
 # For this example, we'll be looking into the declive:
 struct = "DEC"

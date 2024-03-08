@@ -1,5 +1,5 @@
-bsb.simulation package
-======================
+bsb.services package
+====================
 
 Submodules
 ----------

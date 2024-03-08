@@ -156,3 +156,6 @@ def _pairs_with_zero(iterable):
         pass
     else:
         yield from zip(a, b)
+
+
+__all__ = ["VoxelIntersection"]

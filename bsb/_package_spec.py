@@ -1,7 +1,7 @@
 from exceptiongroup import ExceptionGroup
 
-from bsb.exceptions import PackageRequirementWarning
-from bsb.reporting import warn
+from .exceptions import PackageRequirementWarning
+from .reporting import warn
 
 
 class MissingRequirementErrors(ExceptionGroup):

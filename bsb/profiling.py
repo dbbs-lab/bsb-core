@@ -10,7 +10,8 @@ from time import time
 from uuid import uuid4
 
 import bsb.options
-from bsb.services import MPI
+
+from .services import MPI
 
 
 class Meter:
@@ -171,3 +172,14 @@ def meter(f=None, *, name_f=None):
 
 def view_profile(fstem):
     ProfilingSession.load(fstem).view()
+
+
+__all__ = [
+    "Meter",
+    "ProfilingSession",
+    "activate_session",
+    "get_active_session",
+    "meter",
+    "node_meter",
+    "view_profile",
+]

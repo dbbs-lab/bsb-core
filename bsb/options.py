@@ -7,7 +7,7 @@ environment variables or project settings).
 .. code-block::
 
   import bsb.options
-  from bsb.option import BsbOption
+  from bsb import BsbOption
 
   class MyOption(BsbOption, cli=("my_setting",), env=("MY_SETTING",), script=("my_setting", "my_alias")):
       def get_default(self):
@@ -369,3 +369,20 @@ for plugin in plugins.values():
     _om.register_option(option.name, option)
 
 sys.modules[__name__] = _om
+
+# Static public API
+__all__ = [
+    "get",
+    "get_module_option",
+    "get_option",
+    "get_option_classes",
+    "get_options",
+    "get_project_option",
+    "is_module_option_set",
+    "read",
+    "register_option",
+    "reset_module_option",
+    "set_module_option",
+    "store",
+    "unregister_option",
+]

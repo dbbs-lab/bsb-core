@@ -1,5 +1,5 @@
 # How to access the configuration of a network
-from bsb.core import from_storage
+from bsb import from_storage
 
 network = from_storage("network.hdf5")
 print("My network was configured with", network.configuration)
