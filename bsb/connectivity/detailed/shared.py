@@ -1,4 +1,3 @@
-from functools import cache
 from itertools import chain
 
 import numpy as np
@@ -15,8 +14,8 @@ class Intersectional:
 
     def get_region_of_interest(self, chunk):
         post_ps = [ct.get_placement_set() for ct in self.postsynaptic.cell_types]
-        lpre, upre = self._get_rect_ext(tuple(chunk.dimensions), True)
-        lpost, upost = self._get_rect_ext(tuple(chunk.dimensions), False)
+        lpre, upre = self.presynaptic._get_rect_ext(tuple(chunk.dimensions))
+        lpost, upost = self.postsynaptic._get_rect_ext(tuple(chunk.dimensions))
         # Get the `np.arange`s between bounds offset by the chunk position, to be used in
         # `np.meshgrid` below.
         bounds = list(
@@ -41,27 +40,6 @@ class Intersectional:
         else:
             size = next(iter(self._occ_chunks)).dimensions
             return [t for c in clist if (t := Chunk(c, size)) in self._occ_chunks]
-
-    @cache
-    def _get_rect_ext(self, chunk_size, pre_post_flag):
-        if pre_post_flag:
-            types = self.presynaptic.cell_types
-            loader = self.presynaptic.morpho_loader
-        else:
-            types = self.postsynaptic.cell_types
-            loader = self.postsynaptic.morpho_loader
-        ps_list = [ct.get_placement_set() for ct in types]
-        ms_list = [loader(ps) for ps in ps_list]
-        if not sum(map(len, ms_list)):
-            # No cells placed, return smallest possible RoI.
-            return [np.array([0, 0, 0]), np.array([0, 0, 0])]
-        metas = list(chain.from_iterable(ms.iter_meta(unique=True) for ms in ms_list))
-        # TODO: Combine morphology extension information with PS rotation information.
-        # Get the chunk coordinates of the boundaries of this chunk convoluted with the
-        # extension of the intersecting morphologies.
-        lbounds = np.min([m["ldc"] for m in metas], axis=0) // chunk_size
-        ubounds = np.max([m["mdc"] for m in metas], axis=0) // chunk_size
-        return lbounds, ubounds
 
     def candidate_intersection(self, target_coll, candidate_coll):
         target_cache = [

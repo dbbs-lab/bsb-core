@@ -5,9 +5,10 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
 
    bsb.connectivity.detailed
+   bsb.connectivity.point_cloud
 
 Submodules
 ----------
