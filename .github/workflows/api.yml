@@ -13,5 +13,9 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.11
+    - name: Setup Python environment
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
     - name: Check public API
       run: python .github/devops/generate_public_api.py --check
