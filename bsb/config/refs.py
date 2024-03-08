@@ -132,3 +132,4 @@ __all__ = [
     "region_ref",
     "sim_cell_model_ref",
 ]
+__api__ = ["Reference"]

@@ -49,6 +49,12 @@ if _pr:
     meter.stop()
 
 
+def _assign_targets(assign: ast.Assign, id_: str):
+    return any(
+        target.id == id_ for target in assign.targets if isinstance(target, ast.Name)
+    )
+
+
 @functools.cache
 def _get_public_api_map():
     root = Path(__file__).parent
@@ -62,12 +68,12 @@ def _get_public_api_map():
         )
         module_api = []
         for assign in ast.parse(file.read_text()).body:
-            if isinstance(assign, ast.Assign) and any(
-                target.id == "__all__"
-                for target in assign.targets
-                if isinstance(target, ast.Name)
-            ):
-                if isinstance(assign.value, ast.List):
+            if isinstance(assign, ast.Assign):
+                is_api = _assign_targets(assign, "__api__")
+                is_either = is_api or _assign_targets(assign, "__all__")
+                if ((is_either and not module_api) or is_api) and isinstance(
+                    assign.value, ast.List
+                ):
                     module_api = [
                         el.value
                         for el in assign.value.elts
