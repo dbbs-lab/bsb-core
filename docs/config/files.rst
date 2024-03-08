@@ -51,8 +51,7 @@ and handle the values:
 
 .. code-block:: python
 
-  from bsb import config
-  from bsb.connectivity import ConnectionStrategy
+  from bsb import config, ConnectionStrategy
 
   @config.node
   class MySpecialConnection(ConnectionStrategy):

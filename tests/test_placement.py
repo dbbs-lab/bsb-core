@@ -10,16 +10,20 @@ from bsb_test import (
     skip_parallel,
 )
 
-from bsb.cell_types import CellType
-from bsb.config import Configuration
-from bsb.core import Scaffold
-from bsb.exceptions import IndicatorError, PackingWarning
-from bsb.placement import PlacementStrategy
-from bsb.services import MPI
-from bsb.services.pool import WorkflowError
-from bsb.storage import Chunk
-from bsb.topology import Partition
-from bsb.voxels import VoxelData, VoxelSet
+from bsb import (
+    MPI,
+    CellType,
+    Chunk,
+    Configuration,
+    IndicatorError,
+    PackingWarning,
+    Partition,
+    PlacementStrategy,
+    Scaffold,
+    VoxelData,
+    VoxelSet,
+    WorkflowError,
+)
 
 
 def dud_tester(scaffold, x, y):

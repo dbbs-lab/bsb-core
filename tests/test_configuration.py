@@ -12,12 +12,7 @@ from bsb_test import (
 )
 
 import bsb
-from bsb import config
-from bsb._package_spec import get_missing_requirement_reason
-from bsb.config import Configuration, _attrs, compose_nodes, types
-from bsb.config.refs import Reference
-from bsb.core import Scaffold
-from bsb.exceptions import (
+from bsb import (
     CastError,
     CfgReferenceError,
     ClassMapMissingError,
@@ -25,13 +20,18 @@ from bsb.exceptions import (
     ConfigurationWarning,
     DynamicClassInheritanceError,
     DynamicObjectNotFoundError,
+    NrrdDependencyNode,
     PackageRequirementWarning,
+    RegionGroup,
     RequirementError,
+    Scaffold,
     UnfitClassCastError,
     UnresolvedClassCastError,
+    config,
 )
-from bsb.storage import NrrdDependencyNode
-from bsb.topology.region import RegionGroup
+from bsb._package_spec import get_missing_requirement_reason
+from bsb.config import Configuration, _attrs, compose_nodes, types
+from bsb.config.refs import Reference
 
 
 @config.root

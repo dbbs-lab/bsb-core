@@ -2,7 +2,7 @@ import unittest
 
 from bsb_test import spoof_plugin
 
-from bsb.placement import PlacementStrategy
+from bsb import PlacementStrategy
 
 
 class A(PlacementStrategy):

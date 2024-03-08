@@ -17,7 +17,7 @@ You can verify that the installation works with:
 
 .. code-block:: python
 
-  from bsb.core import Scaffold
+  from bsb import Scaffold
 
   # Create an empty scaffold network with the default configuration.
   scaffold = Scaffold()

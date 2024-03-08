@@ -327,6 +327,7 @@ __all__ = [
     "root",
     "run_hook",
     "slot",
+    "types",
     "unset",
     "walk_node_attributes",
     "walk_nodes",

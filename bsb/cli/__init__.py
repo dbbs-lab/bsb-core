@@ -3,7 +3,7 @@ import inspect
 import sys
 
 from .._contexts import get_cli_context, reset_cli_context
-from ..exceptions import *
+from ..exceptions import CommandError, DryrunError
 from .commands import load_root_command
 
 
@@ -39,3 +39,6 @@ def _can_dryrun(handler, namespace):
         return bool(inspect.signature(handler).bind(namespace, dryrun=True))
     except TypeError:
         return False
+
+
+__all__ = ["handle_cli", "handle_command"]

@@ -10,7 +10,8 @@ from time import time
 from uuid import uuid4
 
 import bsb.options
-from bsb.services import MPI
+
+from .services import MPI
 
 
 class Meter:

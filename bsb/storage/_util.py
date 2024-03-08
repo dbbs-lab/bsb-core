@@ -24,7 +24,7 @@ def __getattr__(name):
 
 @functools.cache
 def _get_cache_storage():
-    from bsb.storage import Storage
+    from ..storage import Storage
 
     return Storage("fs", _cache_path)
 

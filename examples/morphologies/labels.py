@@ -1,6 +1,6 @@
 import numpy as np
 
-from bsb.core import from_storage
+from bsb import from_storage
 
 # Load the morphology
 network = from_storage("network.hdf5")

@@ -613,3 +613,6 @@ class MorphologyPipelineNode(FilePipelineMixin):
         for k in range(len(self.files)):
             # The lambda serves to bind the closure arguments
             pool.queue(job, (self._config_index, k))
+
+
+__all__ = ["UriScheme", "UrlScheme", "FileScheme", "NeuroMorphoScheme"]

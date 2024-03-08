@@ -2,9 +2,7 @@ import unittest
 
 from bsb_test import NetworkFixture, RandomStorageFixture
 
-from bsb import core
-from bsb.config import Configuration
-from bsb.storage.interfaces import PlacementSet
+from bsb import Configuration, PlacementSet, core
 
 
 class TestCore(

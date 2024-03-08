@@ -7,7 +7,7 @@ environment variables or project settings).
 .. code-block::
 
   import bsb.options
-  from bsb.option import BsbOption
+  from bsb import BsbOption
 
   class MyOption(BsbOption, cli=("my_setting",), env=("MY_SETTING",), script=("my_setting", "my_alias")):
       def get_default(self):

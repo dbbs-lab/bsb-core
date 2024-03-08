@@ -1,5 +1,5 @@
 # Create a network with the default configuration.
-from bsb.core import Scaffold
+from bsb import Scaffold
 
 network = Scaffold()
 network.compile()

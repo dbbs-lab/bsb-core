@@ -9,10 +9,8 @@ from bsb_test import (
 )
 from scipy.spatial.transform import Rotation
 
+from bsb import FileDependency, NeuroMorphoScheme, Scaffold
 from bsb._util import rotation_matrix_from_vectors
-from bsb.core import Scaffold
-from bsb.storage import FileDependency
-from bsb.storage._files import NeuroMorphoScheme
 
 
 class TestNetworkUtil(

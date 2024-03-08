@@ -20,8 +20,7 @@ Examples
 
 .. code-block:: python
 
-  from bsb import config
-  from bsb.config import types
+  from bsb import config, types
 
   @config.node
   class TestNode

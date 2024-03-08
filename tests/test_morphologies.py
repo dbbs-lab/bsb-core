@@ -10,24 +10,24 @@ from bsb_test import (
 )
 from scipy.spatial.transform import Rotation
 
-from bsb._encoding import EncodedLabels
-from bsb.config._config import Configuration
-from bsb.core import Scaffold
-from bsb.exceptions import CastError, EmptyBranchError, MorphologyError
-from bsb.morphologies import (
+from bsb import (
     Branch,
+    BsbParser,
+    CastError,
+    Configuration,
+    EmptyBranchError,
     Morphology,
+    MorphologyDependencyNode,
+    MorphologyError,
+    MorphologyOperation,
     MorphologySet,
+    NeuroMorphoScheme,
     RotationSet,
+    Scaffold,
+    StoredMorphology,
     parse_morphology_file,
 )
-from bsb.morphologies.parsers.parser import BsbParser
-from bsb.storage._files import (
-    MorphologyDependencyNode,
-    MorphologyOperation,
-    NeuroMorphoScheme,
-)
-from bsb.storage.interfaces import StoredMorphology
+from bsb._encoding import EncodedLabels
 
 
 class TestIO(NumpyTestCase, unittest.TestCase):

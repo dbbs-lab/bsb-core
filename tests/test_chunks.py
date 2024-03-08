@@ -10,7 +10,7 @@ from bsb_test import (
     timeout,
 )
 
-from bsb.storage import Chunk
+from bsb import Chunk
 
 
 class TestChunks(unittest.TestCase, NumpyTestCase):

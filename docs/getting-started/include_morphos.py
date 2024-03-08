@@ -1,9 +1,7 @@
-from bsb_plotting import plot_network
+from bsb_plot import plot_network
 
 import bsb.options
-from bsb.config import from_json
-from bsb.core import Scaffold
-from bsb.topology import Stack
+from bsb import Scaffold, Stack, from_json
 
 bsb.options.verbosity = 3
 config = from_json("network_configuration.json")

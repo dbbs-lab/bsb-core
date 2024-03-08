@@ -1,11 +1,9 @@
 import inspect
-import os
-import sys
 import unittest
 
 import bsb_test
 
-from bsb.voxels import VoxelSet
+from bsb import VoxelSet
 
 
 class TestVoxelSet(bsb_test.NumpyTestCase, unittest.TestCase):

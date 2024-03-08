@@ -101,7 +101,7 @@ class ConnectivityReference(Reference):
 
 class SimCellModelReference(Reference):
     def __call__(self, root, here):
-        from bsb.simulation.simulation import Simulation
+        from ..simulation.simulation import Simulation
 
         sim = self.up(here, Simulation)
         return sim.cell_models
@@ -122,6 +122,7 @@ region_ref = RegionReference()
 sim_cell_model_ref = SimCellModelReference()
 
 __all__ = [
+    "Reference",
     "cell_type_ref",
     "conn_type_ref",
     "partition_ref",

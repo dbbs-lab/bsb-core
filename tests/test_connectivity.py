@@ -12,10 +12,7 @@ from bsb_test import (
     skip_parallel,
 )
 
-from bsb.config import Configuration
-from bsb.core import Scaffold
-from bsb.morphologies import Branch, Morphology
-from bsb.services import MPI
+from bsb import MPI, Branch, Configuration, Morphology, Scaffold
 
 
 class TestAllToAll(
