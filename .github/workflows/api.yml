@@ -1,0 +1,17 @@
+name: Check public API
+
+on: [push, pull_request]
+
+jobs:
+  check-documentation:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.11
+    - name: Check public API
+      run: python .github/devops/generate_public_api.py --check
