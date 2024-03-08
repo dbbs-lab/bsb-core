@@ -43,7 +43,7 @@ if __name__ == "__main__":
         diff = "\n".join(
             l
             for l in difflib.ndiff(
-                text[idx + len(find) :].splitlines(),
+                text[idx + len(find) :].split("\n"),
                 annotation_lines,
             )
             if l[0] != " "
