@@ -1,5 +1,5 @@
-bsb.simulation package
-======================
+bsb.services package
+====================
 
 Submodules
 ----------
@@ -26,6 +26,7 @@ bsb.services.pool module
 .. automodule:: bsb.services.pool
    :members:
    :undoc-members:
+   :exclude-members: WorkflowError
 
 Developer modules
 -----------------
