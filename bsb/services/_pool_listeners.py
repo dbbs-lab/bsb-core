@@ -1,12 +1,13 @@
 import abc
 import contextlib
 import datetime
+from collections import defaultdict
 from typing import cast
 
 from blessed import Terminal
 from dashing import HSplit, Log, Text
 
-from .pool import PoolJobUpdateProgress, PoolProgress, PoolProgressReason
+from .pool import PoolJobUpdateProgress, PoolProgress, PoolProgressReason, PoolStatus
 
 
 class Listener(abc.ABC):
@@ -62,4 +63,12 @@ class TTYTerminalListener(Listener):
         self._context.__exit__(exc_type, exc_val, exc_tb)
 
     def __call__(self, progress: PoolProgress):
+        if (
+            progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
+            and progress.status == PoolStatus.STARTING
+        ):
+            components = defaultdict(int)
+            for j in progress.jobs:
+                components[j.name] += 1
+            self._ui.items[1].text = "\n".join(f"{k}: {v}" for k, v in components.items())
         self._ui.display()
