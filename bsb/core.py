@@ -19,7 +19,7 @@ from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report, warn
 from .services import MPI, JobPool
-from .services._pool_listeners import NonTTYTerminalListener
+from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
 from .services.pool import Job
 from .simulation import get_simulation_adapter
 from .storage import Chunk, Storage, open_storage
@@ -783,15 +783,17 @@ class Scaffold:
         except Exception:
             tty = False
         if tty:
-            # todo: Create the TTY terminal listener
-            default_listener = NonTTYTerminalListener
+            default_listener = TTYTerminalListener
+            default_max_wait = 1 / 25
         else:
             default_listener = NonTTYTerminalListener
+            default_max_wait = None
         if self._pool_listeners:
             for listener, max_wait in self._pool_listeners:
                 pool.add_listener(listener, max_wait=max_wait)
         elif not quiet:
-            pool.add_listener(default_listener())
+            pool.add_listener(default_listener(), max_wait=default_max_wait)
+        pool.add_listener(lambda progress: None)
         return pool
 
     def register_listener(self, listener, max_wait=None):

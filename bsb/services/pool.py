@@ -43,8 +43,10 @@ import concurrent.futures
 import logging
 import pickle
 import tempfile
+import threading
 import typing
 import warnings
+from contextlib import ExitStack
 from enum import Enum, auto
 
 from exceptiongroup import ExceptionGroup
@@ -214,6 +216,7 @@ class Job(abc.ABC):
         self._completion_cbs = []
         self._status = JobStatus.PENDING
         self._future: typing.Optional[concurrent.futures.Future] = None
+        self._thread: typing.Optional[threading.Thread] = None
         self._res_file = None
         self._error = None
 
@@ -261,6 +264,31 @@ class Job(abc.ABC):
         Job handler
         """
         pass
+
+    def run(self, timeout=None):
+        """
+        Execute the job on the current process, in a thread, and return whether the job is still running.
+        """
+        if self._thread is None:
+
+            def target():
+                try:
+                    # Execute the static handler
+                    result = self.execute(self._pool.owner, self._args, self._kwargs)
+                except Exception as e:
+                    self._future.set_exception(e)
+                else:
+                    self._future.set_result(result)
+                finally:
+                    self._future.done()
+
+            self._thread = threading.Thread(target=target, daemon=True)
+            self._thread.start()
+        self._thread.join(timeout=timeout)
+        if not self._thread.is_alive():
+            self._completed()
+            return False
+        return True
 
     def on_completion(self, cb):
         self._completion_cbs.append(cb)
@@ -493,7 +521,14 @@ class JobPool:
 
         self._unhandled_errors = []
         try:
-            with tempfile.TemporaryDirectory() as tmp_dirname:
+            with ExitStack() as context:
+                tmp_dirname = context.enter_context(tempfile.TemporaryDirectory())
+                for listener in self._listeners:
+                    try:
+                        context.enter_context(listener)
+                    except AttributeError:
+                        # Listener is not a context manager
+                        pass
                 JobPool._tmp_folders[self.id] = tmp_dirname
                 if self.parallel:
                     self._execute_parallel()
@@ -591,6 +626,7 @@ class JobPool:
         # Prepare jobs for local execution
         for job in self._job_queue:
             job._future = concurrent.futures.Future()
+            job._pool = self
             if job.status != JobStatus.CANCELLED and job.status != JobStatus.ABORTED:
                 job._status = JobStatus.QUEUED
             else:
@@ -599,21 +635,15 @@ class JobPool:
         self.change_status(PoolStatus.RUNNING)
         # Just run each job serially
         for job in self._job_queue:
-            f = job._future
-            if not f.set_running_or_notify_cancel():
+            if not job._future.set_running_or_notify_cancel():
                 continue
             job.change_status(JobStatus.RUNNING)
             self.notify()
-            try:
-                # Execute the static handler
-                result = job.execute(self.owner, job._args, job._kwargs)
-            except Exception as e:
-                f.set_exception(e)
-            else:
-                f.set_result(result)
-            finally:
-                f.done()
-            job._completed()
+            while job.run(timeout=self._max_wait):
+                self.add_notification(
+                    PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
+                )
+                self.notify()
             self.notify()
         # Raise any unhandled errors
         self.raise_unhandled()
