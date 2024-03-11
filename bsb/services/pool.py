@@ -51,6 +51,7 @@ from enum import Enum, auto
 
 from exceptiongroup import ExceptionGroup
 
+from .._util import obj_str_insert
 from ..exceptions import JobCancelledError, JobPoolError
 from . import MPI
 from ._util import ErrorModule, MockModule
@@ -193,6 +194,10 @@ class SubmissionContext:
 
         return chunklist(self._chunks) if self._chunks is not None else None
 
+    @property
+    def context(self):
+        return {**self._context}
+
     def __getattr__(self, key):
         if key in self._context:
             return self._context[key]
@@ -223,13 +228,24 @@ class Job(abc.ABC):
         for j in self._deps:
             j.on_completion(self._dep_completed)
 
+    @obj_str_insert
+    def __str__(self):
+        return self.description
+
     @property
     def name(self):
         return self._submit_ctx.name
 
     @property
+    def description(self):
+        descr = self.name
+        if self.context:
+            descr += " (" + ", ".join(f"{k}={v}" for k, v in self.context.items()) + ")"
+        return descr
+
+    @property
     def context(self):
-        return self._submit_ctx._context
+        return self._submit_ctx.context
 
     @property
     def status(self):
