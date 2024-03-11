@@ -27,15 +27,16 @@ class NonTTYTerminalListener(Listener):
 class TTYTerminalListener(Listener):
     def __init__(self):
         self._terminal = None
+
         self._ui = HSplit(
             Text(
-                "Hello World,\nthis is dashing.",
+                " ",
                 title="Progress",
                 color=7,
                 border_color=1,
             ),
             Text(
-                "Hello World,\nthis is dashing.",
+                " ",
                 title="Components",
                 color=7,
                 border_color=1,
