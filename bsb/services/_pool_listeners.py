@@ -33,15 +33,15 @@ class TTYTerminalListener(Listener):
                 " ",
                 title="Progress",
                 color=7,
-                border_color=1,
+                border_color=3,
             ),
             Text(
                 " ",
                 title="Components",
                 color=7,
-                border_color=1,
+                border_color=3,
             ),
-            Log(title="Logs", color=7, border_color=1),
+            Log(title="Logs", color=7, border_color=3),
         )
         log = self._ui.items[-1]
         log.append("")
