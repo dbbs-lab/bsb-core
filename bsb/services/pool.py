@@ -427,18 +427,18 @@ class ConnectivityJob(Job):
 
 
 class FunctionJob(Job):
-    def __init__(self, pool, f, args, kwargs, deps=None, submitter={}):
-        self._f = f
-        new_args = [f]
-        new_args.extend(args)
-        context = SubmissionContext(f, chunks=new_args, **submitter)
-        super().__init__(pool, context, new_args, kwargs, deps=deps)
+    def __init__(self, pool, f, args, kwargs, deps=None, **context):
+        # Pack the function into the args
+        args = (f, args)
+        # If no submitter was given, set the function as submitter
+        context.setdefault("submitter", f)
+        super().__init__(pool, SubmissionContext(**context), args, kwargs, deps=deps)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
-        f = args[0]
-        result = f(job_owner, *args[1:], **kwargs)
-        return result
+        # Unpack the function from the args
+        f, args = args
+        return f(job_owner, *args, **kwargs)
 
 
 class JobPool:
@@ -511,8 +511,8 @@ class JobPool:
             self._running_futures.append(future)
             return future
 
-    def queue(self, f, args=None, kwargs=None, deps=None, submitter={}):
-        job = FunctionJob(self, f, args or [], kwargs or {}, deps, submitter=submitter)
+    def queue(self, f, args=None, kwargs=None, deps=None, **context):
+        job = FunctionJob(self, f, args or [], kwargs or {}, deps, **context)
         self._put(job)
         return job
 
@@ -694,7 +694,7 @@ class JobPool:
         # Raise and catch for nicer traceback
         for job in self._unhandled_errors:
             try:
-                raise JobErroredError(f"{job.name} job failed", job.error) from job.error
+                raise JobErroredError(f"{job} failed", job.error) from job.error
             except JobErroredError as e:
                 errors.append(e)
         self._unhandled_errors = []
