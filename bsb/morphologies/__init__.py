@@ -20,20 +20,14 @@ import inspect
 import itertools
 from collections import deque
 from pathlib import Path
+from pickle import UnpicklingError
 
-import morphio
 import numpy as np
 from scipy.spatial.transform import Rotation
 
 from .. import _util as _gutil
 from .._encoding import EncodedLabels
-from ..exceptions import (
-    EmptyBranchError,
-    MorphologyDataError,
-    MorphologyError,
-    MorphologyWarning,
-)
-from ..reporting import warn
+from ..exceptions import EmptyBranchError, MorphologyDataError, MorphologyError
 from ..voxels import VoxelSet
 
 
@@ -336,6 +330,8 @@ class SubTree:
         self._is_shared = False
 
     def __getattr__(self, attr):
+        if not hasattr(self, "_is_shared"):
+            raise UnpicklingError("Morphology class does not support pickling.")
         if self._is_shared:
             if attr in self._shared._prop:
                 return self._shared._prop[attr]
@@ -1073,6 +1069,8 @@ class Branch:
                 self._properties[prop] = values
 
     def __getattr__(self, attr):
+        if not hasattr(self, "_properties"):
+            raise UnpicklingError("Branch class does not support pickling.")
         if attr in self._properties:
             return self._properties[attr]
         else:
@@ -1082,7 +1080,7 @@ class Branch:
         return self.copy()
 
     def __bool__(self):
-        # Without this, empty branches are False, and messes with parent checking.
+        # Without this, empty branches are False, and `if branch.parent:` checks fail.
         return True
 
     def __eq__(self, other):
@@ -1703,3 +1701,14 @@ def _morpho_to_swc(morpho):
         data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
 
     return data[data != np.array(None)].reshape(-1, 7)
+
+
+__all__ = [
+    "Branch",
+    "Morphology",
+    "MorphologySet",
+    "RotationSet",
+    "SubTree",
+    "branch_iter",
+    "parse_morphology_file",
+]

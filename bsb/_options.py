@@ -116,6 +116,26 @@ class ProfilingOption(
         return False
 
 
+class DebugPoolFlag(
+    BsbOption,
+    name="debug_pool",
+    cli=("dp", "debug_pool"),
+    project=("debug_pool",),
+    env=("BSB_DEBUG_POOL",),
+    script=("debug_pool",),
+    flag=True,
+):
+    """
+    Debug job pools
+    """
+
+    def setter(self, value):
+        return bool(value)
+
+    def get_default(self):
+        return False
+
+
 def verbosity():
     return VerbosityOption
 
@@ -134,3 +154,7 @@ def config():
 
 def profiling():
     return ProfilingOption
+
+
+def debug_pool():
+    return DebugPoolFlag

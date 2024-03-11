@@ -1,21 +1,13 @@
 import os
 import pathlib
-import sys
 import tempfile
 import unittest
 
 import toml
 
-from bsb import options
-from bsb._contexts import get_cli_context
+from bsb import OptionError, ReadOnlyOptionError, options
 from bsb.cli import handle_command
-from bsb.exceptions import *
-from bsb.option import (
-    _pyproject_bsb,
-    _pyproject_content,
-    _pyproject_path,
-    _save_pyproject_bsb,
-)
+from bsb.option import _pyproject_content, _pyproject_path
 
 
 class TestCLIOption(unittest.TestCase):

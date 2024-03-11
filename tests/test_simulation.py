@@ -2,7 +2,7 @@ import unittest
 
 from bsb_test import FixedPosConfigFixture, NumpyTestCase, RandomStorageFixture
 
-from bsb.core import Scaffold
+from bsb import Scaffold
 
 
 class TestSimulate(

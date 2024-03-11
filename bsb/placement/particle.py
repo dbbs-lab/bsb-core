@@ -1,11 +1,9 @@
-import itertools
-
 import numpy as np
 from rtree import index
 from sklearn.neighbors import KDTree
 
 from .. import config
-from ..exceptions import *
+from ..exceptions import PackingError, PackingWarning
 from ..reporting import report, warn
 from ..voxels import VoxelSet
 from .strategy import PlacementStrategy
@@ -239,7 +237,7 @@ class ParticleSystem:
                 )
             elif pf > 0.2:
                 warn(
-                    f"{msg} is too high for good {strat_name} performance.",
+                    f"{msg} is too high for good performance.",
                     PackingWarning,
                 )
         # Reset particles
@@ -395,7 +393,7 @@ class ParticleSystem:
             )
             if expansions > 100:
                 raise Exception(
-                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                    f"Unable to find suited neighbourhood around {epicenter}."
                 )
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
@@ -532,93 +530,6 @@ class LargeParticleSystem(ParticleSystem):
         super().solve_collisions()
 
 
-def plot_particle_system(system):
-    nc_particles = list(filter(lambda p: not p.colliding, system.particles))
-    c_particles = list(filter(lambda p: p.colliding, system.particles))
-    nc_trace = get_particles_trace(nc_particles)
-    c_trace = get_particles_trace(
-        c_particles, marker=dict(color="rgba(200, 100, 0, 1)", size=2)
-    )
-    fig = go.Figure(data=[c_trace, nc_trace])
-    if system.dimensions == 3:
-        fig.update_layout(scene_aspectmode="cube")
-        fig.layout.scene.xaxis.range = [0.0, system.size[0]]
-        fig.layout.scene.yaxis.range = [0.0, system.size[1]]
-        fig.layout.scene.zaxis.range = [0.0, system.size[2]]
-    fig.show()
-
-
-def get_particles_trace(particles, dimensions=3, axes={"x": 0, "y": 1, "z": 2}, **kwargs):
-    trace_kwargs = {
-        "mode": "markers",
-        "marker": {"color": "rgba(100, 100, 100, 0.7)", "size": 1},
-    }
-    trace_kwargs.update(kwargs)
-    if dimensions > 3:
-        raise ValueError("Maximum 3 dimensional plots. Unless you have mutant eyes.")
-    elif dimensions == 3:
-        return go.Scatter3d(
-            x=list(map(lambda p: p.position[axes["x"]], particles)),
-            y=list(map(lambda p: p.position[axes["y"]], particles)),
-            z=list(map(lambda p: p.position[axes["z"]], particles)),
-            **trace_kwargs,
-        )
-    elif dimensions == 2:
-        return go.Scatter(
-            x=list(map(lambda p: p.position[axes["x"]], particles)),
-            y=list(map(lambda p: p.position[axes["y"]], particles)),
-            **trace_kwargs,
-        )
-    elif dimensions == 1:
-        return go.Scatter(
-            x=list(map(lambda p: p.position[axes["x"]], particles)), **trace_kwargs
-        )
-
-
-def plot_detailed_system(system):
-    fig = go.Figure()
-    fig.update_layout(showlegend=False)
-    for particle in system.particles:
-        trace = get_particle_trace(particle)
-        fig.add_trace(trace)
-    fig.update_layout(scene_aspectmode="data")
-    fig.update_layout(
-        scene=dict(
-            xaxis=dict(
-                tick0=0,
-                dtick=system.voxels[0].size[0],
-            ),  # Use the size of the first voxel to set ticks of axes
-            yaxis=dict(
-                tick0=650,
-                dtick=system.voxels[0].size[1],
-            ),
-            zaxis=dict(
-                tick0=800,
-                dtick=system.voxels[0].size[2],
-            ),
-        )
-    )
-    fig.show()
-    return fig
-
-
-def get_particle_trace(particle):
-    theta = np.linspace(0, 2 * np.pi, 10)
-    phi = np.linspace(0, np.pi, 10)
-    x = np.outer(np.cos(theta), np.sin(phi)) * particle.radius + particle.position[0]
-    y = np.outer(np.sin(theta), np.sin(phi)) * particle.radius + particle.position[1]
-    z = np.outer(np.ones(10), np.cos(phi)) * particle.radius + particle.position[2]
-    return go.Surface(
-        x=x,
-        y=y,
-        z=z,
-        surfacecolor=np.zeros(10) + int(particle.colliding),
-        colorscale=[[0, "rgb(100, 100, 100)"], [1, "rgb(200, 100, 0)"]],
-        opacity=0.5 + 0.5 * int(particle.colliding),
-        showscale=False,
-    )
-
-
 def sphere_volume(radius):
     return 4 / 3 * np.pi * radius**3
 
@@ -676,7 +587,7 @@ class AdaptiveNeighbourhood(ParticleSystem):
             neighbourhood_ok = neighbourhood_packing_factor < 0.5
             if expansions > 100:
                 raise Exception(
-                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                    f"Unable to find suited neighbourhood around {epicenter}."
                 )
 
         return Neighbourhood(
@@ -687,7 +598,6 @@ class AdaptiveNeighbourhood(ParticleSystem):
 class SmallestNeighbourhood(ParticleSystem):
     def find_neighbourhood(self, particle):
         epicenter = particle.position
-        # print("Finding collision neighbourhood for particle", particle.id)
         neighbourhood_radius = particle.radius + self.min_radius
         neighbourhood_ok = False
         expansions = 0
@@ -719,3 +629,16 @@ class SmallestNeighbourhood(ParticleSystem):
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
         )
+
+
+__all__ = [
+    "AdaptiveNeighbourhood",
+    "LargeParticleSystem",
+    "Neighbourhood",
+    "Particle",
+    "ParticlePlacement",
+    "ParticleSystem",
+    "ParticleVoxel",
+    "RandomPlacement",
+    "SmallestNeighbourhood",
+]

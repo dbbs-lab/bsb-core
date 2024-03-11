@@ -114,7 +114,7 @@ default it will load all the nonzero values in a source file:
 
     .. code-block:: python
 
-        from bsb.topology.partition import NrrdVoxels
+        from bsb import NrrdVoxels
 
         my_voxel_partition = NrrdVoxels(source="data/my_nrrd_data.nrrd", voxel_size=25)
 
@@ -158,7 +158,7 @@ structure, and other files contain cell population density values, gene expressi
 
     .. code-block:: python
 
-        from bsb.topology.partition import NrrdVoxels
+        from bsb import NrrdVoxels
 
         partition = NrrdVoxels(
           mask_value=55,
@@ -200,7 +200,7 @@ appear in the :guilabel:`sources` attribute:
 
     .. code-block:: python
 
-        from bsb.topology.partition import NrrdVoxels
+        from bsb import NrrdVoxels
 
         partition = NrrdVoxels(
           mask_value=55,
@@ -247,7 +247,7 @@ a name with each column. Data columns can then be indexed as strings:
 
     .. code-block:: python
 
-        from bsb.topology.partition import NrrdVoxels
+        from bsb import NrrdVoxels
 
         partition = NrrdVoxels(
           mask_value=55,
@@ -320,7 +320,7 @@ files. Each source file will be converted into a data column on the voxelset:
 
     .. code-block:: python
 
-        from bsb.topology.partition import AllenStructure
+        from bsb import AllenStructure
 
         partition = AllenStructure(
           # Loads the "ventroanterolateral thalamic nucleus" from the

@@ -1,9 +1,15 @@
 import os
 import unittest
 
-from bsb import config
-from bsb.config.refs import Reference
-from bsb.exceptions import CfgReferenceError
+from bsb import (
+    CellType,
+    CfgReferenceError,
+    Chunk,
+    FixedPositions,
+    PlacementIndications,
+    Reference,
+    config,
+)
 
 
 def relative_to_tests_folder(path):
@@ -44,3 +50,14 @@ class TestIssues(unittest.TestCase):
                 examples=dict(), extensions=dict(x=dict(ex_mut=4, ref="missing"))
             )
             print("ref", config.extensions.x.ref)
+
+    def test_802(self):
+        """
+        Test fixed positions with 0 positions
+        """
+        with self.assertWarns(UserWarning):
+            # Cobble some components together to test `positions=[]`
+            FixedPositions(positions=[], cell_types=[], partitions=[]).place(
+                Chunk((0, 0, 0), (100, 100, 100)),
+                {CellType(spatial=dict(radius=1, count=1)): PlacementIndications()},
+            )

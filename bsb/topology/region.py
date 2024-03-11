@@ -125,3 +125,6 @@ class Stack(RegionGroup, classmap_entry="stack"):
     def scale(self, factors):
         for child in self.children:
             child.scale(factors)
+
+
+__all__ = ["Region", "RegionGroup", "Stack"]

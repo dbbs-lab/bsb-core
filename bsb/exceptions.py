@@ -42,6 +42,9 @@ _t(
         GatewayError=_e(
             AllenApiError=_e(),
         ),
+        JobPoolError=_e(
+            JobCancelledError=_e(),
+        ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
             LayoutError=_e(),
@@ -112,6 +115,7 @@ _t(
             DataNotFoundError=_e(),
             AttributeMissingError=_e(),
             UnknownStorageEngineError=_e(),
+            MissingActiveConfigError=_e(),
         ),
         DataNotProvidedError=_e(),
         PluginError=_e("plugin"),
@@ -122,7 +126,6 @@ _t(
             ),
         ),
         ClassError=_e(),
-        TestError=_e(FixtureError=_e()),
     ),
 )
 
@@ -135,10 +138,6 @@ class ScaffoldWarning(UserWarning):
 
 
 class ConfigurationWarning(ScaffoldWarning):
-    pass
-
-
-class UserUserDeprecationWarning(ScaffoldWarning):
     pass
 
 
@@ -162,17 +161,111 @@ class QuiverFieldWarning(ScaffoldWarning):
     pass
 
 
-class RepositoryWarning(ScaffoldWarning):
+class PackageRequirementWarning(ScaffoldWarning):
     pass
 
 
-class SimulationWarning(ScaffoldWarning):
-    pass
-
-
-class KernelWarning(SimulationWarning):
-    pass
-
-
-class CriticalDataWarning(ScaffoldWarning):
-    pass
+__all__ = [
+    "AdapterError",
+    "AllenApiError",
+    "ArborError",
+    "AttributeMissingError",
+    "BootError",
+    "CLIError",
+    "CastConfigurationError",
+    "CastError",
+    "CfgReferenceError",
+    "ChunkError",
+    "CircularMorphologyError",
+    "ClassError",
+    "ClassMapMissingError",
+    "CodeImportError",
+    "CommandError",
+    "CompartmentError",
+    "CompilationError",
+    "ConfigTemplateNotFoundError",
+    "ConfigurationError",
+    "ConfigurationFormatError",
+    "ConfigurationWarning",
+    "ConnectivityError",
+    "ConnectivityWarning",
+    "ContinuityError",
+    "DataNotFoundError",
+    "DataNotProvidedError",
+    "DatasetExistsError",
+    "DatasetNotFoundError",
+    "DependencyError",
+    "DeviceConnectionError",
+    "DistributionCastError",
+    "DistributorError",
+    "DryrunError",
+    "DynamicClassError",
+    "DynamicClassInheritanceError",
+    "DynamicObjectNotFoundError",
+    "EmptyBranchError",
+    "EmptySelectionError",
+    "EmptyVoxelSetError",
+    "ExternalSourceError",
+    "GatewayError",
+    "IncompleteExternalMapError",
+    "IncompleteMorphologyError",
+    "IndicatorError",
+    "InputError",
+    "IntersectionDataNotFoundError",
+    "InvalidReferenceError",
+    "JobCancelledError",
+    "JobPoolError",
+    "JsonImportError",
+    "JsonParseError",
+    "JsonReferenceError",
+    "LayoutError",
+    "MissingActiveConfigError",
+    "MissingMorphologyError",
+    "MissingSourceError",
+    "MorphologyDataError",
+    "MorphologyError",
+    "MorphologyRepositoryError",
+    "MorphologyWarning",
+    "NestConnectError",
+    "NestError",
+    "NestKernelError",
+    "NestModelError",
+    "NestModuleError",
+    "NeuronError",
+    "NoReferenceAttributeSignal",
+    "NodeNotFoundError",
+    "NoneReferenceError",
+    "OptionError",
+    "PackageRequirementWarning",
+    "PackingError",
+    "PackingWarning",
+    "ParallelIntegrityError",
+    "ParameterError",
+    "ParserError",
+    "PlacementError",
+    "PlacementRelationError",
+    "PlacementWarning",
+    "PluginError",
+    "QuiverFieldWarning",
+    "ReadOnlyOptionError",
+    "RedoError",
+    "ReificationError",
+    "RequirementError",
+    "ScaffoldError",
+    "ScaffoldWarning",
+    "SelectorError",
+    "SimulationError",
+    "SourceQualityError",
+    "StorageError",
+    "TopologyError",
+    "TransmitterError",
+    "TreeError",
+    "TypeHandlingError",
+    "UnfitClassCastError",
+    "UnknownConfigAttrError",
+    "UnknownGIDError",
+    "UnknownStorageEngineError",
+    "UnmanagedPartitionError",
+    "UnresolvedClassCastError",
+    "VoxelSetError",
+]

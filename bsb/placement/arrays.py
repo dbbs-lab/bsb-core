@@ -5,8 +5,7 @@ import numpy as np
 from .. import config
 from ..config import types
 from ..mixins import NotParallel
-from ..reporting import report, warn
-from ..storage import Chunk
+from ..reporting import report
 from .strategy import PlacementStrategy
 
 
@@ -99,3 +98,6 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                     pos_current_chunk = positions[idx]
                     self.place_cells(indicator, pos_current_chunk, chunk=c)
                 report(f"Placed {len(positions)} {cell_type.name} in {prt.name}", level=3)
+
+
+__all__ = ["ParallelArrayPlacement"]

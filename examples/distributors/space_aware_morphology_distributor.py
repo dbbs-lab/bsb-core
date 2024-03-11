@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats.distributions import norm
 
-from bsb.placement.distributor import MorphologyDistributor
+from bsb import MorphologyDistributor
 
 
 class SmallerTopMorphologies(MorphologyDistributor, classmap_entry="small_top"):

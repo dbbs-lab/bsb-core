@@ -11,7 +11,6 @@ from ..reporting import report, warn
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
-    from ..connectivity import ConnectionStrategy
     from ..core import Scaffold
     from ..morphologies import MorphologySet
     from ..storage.interfaces import PlacementSet
@@ -165,3 +164,6 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
         all_ps = (ct.get_placement_set() for ct in self.postsynaptic.cell_types)
         chunks = set(ichain(ps.get_all_chunks() for ps in all_ps))
         return list(chunks)
+
+
+__all__ = ["ConnectionStrategy", "Hemitype", "HemitypeCollection"]

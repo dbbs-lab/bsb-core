@@ -11,11 +11,8 @@ from bsb_test import (
     list_test_configs,
 )
 
-from bsb import config
-from bsb.config import Configuration, _attrs, compose_nodes, types
-from bsb.config.refs import Reference
-from bsb.core import Scaffold
-from bsb.exceptions import (
+import bsb
+from bsb import (
     CastError,
     CfgReferenceError,
     ClassMapMissingError,
@@ -23,12 +20,18 @@ from bsb.exceptions import (
     ConfigurationWarning,
     DynamicClassInheritanceError,
     DynamicObjectNotFoundError,
+    NrrdDependencyNode,
+    PackageRequirementWarning,
+    RegionGroup,
     RequirementError,
+    Scaffold,
     UnfitClassCastError,
     UnresolvedClassCastError,
+    config,
 )
-from bsb.storage import NrrdDependencyNode
-from bsb.topology.region import RegionGroup
+from bsb._package_spec import get_missing_requirement_reason
+from bsb.config import Configuration, _attrs, compose_nodes, types
+from bsb.config.refs import Reference
 
 
 @config.root
@@ -432,17 +435,9 @@ class BootRoot:
     none = config.reflist(lambda r, h: h, default=None)
 
 
-def _bootstrap(cfg, scaffold):
-    for node in config.walk_nodes(cfg):
-        node.scaffold = scaffold
-        config.run_hook(node, "boot")
-    return cfg
-
-
 class TestConfigRefList(unittest.TestCase):
     def test_reflist_defaults(self):
         root = BootRoot({})
-        _bootstrap(root, None)
         self.assertEqual([], root.empty_list)
         self.assertEqual([], root.none)
 
@@ -519,7 +514,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"ref_cfg": "lists", "ref": "lists"}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.cfglist), "`populate` config.list failure")
         self.assertEqual(
             pop_root.referrers,
@@ -533,7 +527,6 @@ class TestPopulate(unittest.TestCase):
 
     def test_populate_reflist(self):
         pop_root = PopRoot({"lists": {}, "referrers": {"ref_ref": "lists"}})
-        _bootstrap(pop_root, None)
         self.assertEqual(
             1, len(pop_root.lists.reflist), "`populate` config.reflist failure"
         )
@@ -549,7 +542,6 @@ class TestPopulate(unittest.TestCase):
             "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
         }
         pop_root = PopRoot(conf)
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
@@ -561,7 +553,6 @@ class TestPopulate(unittest.TestCase):
                 "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
             },
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
@@ -574,7 +565,6 @@ class TestPopulate(unittest.TestCase):
                 "refs2": {"ref_ref": "lists"},
             }
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(4, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
         HasRefs.ref_ref.pop_unique = True
@@ -583,7 +573,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.list), "Reflist did not populate uniquely")
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
 
@@ -592,7 +581,6 @@ class TestPopulate(unittest.TestCase):
         pop_root = PopRoot(
             {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
-        _bootstrap(pop_root, None)
         self.assertEqual(3, len(pop_root.lists.list))
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
         HasRefs.reflist.pop_unique = True
@@ -1416,9 +1404,9 @@ class TestCopy(unittest.TestCase):
         self.assertEqual(instance.b, copied.b)
 
 
-class TestDictScripting(unittest.TestCase):
+class TestDictScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def test_add(self):
-        netw = Scaffold()
+        netw = Scaffold(storage=self.storage)
         cfg = netw.configuration
         ct = cfg.cell_types.add("test", spatial=dict(radius=2))
         # Check that the dict operation completed succesfully
@@ -1440,7 +1428,7 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(reg, part.region, "reference not resolved")
 
     def test_clear(self):
-        netw = Scaffold()
+        netw = Scaffold(storage=self.storage)
         netw.regions.add("ello", children=[])
         netw.regions.add("ello2", children=[])
         r3 = netw.regions.add("ello3", children=[])
@@ -1454,7 +1442,7 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
 
     def test_pop(self):
-        netw = Scaffold()
+        netw = Scaffold(storage=self.storage)
         netw.regions.add("ello", children=[])
         netw.regions.add("ello2", children=[])
         r3 = netw.regions.add("ello3", children=[])
@@ -1469,7 +1457,7 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
 
     def test_popitem(self):
-        netw = Scaffold()
+        netw = Scaffold(storage=self.storage)
         netw.regions.add("ello", children=[])
         netw.regions.add("ello2", children=[])
         r3 = netw.regions.add("ello3", children=[])
@@ -1484,15 +1472,15 @@ class TestDictScripting(unittest.TestCase):
         self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
 
     def test_setdefault(self):
-        netw = Scaffold()
+        netw = Scaffold(storage=self.storage)
         default = netw.regions.setdefault("ello", dict(children=[]))
         self.assertEqual(RegionGroup, type(default), "expected group")
         newer = netw.regions.setdefault("ello", dict(children=[]))
         self.assertIs(default, newer, "default not respected")
 
     def test_ior(self):
-        n1 = Scaffold()
-        n2 = Scaffold()
+        n1 = Scaffold(storage=self.random_storage())
+        n2 = Scaffold(storage=self.random_storage())
         n1.regions.add("test", children=[])
         n2.regions.add("test2", children=[])
         n2.regions.add("test", children=[], type="stack")
@@ -1501,9 +1489,10 @@ class TestDictScripting(unittest.TestCase):
         self.assertEqual("stack", n1.regions.test.type, "merge right failed")
 
 
-class TestListScripting(unittest.TestCase):
+class TestListScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def setUp(self):
-        self.netw = Scaffold()
+        super().setUp()
+        self.netw = Scaffold(storage=self.storage)
         self.list = self.netw.cell_types.add(
             "test", spatial=dict(radius=2, morphologies=[])
         ).spatial.morphologies
@@ -1577,13 +1566,62 @@ class TestListScripting(unittest.TestCase):
         self.assertList(0)
 
 
-class TestScripting(unittest.TestCase):
+class TestScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def test_booted_root(self):
         cfg = Configuration.default()
         self.assertIsNone(_attrs._booted_root(cfg), "shouldnt be booted yet")
         self.assertIsNone(_attrs._booted_root(cfg.partitions), "shouldnt be booted yet")
-        Scaffold(cfg)
+        Scaffold(cfg, self.storage)
         self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
+
+
+class TestNodeClass(unittest.TestCase):
+    def test_standalone_node_name(self):
+        """
+        Test the node name of a node without any name information
+        """
+
+        @config.node
+        class Test:
+            pass
+
+        self.assertEqual("{standalone}.<missing>", Test().get_node_name())
+
+    def test_standalone_named_node_name(self):
+        """
+        Test the node name of a node with name information
+        """
+
+        @config.node
+        class Test:
+            name = "hello"
+
+        self.assertEqual("{standalone}.hello", Test().get_node_name())
+
+    def test_standalone_keyed_node_name(self):
+        """
+        Test the node name of a node with key information
+        """
+
+        @config.node
+        class Test:
+            other_key = config.attr(key=True)
+
+        @config.node
+        class Parent:
+            d = config.dict(type=Test)
+
+        self.assertEqual(
+            "{standalone}.<missing>.d.myname",
+            Parent(d={"myname": Test()}).d.myname.get_node_name(),
+        )
+
+    def test_root_node_name(self):
+        @config.root
+        class Test:
+            pass
+
+        self.assertEqual("{root}", Test().get_node_name())
 
 
 class TestNodeComposition(unittest.TestCase):
@@ -1609,3 +1647,25 @@ class TestNodeComposition(unittest.TestCase):
         assert type(self.tested.attrB == config.ConfigurationAttribute)
         assert hasattr(self.tested, "attrC")
         assert type(self.tested.attrC == config.ConfigurationAttribute)
+
+
+class TestPackageRequirements(unittest.TestCase):
+    def test_basic_version(self):
+        self.assertIsNone(get_missing_requirement_reason("bsb-core==" + bsb.__version__))
+
+    def test_invalid_requirement(self):
+        self.assertIsNotNone(
+            get_missing_requirement_reason("==" + bsb.__version__ + "@@==@@")
+        )
+        with self.assertRaises(CastError):
+            Configuration.default(packages=["==" + bsb.__version__ + "@@==@@"])
+
+    def test_different_version(self):
+        self.assertIsNotNone(get_missing_requirement_reason("bsb-core==0"))
+        with self.assertWarns(PackageRequirementWarning):
+            Configuration.default(packages=["bsb-core==0"])
+
+    def test_uninstalled_package(self):
+        self.assertIsNotNone(get_missing_requirement_reason("bsb-core-soup==4.0"))
+        with self.assertWarns(PackageRequirementWarning):
+            Configuration.default(packages=["bsb-core-soup==4.0"])

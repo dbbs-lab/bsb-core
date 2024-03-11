@@ -18,7 +18,7 @@ stops. Soft caching is available by passing ``cache=True`` to
 
 .. code-block:: python
 
-  from bsb.core import from_storage
+  from bsb import from_storage
 
   network = from_storage
   ps = network.get_placement_set("my_cell")

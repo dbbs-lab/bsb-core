@@ -161,3 +161,6 @@ def _safe_int(value: typing.Any) -> int:
         return int(float(value))
     except ValueError:
         return -1
+
+
+__all__ = ["CsvImportConnectivity", "ImportConnectivity"]

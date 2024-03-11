@@ -37,7 +37,7 @@ if you already have the content of a file you can pass that directly into
 
 .. code-block:: python
 
-  from bsb.morphologies import parse_morphology_file
+  from bsb import parse_morphology_file
 
   morpho = parse_morphology_file("./my_file.swc")
 
@@ -51,7 +51,7 @@ morphologies. To support these diverse approaches the framework provides configu
 
 .. code-block:: python
 
-  from bsb.morphologies import parse_morphology_file
+  from bsb import parse_morphology_file
 
   morpho = parse_morphology_file("./my_file.swc", parser="morphio", flags=["no_duplicates"])
 
@@ -72,7 +72,7 @@ the :class:`~.morphologies.Morphology` constructor:
 
 .. code-block:: python
 
-  from bsb.morphologies import Branch, Morphology
+  from bsb import Branch, Morphology
   import numpy as np
 
   root = Branch(
@@ -415,8 +415,7 @@ presence of a user defined metadata ``"size"``:
 
 .. code-block:: python
 
-  from bsb.cell_types import MorphologySelector
-  from bsb import config
+  from bsb import config, MorphologySelector
 
   @config.node
   class MySizeSelector(MorphologySelector, classmap_entry="by_size"):
@@ -509,7 +508,7 @@ rotation distributors, and any other property distributor:
 
   .. code-block:: python
 
-    from bsb.placement.distributor import RoundRobinMorphologies
+    from bsb import RoundRobinMorphologies
 
     network.placement.placement_A.distribute.morphologies = RoundRobinMorphologies()
 

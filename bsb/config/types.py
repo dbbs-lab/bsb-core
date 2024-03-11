@@ -764,3 +764,54 @@ class ndarray(TypeHandler):
 
     def __inv__(self, value):
         return value.tolist()
+
+
+class PackageRequirement(TypeHandler):
+    def __call__(self, value):
+        from packaging.requirements import Requirement
+
+        return Requirement(value)
+
+    @property
+    def __name__(self):
+        return "package requirement"
+
+    def __inv__(self, value):
+        return str(value)
+
+    def __hint__(self):
+        return "numpy==1.24.0"
+
+
+__all__ = [
+    "PackageRequirement",
+    "TypeHandler",
+    "WeakInverter",
+    "any_",
+    "class_",
+    "deg_to_radian",
+    "dict",
+    "distribution",
+    "evaluation",
+    "float",
+    "fraction",
+    "function_",
+    "in_",
+    "in_classmap",
+    "int",
+    "key",
+    "list",
+    "list_or_scalar",
+    "method",
+    "method_shortcut",
+    "mut_excl",
+    "ndarray",
+    "number",
+    "object_",
+    "or_",
+    "scalar_expand",
+    "shortform",
+    "str",
+    "voxel_size",
+]
+__api__ = ["PackageRequirement", "TypeHandler", "WeakInverter"]

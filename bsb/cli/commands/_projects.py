@@ -67,9 +67,9 @@ class ProjectNewCommand(BaseCommand, name="new"):
         conn_path = root / "connectome.py"
         if not place_path.exists():
             with open(place_path, "w") as f:
-                f.write("from bsb.placement import PlacementStrategy\n")
+                f.write("from bsb import PlacementStrategy\n")
         if not conn_path.exists():
             with open(conn_path, "w") as f:
-                f.write("from bsb.connectivity import ConnectionStrategy\n")
+                f.write("from bsb import ConnectionStrategy\n")
 
         report(f"Created '{name}' project structure.", level=1)

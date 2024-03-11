@@ -5,6 +5,7 @@ import time
 import typing
 from uuid import uuid4
 
+from ...exceptions import MissingActiveConfigError
 from ..interfaces import FileStore as IFileStore
 
 
@@ -101,17 +102,15 @@ class FileStore(IFileStore):
         :rtype: :class:`~.config.Configuration`
         :raises Exception: When there's no active configuration in the file store.
         """
-        from bsb.config import Configuration
-        from bsb.config._config import _bootstrap_components
+        from ...config import Configuration
 
         stored = self.find_meta("active_config", True)
         if stored is None:
-            raise Exception("No active config")
+            raise MissingActiveConfigError("No active config")
         else:
             content, meta = stored.load()
             tree = json.loads(content)
-            _bootstrap_components(tree.get("components", []), self)
-            cfg = Configuration(**tree)
+            cfg = Configuration(**tree, _store=self)
             cfg._meta = meta
             return cfg
 

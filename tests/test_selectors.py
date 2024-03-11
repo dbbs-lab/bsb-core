@@ -1,22 +1,19 @@
-import json
-import os
-import random
-import string
-import sys
 import unittest
 
-import h5py
-import numpy as np
-from bsb_test import skip_nointernet, skip_parallel
+from bsb_test import RandomStorageFixture, skip_nointernet, skip_parallel
 
-from bsb.cell_types import CellType
-from bsb.config import Configuration
-from bsb.core import Scaffold
-from bsb.exceptions import MissingMorphologyError, SelectorError
-from bsb.morphologies import Branch, Morphology
-from bsb.morphologies.selector import NameSelector
-from bsb.services import MPI
-from bsb.storage.interfaces import StoredMorphology
+from bsb import (
+    MPI,
+    Branch,
+    CellType,
+    Configuration,
+    MissingMorphologyError,
+    Morphology,
+    NameSelector,
+    Scaffold,
+    SelectorError,
+    StoredMorphology,
+)
 
 
 def spoof(*names):
@@ -30,7 +27,7 @@ def spoof_combo(name, *names):
     ]
 
 
-class TestSelectors(unittest.TestCase):
+class TestSelectors(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def assertPicked(self, picks, sel, loaders, msg=None):
         self.assertEqual(picks, [l.name for l in loaders if sel.pick(l)], msg=msg)
 
@@ -70,10 +67,8 @@ class TestSelectors(unittest.TestCase):
     @skip_parallel
     def test_cell_type_shorthand(self):
         ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
-        cfg = Configuration.default(
-            storage={"root": "selectors_test.hdf5"}, cell_types={"ct": ct}
-        )
-        s = Scaffold(cfg)
+        cfg = Configuration.default(cell_types={"ct": ct})
+        s = Scaffold(cfg, self.storage)
         s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]), overwrite=True)
         self.assertEqual(1, len(ct.get_morphologies()), "Should select saved morpho")
         ct.spatial.morphologies[0].names = ["B"]
@@ -94,7 +89,7 @@ class TestSelectors(unittest.TestCase):
             )
         )
         cfg = Configuration.default(cell_types={"ct": ct})
-        s = Scaffold(cfg)
+        s = Scaffold(cfg, self.storage)
         self.assertIn(name, s.morphologies, "missing NM")
         m = s.morphologies.select(*ct.spatial.morphologies)[0]
         self.assertEqual(name, m.get_meta()["neuron_name"], "meta not stored")
@@ -112,7 +107,7 @@ class TestSelectors(unittest.TestCase):
             )
         )
         cfg = Configuration.default(cell_types={"ct": ct})
-        s = Scaffold(cfg)
+        s = Scaffold(cfg, self.storage)
         with self.assertRaises(SelectorError, msg="doesnt exist, should error"):
             err = None
             try:

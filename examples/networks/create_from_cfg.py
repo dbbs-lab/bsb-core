@@ -1,6 +1,5 @@
 # Create a network from a custom configuration object.
-from bsb.config import Configuration
-from bsb.core import Scaffold
+from bsb import Configuration, Scaffold
 
 cfg = Configuration()
 # Let's set a file name for the network

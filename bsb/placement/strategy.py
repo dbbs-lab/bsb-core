@@ -7,16 +7,11 @@ import numpy as np
 from .. import config
 from .._util import obj_str_insert
 from ..config import refs, types
-from ..config._attrs import cfgdict, cfglist
-from ..exceptions import (
-    DistributorError,
-    EmptySelectionError,
-    MissingSourceError,
-    SourceQualityError,
-)
+from ..config._attrs import cfgdict
+from ..exceptions import DistributorError, EmptySelectionError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
-from ..reporting import report
+from ..reporting import report, warn
 from ..storage import Chunk
 from ..voxels import VoxelSet
 from .distributor import DistributorsNode
@@ -92,18 +87,22 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         if additional is None:
             additional = {}
         if self.distribute._has_mdistr() or indicator.use_morphologies():
+            selector_error = None
             try:
                 morphologies, rotations = self.distribute._specials(
                     self.partitions, indicator, positions
                 )
             except EmptySelectionError as e:
-                selectors = ", ".join(f"{s}" for s in e.selectors)
+                selector_error = ", ".join(str(s) for s in e.selectors)
+            if selector_error:
+                # Starting from Python 3.11, even though we raise from None, the original
+                # EmptySelectionError somehow still gets pickled and contains unpicklable
+                # elements. So we work around by raising here, outside of the exception
+                # context.
                 raise DistributorError(
-                    "%property% distribution of `%strategy.name%` couldn't find any"
-                    + f" morphologies with the following selector(s): {selectors}",
-                    "Morphology",
-                    self,
-                ) from None
+                    "Morphology distribution couldn't find any"
+                    + f" morphologies with the following selector(s): {selector_error}"
+                )
         elif self.distribute._has_rdistr():
             rotations = self.distribute(
                 "rotations", self.partitions, indicator, positions
@@ -171,6 +170,9 @@ class FixedPositions(PlacementStrategy):
             raise ValueError(
                 f"Please set `.positions` on '{self.name}' before placement."
             )
+        if not len(self.positions):
+            warn(f"No positions given to {self.get_node_name()}.")
+            return
         for indicator in indicators.values():
             inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
             self.place_cells(indicator, self.positions[inside_chunk], chunk)
@@ -193,13 +195,12 @@ class FixedPositions(PlacementStrategy):
         report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
 
+@config.node
 class Entities(PlacementStrategy):
     """
     Implementation of the placement of entities that do not have a 3D position,
     but that need to be connected with other cells of the network.
     """
-
-    entities = True
 
     def queue(self, pool, chunk_size):
         # Entities ignore chunks since they don't intrinsically store any data.
@@ -215,3 +216,6 @@ class Entities(PlacementStrategy):
                 for p in self.partitions
             )
             self.scaffold.create_entities(cell_type, n)
+
+
+__all__ = ["Entities", "FixedPositions", "PlacementStrategy"]

@@ -576,13 +576,13 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         Add the loading of the current morphology to a job queue.
 
         :param pool: Queue of jobs.
-        :type pool:bsb.services.pool.JobPool
+        :type pool: bsb.services.pool.JobPool
         """
-        pool.queue(
-            lambda scaffold, i=self._config_index: scaffold.configuration.morphologies[
-                i
-            ].load_object()
-        )
+
+        def create_morphology(scaffold, i):
+            scaffold.configuration.morphologies[i].load_object()
+
+        pool.queue(create_morphology, (self._config_index,))
 
 
 @config.node
@@ -609,8 +609,10 @@ class MorphologyPipelineNode(FilePipelineMixin):
             scaffold.morphologies.save(
                 fnode.get_morphology_name(), morpho_out, overwrite=True
             )
-            return morpho_out
 
         for k in range(len(self.files)):
             # The lambda serves to bind the closure arguments
-            pool.queue(lambda scaffold, i=self._config_index, j=k: job(scaffold, i, j))
+            pool.queue(job, (self._config_index, k))
+
+
+__all__ = ["UriScheme", "UrlScheme", "FileScheme", "NeuroMorphoScheme"]

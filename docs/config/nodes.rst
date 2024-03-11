@@ -221,8 +221,7 @@ conflict. To solve it, use :func:`.config.compose_nodes`:
 
 .. code-block:: python
 
-    from bsb import config
-    from bsb.config import compose_nodes
+    from bsb import config, compose_nodes
 
     @config.node
     class NodeA:
