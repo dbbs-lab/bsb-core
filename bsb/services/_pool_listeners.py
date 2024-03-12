@@ -65,7 +65,7 @@ class TTYTerminalListener(Listener):
     def __call__(self, progress: PoolProgress):
         if (
             progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
-            and progress.status == PoolStatus.STARTING
+            and progress.status == PoolStatus.EXECUTING
         ):
             components = defaultdict(int)
             for j in progress.jobs:

@@ -268,7 +268,7 @@ class TestParallelScheduler(
         def try_cancel(progress: PoolProgress):
             if (
                 progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
-                and progress.status == PoolStatus.RUNNING
+                and progress.status == PoolStatus.EXECUTING
             ):
                 with self.assertWarnsRegex(Warning, "Could not cancel"):
                     progress.jobs[0].cancel("Test")
@@ -285,7 +285,7 @@ class TestParallelScheduler(
         def job_killer(progress: PoolProgress):
             if (
                 progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
-                and progress.status == PoolStatus.RUNNING
+                and progress.status == PoolStatus.EXECUTING
             ):
                 progress.jobs[-1].cancel("Testing")
 

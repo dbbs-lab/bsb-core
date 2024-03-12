@@ -88,12 +88,12 @@ class JobStatus(Enum):
 
 
 class PoolStatus(Enum):
-    # Pool Starting
-    STARTING = "Starting"
-    # Pool Running
-    RUNNING = "Running"
-    # Pool Ending
-    ENDING = "Ending"
+    # Pool has been initialized and jobs can be scheduled.
+    SCHEDULING = "scheduling"
+    # Pool started execution.
+    EXECUTING = "executing"
+    # Pool is closing down.
+    CLOSING = "closing"
 
 
 class PoolProgressReason(Enum):
