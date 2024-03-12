@@ -52,7 +52,7 @@ from enum import Enum, auto
 from exceptiongroup import ExceptionGroup
 
 from .._util import obj_str_insert
-from ..exceptions import JobCancelledError, JobPoolError
+from ..exceptions import JobCancelledError, JobPoolContextError, JobPoolError
 from . import MPI
 from ._util import ErrorModule, MockModule
 
@@ -133,6 +133,10 @@ class PoolJobUpdateProgress(PoolProgress):
     @property
     def job(self):
         return self._job
+
+    @property
+    def old_status(self):
+        return self._old_status
 
 
 class PoolStatusProgress(PoolProgress):
@@ -448,20 +452,47 @@ class JobPool:
     _tmp_folders = {}
 
     def __init__(self, scaffold, fail_fast=False):
+        self.id: int = None
+        self._scaffold = scaffold
         self._unhandled_errors = []
         self._running_futures: list[concurrent.futures.Future] = []
         self._pool: typing.Optional["MPIExecutor"] = None
         self._job_queue: list[Job] = []
-        self.id = JobPool._next_pool_id
         self._listeners = []
         self._max_wait = 60
-        self._status = PoolStatus.STARTING
+        self._status: PoolStatus = None
         self._progress_notifications: list["PoolProgress"] = []
         self._workers_raise_unhandled = False
         self._fail_fast = fail_fast
+        self.change_status(PoolStatus.SCHEDULING)
+
+    def __enter__(self):
+        self._context = ExitStack()
+        tmp_dirname = self._context.enter_context(tempfile.TemporaryDirectory())
+
+        self.id = JobPool._next_pool_id
         JobPool._next_pool_id += 1
-        JobPool._pool_owners[self.id] = scaffold
+        JobPool._pool_owners[self.id] = self._scaffold
         JobPool._pools[self.id] = self
+        JobPool._tmp_folders[self.id] = tmp_dirname
+        del self._scaffold
+
+        for listener in self._listeners:
+            try:
+                self._context.enter_context(listener)
+            except AttributeError:
+                # Listener is not a context manager
+                pass
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._context.__exit__(exc_type, exc_val, exc_tb)
+        # Clean up pool/job references
+        self._job_queue = []
+        del JobPool._pools[self.id]
+        del JobPool._pool_owners[self.id]
+        del JobPool._tmp_folders[self.id]
+        self.id = None
 
     def add_listener(self, listener, max_wait=None):
         self._max_wait = min(self._max_wait, max_wait or float("+inf"))
@@ -472,7 +503,7 @@ class JobPool:
         return self._status
 
     @property
-    def jobs(self):
+    def jobs(self) -> list[Job]:
         return [*self._job_queue]
 
     @property
@@ -535,32 +566,21 @@ class JobPool:
         have dependencies that need to complete first.
         """
 
-        self._unhandled_errors = []
-        try:
-            with ExitStack() as context:
-                tmp_dirname = context.enter_context(tempfile.TemporaryDirectory())
-                for listener in self._listeners:
-                    try:
-                        context.enter_context(listener)
-                    except AttributeError:
-                        # Listener is not a context manager
-                        pass
-                JobPool._tmp_folders[self.id] = tmp_dirname
-                if self.parallel:
-                    self._execute_parallel()
-                else:
-                    self._execute_serial()
+        if self.id is None:
+            raise JobPoolContextError("Job pools must use a context manager.")
 
-                if return_results:
-                    return {
-                        job: job.result
-                        for job in self._job_queue
-                        if job.status == JobStatus.SUCCESS
-                    }
-        finally:
-            # Clean up pool/job references
-            self._job_queue = []
-            del JobPool._pools[self.id]
+        self._unhandled_errors = []
+        if self.parallel:
+            self._execute_parallel()
+        else:
+            self._execute_serial()
+
+        if return_results:
+            return {
+                job: job.result
+                for job in self._job_queue
+                if job.status == JobStatus.SUCCESS
+            }
 
     def _execute_parallel(self):
         import bsb.options
@@ -596,7 +616,7 @@ class JobPool:
                 job._enqueue(self)
 
             # Tell the listeners execution is running
-            self.change_status(PoolStatus.RUNNING)
+            self.change_status(PoolStatus.EXECUTING)
 
             # As long as any of the jobs aren't done yet we repeat the wait action with a timeout
             while any(
@@ -624,7 +644,7 @@ class JobPool:
                 self.notify()
 
             # Notify listeners that execution is over
-            self.change_status(PoolStatus.ENDING)
+            self.change_status(PoolStatus.CLOSING)
             # Raise any unhandled errors
             self.raise_unhandled()
         except:
@@ -648,7 +668,7 @@ class JobPool:
             else:
                 job._future.cancel()
 
-        self.change_status(PoolStatus.RUNNING)
+        self.change_status(PoolStatus.EXECUTING)
         # Just run each job serially
         for job in self._job_queue:
             if not job._future.set_running_or_notify_cancel():
@@ -664,7 +684,7 @@ class JobPool:
         # Raise any unhandled errors
         self.raise_unhandled()
 
-        self.change_status(PoolStatus.ENDING)
+        self.change_status(PoolStatus.CLOSING)
 
     def change_status(self, status: PoolStatus):
         old_status = self._status

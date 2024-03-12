@@ -272,11 +272,11 @@ class Scaffold:
         if strategies is None:
             strategies = [*self.placement.values()]
         strategies = PlacementStrategy.sort_deps(strategies)
-        pool = self.create_job_pool(fail_fast=fail_fast)
-        if pool.is_main():
-            for strategy in strategies:
-                strategy.queue(pool, self.network.chunk_size)
-        pool.execute()
+        with self.create_job_pool(fail_fast=fail_fast) as pool:
+            if pool.is_main():
+                for strategy in strategies:
+                    strategy.queue(pool, self.network.chunk_size)
+            pool.execute()
 
     @meter()
     def run_connectivity(self, strategies=None, fail_fast=True, pipelines=True):
@@ -288,11 +288,11 @@ class Scaffold:
         if strategies is None:
             strategies = set(self.connectivity.values())
         strategies = ConnectionStrategy.sort_deps(strategies)
-        pool = self.create_job_pool(fail_fast=fail_fast)
-        if pool.is_main():
-            for strategy in strategies:
-                strategy.queue(pool)
-        pool.execute()
+        with self.create_job_pool(fail_fast=fail_fast) as pool:
+            if pool.is_main():
+                for strategy in strategies:
+                    strategy.queue(pool)
+            pool.execute()
 
     @meter()
     def run_placement_strategy(self, strategy):
@@ -308,20 +308,26 @@ class Scaffold:
         """
         if self.after_placement:
             warn("After placement disabled")
-        # pool = self.create_job_pool(fail_fast)
-        # for hook in self.configuration.after_placement.values():
-        #     pool.queue(hook.after_placement)
-        # pool.execute(self._pool_event_loop)
+            return
+        with self.create_job_pool(fail_fast) as pool:
+            if pool.is_main():
+                for hook in self.configuration.after_placement.values():
+                    pool.queue(hook.after_placement, submitter=hook)
+            pool.execute()
 
     @meter()
-    def run_after_connectivity(self, pipelines=True):
+    def run_after_connectivity(self, fail_fast=None, pipelines=True):
         """
         Run after placement hooks.
         """
         if self.after_connectivity:
             warn("After connectivity disabled")
-        # for hook in self.configuration.after_connectivity.values():
-        #     hook.after_connectivity()
+            return
+        with self.create_job_pool(fail_fast=fail_fast) as pool:
+            if pool.is_main():
+                for hook in self.configuration.after_connectivity.values():
+                    pool.queue(hook.after_connectivity, submitter=hook)
+            pool.execute()
 
     @meter()
     def compile(
@@ -363,8 +369,7 @@ class Scaffold:
                 )
             if clear:
                 report("Clearing data", level=2)
-                self.clear_placement()
-                self.clear_connectivity()
+                self.clear()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
@@ -397,11 +402,11 @@ class Scaffold:
     def run_pipelines(self, fail_fast=True, pipelines=None):
         if pipelines is None:
             pipelines = self.get_dependency_pipelines()
-        pool = self.create_job_pool(fail_fast=fail_fast)
-        if pool.is_main():
-            for pipeline in pipelines:
-                pipeline.queue(pool)
-        pool.execute()
+        with self.create_job_pool(fail_fast=fail_fast) as pool:
+            if pool.is_main():
+                for pipeline in pipelines:
+                    pipeline.queue(pool)
+            pool.execute()
 
     @meter()
     def run_simulation(self, simulation_name: str):
@@ -787,6 +792,7 @@ class Scaffold:
             default_max_wait = 1 / 25
         else:
             default_listener = NonTTYTerminalListener
+            default_listener = TTYTerminalListener
             default_max_wait = None
         if self._pool_listeners:
             for listener, max_wait in self._pool_listeners:
