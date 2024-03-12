@@ -26,7 +26,7 @@ dependencies = [
     "appdirs~=1.4",
     "neo[nixio]",
     "tqdm~=4.50",
-    "dashing~=0.1",
+    "dashing@git+https://github.com/Helveg/dashing.git",
     "shortuuid",
     "quantities",
     "exceptiongroup",
