@@ -124,7 +124,7 @@ tag_message = "Bump version: {current_version} → {new_version}"
 allow_dirty = false
 commit = true
 message = "Bump version: {current_version} → {new_version}"
-commit_args = ""
+commit_args = "--no-verify"
 
 [tool.bumpversion.parts.pre_l]
 values = ["dev", "a", "b", "rc", "final"]
