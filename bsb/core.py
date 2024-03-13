@@ -404,7 +404,7 @@ class Scaffold:
             self.run_connectivity(c_strats, fail_fast=fail_fast, pipelines=False)
         if not skip_after_connectivity:
             self.run_after_connectivity(pipelines=False)
-        report("Runtime: {}".format(time.time() - t), 2)
+        report("Runtime: {}".format(time.time() - t), level=2)
         # After compilation we should flag the storage as having existed before so that
         # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
         self.storage._preexisted = True
