@@ -348,8 +348,14 @@ class Scaffold:
         Run reconstruction steps in the scaffold sequence to obtain a full network.
         """
         existed = self.storage.preexisted
-        p_strats = self.get_placement(skip=skip, only=only)
-        c_strats = self.get_connectivity(skip=skip, only=only)
+        if skip_placement:
+            p_strats = []
+        else:
+            p_strats = self.get_placement(skip=skip, only=only)
+        if skip_connectivity:
+            c_strats = []
+        else:
+            c_strats = self.get_connectivity(skip=skip, only=only)
         todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
         report(f"Compiling the following strategies: {todo_list_str}", level=2)
         if _bad_flag(clear) or _bad_flag(redo) or _bad_flag(append):
