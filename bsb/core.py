@@ -369,13 +369,16 @@ class Scaffold:
             if not (clear or append or redo):
                 raise FileExistsError(
                     f"The `{self.storage.format}` storage"
-                    + f" at `{self.storage.root}` already exists."
-                    + " Use the `clear`, `append` or `redo` arguments"
-                    + " to pick what to do with stored data."
+                    + f" at `{self.storage.root}` already exists. Either move/delete it,"
+                    + " or pass one of the `clear`, `append` or `redo` arguments"
+                    + " to pick what to do with the existing data."
                 )
             if clear:
                 report("Clearing data", level=2)
-                self.clear()
+                # Clear the placement and connectivity data, but leave any cached files
+                # and morphologies intact.
+                self.clear_placement()
+                self.clear_connectivity()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
