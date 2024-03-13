@@ -616,60 +616,6 @@ class Scaffold:
         except KeyError as e:
             raise NodeNotFoundError(f"Cell type `{e.args[0]}` not found.")
 
-    def _progress_terminal_loop(self, pool, debug=False):
-        import time
-
-        if debug:
-
-            def loop(jobs):
-                print("Total jobs:", len(jobs))
-                print("Running jobs:", sum(1 for q in jobs if q._future.running()))
-                print("Finished:", sum(1 for q in jobs if q._future.done()))
-                time.sleep(1)
-
-            return loop
-
-        import curses
-
-        stdscr = curses.initscr()
-        curses.noecho()
-        curses.cbreak()
-        stdscr.keypad(True)
-
-        def loop(jobs):
-            total = len(jobs)
-            running = list(q for q in jobs if q._future.running())
-            done = sum(1 for q in jobs if q._future.done())
-
-            stdscr.clear()
-            stdscr.addstr(0, 0, "-- Reconstruction progress --")
-            stdscr.addstr(1, 2, f"Total jobs: {total}")
-            stdscr.addstr(2, 2, f"Remaining jobs: {total - done}")
-            stdscr.addstr(3, 2, f"Running jobs: {len(running)}")
-            stdscr.addstr(4, 2, f"Finished jobs: {done}")
-            for i, j in enumerate(running):
-                stdscr.addstr(
-                    6 + i,
-                    2,
-                    f"* Worker {i}: <{j._cname}>{j._name} {j._c}",
-                )
-
-            stdscr.refresh()
-            time.sleep(0.1)
-
-        loop._stdscr = stdscr
-        return loop
-
-    def _stop_progress_loop(self, loop, debug=False):
-        if debug:
-            return
-        import curses
-
-        curses.nocbreak()
-        loop._stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-
     def _connectivity_query(self, any_query=set(), pre_query=set(), post_query=set()):
         # Filter network connection types for any type that satisfies both
         # the presynaptic and postsynaptic query. Empty queries satisfy all
