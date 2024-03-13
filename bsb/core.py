@@ -654,12 +654,15 @@ class Scaffold:
 
         c_contrib = set(c_strats)
         conn_wipe = full_wipe.copy()
-        while True:
-            contrib = set(self.get_connectivity(anywhere=conn_wipe))
-            conn_wipe.update(itertools.chain(*(ct.get_cell_types() for ct in contrib)))
-            if contrib.issubset(c_contrib):
-                break
-            c_contrib.update(contrib)
+        if full_wipe:
+            while True:
+                contrib = set(self.get_connectivity(anywhere=conn_wipe))
+                conn_wipe.update(
+                    itertools.chain(*(ct.get_cell_types() for ct in contrib))
+                )
+                if contrib.issubset(c_contrib):
+                    break
+                c_contrib.update(contrib)
         report(
             "Redo-affected connectivity: " + " ".join(cs.name for cs in c_contrib),
             level=2,
