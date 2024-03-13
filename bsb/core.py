@@ -274,8 +274,11 @@ class Scaffold:
         strategies = PlacementStrategy.sort_deps(strategies)
         with self.create_job_pool(fail_fast=fail_fast) as pool:
             if pool.is_main():
-                for strategy in strategies:
+
+                def scheduler(strategy):
                     strategy.queue(pool, self.network.chunk_size)
+
+                pool.schedule(strategies, scheduler)
             pool.execute()
 
     @meter()
@@ -290,8 +293,7 @@ class Scaffold:
         strategies = ConnectionStrategy.sort_deps(strategies)
         with self.create_job_pool(fail_fast=fail_fast) as pool:
             if pool.is_main():
-                for strategy in strategies:
-                    strategy.queue(pool)
+                pool.schedule(strategies)
             pool.execute()
 
     @meter()
@@ -413,8 +415,7 @@ class Scaffold:
             pipelines = self.get_dependency_pipelines()
         with self.create_job_pool(fail_fast=fail_fast) as pool:
             if pool.is_main():
-                for pipeline in pipelines:
-                    pipeline.queue(pool)
+                pool.schedule(pipelines)
             pool.execute()
 
     @meter()

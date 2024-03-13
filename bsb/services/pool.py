@@ -52,7 +52,12 @@ from enum import Enum, auto
 from exceptiongroup import ExceptionGroup
 
 from .._util import obj_str_insert
-from ..exceptions import JobCancelledError, JobPoolContextError, JobPoolError
+from ..exceptions import (
+    JobCancelledError,
+    JobPoolContextError,
+    JobPoolError,
+    JobSchedulingError,
+)
 from . import MPI
 from ._util import ErrorModule, MockModule
 
@@ -137,6 +142,10 @@ class PoolJobUpdateProgress(PoolProgress):
     @property
     def old_status(self):
         return self._old_status
+
+    @property
+    def status(self):
+        return self._job.status
 
 
 class PoolStatusProgress(PoolProgress):
@@ -464,7 +473,6 @@ class JobPool:
         self._progress_notifications: list["PoolProgress"] = []
         self._workers_raise_unhandled = False
         self._fail_fast = fail_fast
-        self.change_status(PoolStatus.SCHEDULING)
 
     def __enter__(self):
         self._context = ExitStack()
@@ -483,6 +491,7 @@ class JobPool:
             except AttributeError:
                 # Listener is not a context manager
                 pass
+        self.change_status(PoolStatus.SCHEDULING)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -542,6 +551,40 @@ class JobPool:
             self._running_futures.append(future)
             return future
 
+    def _schedule(self, nodes, scheduler):
+        _failed_nodes = []
+        for node in nodes:
+            failed_deps = [
+                n for n in getattr(node, "depends_on", []) if n in _failed_nodes
+            ]
+            if failed_deps:
+                _failed_nodes.append(node)
+                ctx = SubmissionContext(
+                    node,
+                    error=JobSchedulingError(f"Depends on {failed_deps}, whom failed."),
+                )
+                self._unhandled_errors.append(ctx)
+                continue
+            try:
+                scheduler(node)
+            except Exception as e:
+                _failed_nodes.append(node)
+                ctx = SubmissionContext(node, error=e)
+                self._unhandled_errors.append(ctx)
+
+    def schedule(self, nodes, scheduler=None):
+        if scheduler is None:
+
+            def scheduler(node):
+                node.queue(self)
+
+        thread = threading.Thread(target=self._schedule, args=(nodes, scheduler))
+        thread.start()
+        while thread.is_alive():
+            thread.join(timeout=self._max_wait)
+            self.ping()
+            self.notify()
+
     def queue(self, f, args=None, kwargs=None, deps=None, **context):
         job = FunctionJob(self, f, args or [], kwargs or {}, deps, **context)
         self._put(job)
@@ -569,7 +612,6 @@ class JobPool:
         if self.id is None:
             raise JobPoolContextError("Job pools must use a context manager.")
 
-        self._unhandled_errors = []
         if self.parallel:
             self._execute_parallel()
         else:
@@ -637,9 +679,7 @@ class JobPool:
                     self._running_futures.remove(future)
                 # If nothing finished, post a timeout notification.
                 if not len(done):
-                    self.add_notification(
-                        PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
-                    )
+                    self.ping()
                 # Notify all the listeners, and store/raise any unhandled errors
                 self.notify()
 
@@ -676,9 +716,7 @@ class JobPool:
             job.change_status(JobStatus.RUNNING)
             self.notify()
             while job.run(timeout=self._max_wait):
-                self.add_notification(
-                    PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
-                )
+                self.ping()
                 self.notify()
             self.notify()
         # Raise any unhandled errors
@@ -694,6 +732,9 @@ class JobPool:
 
     def add_notification(self, notification: PoolProgress):
         self._progress_notifications.append(notification)
+
+    def ping(self):
+        self.add_notification(PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING))
 
     def notify(self):
         for notification in self._progress_notifications:
@@ -714,8 +755,12 @@ class JobPool:
         # Raise and catch for nicer traceback
         for job in self._unhandled_errors:
             try:
+                if isinstance(job, SubmissionContext):
+                    raise JobSchedulingError(
+                        f"{job.name} failed to schedule its jobs."
+                    ) from job.context["error"]
                 raise JobErroredError(f"{job} failed", job.error) from job.error
-            except JobErroredError as e:
+            except (JobErroredError, JobSchedulingError) as e:
                 errors.append(e)
         self._unhandled_errors = []
         raise WorkflowError(
