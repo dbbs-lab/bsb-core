@@ -747,18 +747,17 @@ class Scaffold:
         except Exception:
             tty = False
         if tty:
-            default_listener = TTYTerminalListener
-            default_max_wait = 1 / 25
+            fps = 25
+            default_listener = TTYTerminalListener(fps)
+            default_max_wait = 1 / fps
         else:
-            default_listener = NonTTYTerminalListener
-            default_listener = TTYTerminalListener
+            default_listener = NonTTYTerminalListener()
             default_max_wait = None
         if self._pool_listeners:
             for listener, max_wait in self._pool_listeners:
                 pool.add_listener(listener, max_wait=max_wait)
         elif not quiet:
-            pool.add_listener(default_listener(), max_wait=default_max_wait)
-        pool.add_listener(lambda progress: None)
+            pool.add_listener(default_listener, max_wait=default_max_wait)
         return pool
 
     def register_listener(self, listener, max_wait=None):
