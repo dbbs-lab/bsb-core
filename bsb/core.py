@@ -17,7 +17,7 @@ from .exceptions import (
 )
 from .placement import PlacementStrategy
 from .profiling import meter
-from .reporting import report, warn
+from .reporting import report
 from .services import MPI, JobPool
 from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
 from .services.pool import Job
@@ -27,7 +27,7 @@ from .storage import Chunk, Storage, open_storage
 if typing.TYPE_CHECKING:
     from .cell_types import CellType
     from .config._config import NetworkNode as Network
-    from .postprocessing import PostProcessingHook
+    from .postprocessing import AfterPlacementHook
     from .simulation.simulation import Simulation
     from .storage.interfaces import (
         ConnectivitySet,
@@ -111,9 +111,9 @@ class Scaffold:
     partitions: typing.Dict[str, "Partition"]
     cell_types: typing.Dict[str, "CellType"]
     placement: typing.Dict[str, "PlacementStrategy"]
-    after_placement: typing.Dict[str, "PostProcessingHook"]
+    after_placement: typing.Dict[str, "AfterPlacementHook"]
     connectivity: typing.Dict[str, "ConnectionStrategy"]
-    after_connectivity: typing.Dict[str, "PostProcessingHook"]
+    after_connectivity: typing.Dict[str, "AfterPlacementHook"]
     simulations: typing.Dict[str, "Simulation"]
 
     def __init__(self, config=None, storage=None, clear=False, comm=None):
@@ -304,31 +304,27 @@ class Scaffold:
         self.run_placement([strategy])
 
     @meter()
-    def run_after_placement(self, fail_fast=None, pipelines=True):
+    def run_after_placement(self, hooks=None, fail_fast=None, pipelines=True):
         """
         Run after placement hooks.
         """
-        if self.after_placement:
-            warn("After placement disabled")
-            return
+        if hooks is None:
+            hooks = self.after_placement
         with self.create_job_pool(fail_fast) as pool:
             if pool.is_main():
-                for hook in self.configuration.after_placement.values():
-                    pool.queue(hook.after_placement, submitter=hook)
+                pool.schedule(hooks)
             pool.execute()
 
     @meter()
-    def run_after_connectivity(self, fail_fast=None, pipelines=True):
+    def run_after_connectivity(self, hooks=None, fail_fast=None, pipelines=True):
         """
         Run after placement hooks.
         """
-        if self.after_connectivity:
-            warn("After connectivity disabled")
-            return
-        with self.create_job_pool(fail_fast=fail_fast) as pool:
+        if hooks is None:
+            hooks = self.after_placement
+        with self.create_job_pool(fail_fast) as pool:
             if pool.is_main():
-                for hook in self.configuration.after_connectivity.values():
-                    pool.queue(hook.after_connectivity, submitter=hook)
+                pool.schedule(hooks)
             pool.execute()
 
     @meter()
