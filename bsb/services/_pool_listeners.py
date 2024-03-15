@@ -11,6 +11,7 @@ from dashing import Color, DoubleColumn, HSplit, Text
 from .pool import (
     Job,
     JobStatus,
+    PoolJobAddedProgress,
     PoolJobUpdateProgress,
     PoolProgress,
     PoolProgressReason,
@@ -71,14 +72,14 @@ class TTYTerminalListener(Listener):
         self._context.__exit__(exc_type, exc_val, exc_tb)
 
     def __call__(self, progress: PoolProgress):
-        self._ui.title = None
         if progress.reason == PoolProgressReason.POOL_STATUS_CHANGE:
             if progress.status == PoolStatus.SCHEDULING:
                 self._tally = PoolTally(JobTally)
-            if progress.status == PoolStatus.EXECUTING:
-                for job in progress.jobs:
-                    self._tally[job.name].tally(job)
             self._pool_status = progress.status
+        if progress.reason == PoolProgressReason.JOB_ADDED:
+            job = cast(PoolJobAddedProgress, progress).job
+            self._tally[job.name].tally(job)
+            self.update_jobs()
         self.update_progress()
         if (
             (progress.reason == PoolProgressReason.JOB_STATUS_CHANGE)

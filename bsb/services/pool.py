@@ -103,6 +103,7 @@ class PoolStatus(Enum):
 
 class PoolProgressReason(Enum):
     POOL_STATUS_CHANGE = auto()
+    JOB_ADDED = auto()
     JOB_STATUS_CHANGE = auto()
     MAX_TIMEOUT_PING = auto()
 
@@ -127,6 +128,16 @@ class PoolProgress:
     @property
     def status(self):
         return self._pool.status
+
+
+class PoolJobAddedProgress(PoolProgress):
+    def __init__(self, pool: "JobPool", job: "Job"):
+        super().__init__(pool, PoolProgressReason.JOB_ADDED)
+        self._job = job
+
+    @property
+    def job(self):
+        return self._job
 
 
 class PoolJobUpdateProgress(PoolProgress):
@@ -540,6 +551,7 @@ class JobPool:
         if self._pool and not self._pool.open:
             raise JobPoolError("No job pool available for job submission.")
         else:
+            self.add_notification(PoolJobAddedProgress(self, job))
             self._job_queue.append(job)
 
     def _submit(self, fn, *args, **kwargs):
