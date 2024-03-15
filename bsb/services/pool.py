@@ -528,7 +528,7 @@ class JobPool:
         for listener in self._listeners:
             try:
                 self._context.enter_context(listener)
-            except AttributeError:
+            except (TypeError, AttributeError):
                 # Listener is not a context manager
                 pass
         self.change_status(PoolStatus.SCHEDULING)
