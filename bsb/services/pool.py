@@ -308,8 +308,6 @@ class Job(abc.ABC):
                     self._future.set_exception(e)
                 else:
                     self._future.set_result(result)
-                finally:
-                    self._future.done()
 
             self._thread = threading.Thread(target=target, daemon=True)
             self._thread.start()
@@ -461,6 +459,7 @@ class JobPool:
     _tmp_folders = {}
 
     def __init__(self, scaffold, fail_fast=False):
+        self._schedulers: list[concurrent.futures.Future] = []
         self.id: int = None
         self._scaffold = scaffold
         self._unhandled_errors = []
@@ -551,26 +550,33 @@ class JobPool:
             self._running_futures.append(future)
             return future
 
-    def _schedule(self, nodes, scheduler):
+    def _schedule(self, future: concurrent.futures.Future, nodes, scheduler):
         _failed_nodes = []
-        for node in nodes:
-            failed_deps = [
-                n for n in getattr(node, "depends_on", []) if n in _failed_nodes
-            ]
-            if failed_deps:
-                _failed_nodes.append(node)
-                ctx = SubmissionContext(
-                    node,
-                    error=JobSchedulingError(f"Depends on {failed_deps}, whom failed."),
-                )
-                self._unhandled_errors.append(ctx)
-                continue
-            try:
-                scheduler(node)
-            except Exception as e:
-                _failed_nodes.append(node)
-                ctx = SubmissionContext(node, error=e)
-                self._unhandled_errors.append(ctx)
+        if not future.set_running_or_notify_cancel():
+            return
+        try:
+            for node in nodes:
+                failed_deps = [
+                    n for n in getattr(node, "depends_on", []) if n in _failed_nodes
+                ]
+                if failed_deps:
+                    _failed_nodes.append(node)
+                    ctx = SubmissionContext(
+                        node,
+                        error=JobSchedulingError(
+                            f"Depends on {failed_deps}, whom failed."
+                        ),
+                    )
+                    self._unhandled_errors.append(ctx)
+                    continue
+                try:
+                    scheduler(node)
+                except Exception as e:
+                    _failed_nodes.append(node)
+                    ctx = SubmissionContext(node, error=e)
+                    self._unhandled_errors.append(ctx)
+        finally:
+            future.set_result(None)
 
     def schedule(self, nodes, scheduler=None):
         if scheduler is None:
@@ -578,12 +584,10 @@ class JobPool:
             def scheduler(node):
                 node.queue(self)
 
-        thread = threading.Thread(target=self._schedule, args=(nodes, scheduler))
+        future = concurrent.futures.Future()
+        self._schedulers.append(future)
+        thread = threading.Thread(target=self._schedule, args=(future, nodes, scheduler))
         thread.start()
-        while thread.is_alive():
-            thread.join(timeout=self._max_wait)
-            self.ping()
-            self.notify()
 
     def queue(self, f, args=None, kwargs=None, deps=None, **context):
         job = FunctionJob(self, f, args or [], kwargs or {}, deps, **context)
@@ -699,6 +703,12 @@ class JobPool:
             MPI.bcast(self._workers_raise_unhandled)
 
     def _execute_serial(self):
+        # Wait for jobs to finish scheduling
+        while concurrent.futures.wait(
+            self._schedulers, timeout=self._max_wait, return_when="FIRST_COMPLETED"
+        )[1]:
+            self.ping()
+            self.notify()
         # Prepare jobs for local execution
         for job in self._job_queue:
             job._future = concurrent.futures.Future()
