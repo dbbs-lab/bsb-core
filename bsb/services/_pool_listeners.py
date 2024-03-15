@@ -8,6 +8,7 @@ from typing import cast
 from blessed import Terminal
 from dashing import Color, DoubleColumn, HSplit, Text
 
+from . import MPI
 from .pool import (
     Job,
     JobStatus,
@@ -16,6 +17,7 @@ from .pool import (
     PoolProgress,
     PoolProgressReason,
     PoolStatus,
+    Workflow,
 )
 
 
@@ -36,6 +38,7 @@ class NonTTYTerminalListener(Listener):
 
 class TTYTerminalListener(Listener):
     def __init__(self, fps: int):
+        self._workflow: Workflow = None
         self._terminal = None
         self._last_update = 0
         self.fps = fps
@@ -61,20 +64,29 @@ class TTYTerminalListener(Listener):
             yield
 
     def __enter__(self):
-        self._terminal = Terminal()
-        self._context = self._terminal_context(self._terminal)
-        self._ui._terminal = self._terminal
-        self._context.__enter__()
-        self._start = time.perf_counter()
-        self.update()
+        if not MPI.get_rank():
+            self._terminal = Terminal()
+            self._context = self._terminal_context(self._terminal)
+            self._ui._terminal = self._terminal
+            self._context.__enter__()
+            self._start = time.perf_counter()
+            self.update()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._context.__exit__(exc_type, exc_val, exc_tb)
+        if not MPI.get_rank():
+            self._context.__exit__(exc_type, exc_val, exc_tb)
+
+    def _initialize(self, progress: PoolProgress):
+        self._tally = PoolTally(JobTally)
+        if progress.workflow:
+            self._workflow = progress.workflow
 
     def __call__(self, progress: PoolProgress):
+        if MPI.get_rank():
+            return
         if progress.reason == PoolProgressReason.POOL_STATUS_CHANGE:
             if progress.status == PoolStatus.SCHEDULING:
-                self._tally = PoolTally(JobTally)
+                self._initialize(progress)
             self._pool_status = progress.status
         if progress.reason == PoolProgressReason.JOB_ADDED:
             job = cast(PoolJobAddedProgress, progress).job
@@ -102,7 +114,9 @@ class TTYTerminalListener(Listener):
 
     def update_progress(self):
         cast(Text, self._ui.items[0]).text = (
-            f"Status: {str(self._pool_status).split('.')[1]}\n"
+            (f"Workflow: {' | '.join(self._workflow.phases)}\n" if self._workflow else "")
+            + (f"Phase: {self._workflow.phase}\n" if self._workflow else "")
+            + f"Status: {str(self._pool_status).split('.')[1]}\n"
             f"Job total:\n"
             f" {self._tally}\n"
             f"Elapsed: {round(time.perf_counter() - self._start, 2)}s\n"

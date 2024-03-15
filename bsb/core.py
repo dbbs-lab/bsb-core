@@ -1,7 +1,6 @@
 import itertools
 import os
 import sys
-import time
 import typing
 
 import numpy as np
@@ -20,7 +19,7 @@ from .profiling import meter
 from .reporting import report
 from .services import MPI, JobPool
 from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
-from .services.pool import Job
+from .services.pool import Job, Workflow
 from .simulation import get_simulation_adapter
 from .storage import Chunk, Storage, open_storage
 
@@ -386,24 +385,40 @@ class Scaffold:
             # else:
             #   append mode is luckily simpler, just don't clear anything :)
 
-        t = time.time()
-        self.run_pipelines(fail_fast=fail_fast)
+        phases = ["pipelines"]
         if not skip_placement:
-            placement_todo = ", ".join(s.name for s in p_strats)
-            report(f"Starting placement strategies: {placement_todo}", level=2)
-            self.run_placement(p_strats, fail_fast=fail_fast, pipelines=False)
+            phases.append("placement")
         if not skip_after_placement:
-            self.run_after_placement(pipelines=False, fail_fast=fail_fast)
+            phases.append("after_placement")
         if not skip_connectivity:
-            connectivity_todo = ", ".join(s.name for s in c_strats)
-            report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
-            self.run_connectivity(c_strats, fail_fast=fail_fast, pipelines=False)
+            phases.append("connectivity")
         if not skip_after_connectivity:
-            self.run_after_connectivity(pipelines=False)
-        report("Runtime: {}".format(time.time() - t), level=2)
-        # After compilation we should flag the storage as having existed before so that
-        # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
-        self.storage._preexisted = True
+            phases.append("after_connectivity")
+        self._workflow = Workflow(phases)
+        try:
+            self.run_pipelines(fail_fast=fail_fast)
+            self._workflow.next_phase()
+            if not skip_placement:
+                placement_todo = ", ".join(s.name for s in p_strats)
+                report(f"Starting placement strategies: {placement_todo}", level=2)
+                self.run_placement(p_strats, fail_fast=fail_fast, pipelines=False)
+                self._workflow.next_phase()
+            if not skip_after_placement:
+                self.run_after_placement(pipelines=False, fail_fast=fail_fast)
+                self._workflow.next_phase()
+            if not skip_connectivity:
+                connectivity_todo = ", ".join(s.name for s in c_strats)
+                report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
+                self.run_connectivity(c_strats, fail_fast=fail_fast, pipelines=False)
+                self._workflow.next_phase()
+            if not skip_after_connectivity:
+                self.run_after_connectivity(pipelines=False)
+                self._workflow.next_phase()
+        finally:
+            # After compilation we should flag the storage as having existed before so that
+            # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
+            self.storage._preexisted = True
+            del self._workflow
 
     @meter()
     def run_pipelines(self, fail_fast=True, pipelines=None):
@@ -737,7 +752,9 @@ class Scaffold:
         return cs
 
     def create_job_pool(self, fail_fast=None, quiet=False):
-        pool = JobPool(self, fail_fast=fail_fast)
+        pool = JobPool(
+            self, fail_fast=fail_fast, workflow=getattr(self, "_workflow", None)
+        )
         try:
             tty = os.isatty(sys.stdout.fileno())
         except Exception:

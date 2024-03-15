@@ -108,6 +108,31 @@ class PoolProgressReason(Enum):
     MAX_TIMEOUT_PING = auto()
 
 
+class Workflow:
+    def __init__(self, phases: list[str]):
+        self._phases = phases
+        self._phase = 0
+
+    @property
+    def phases(self):
+        return [*self._phases]
+
+    @property
+    def finished(self):
+        return self._phase >= len(self._phases)
+
+    @property
+    def phase(self):
+        if self.finished:
+            return "finished"
+        else:
+            return self._phases[self._phase]
+
+    def next_phase(self):
+        self._phase += 1
+        return self.phase
+
+
 class PoolProgress:
     """
     Class used to report pool progression to listeners.
@@ -120,6 +145,10 @@ class PoolProgress:
     @property
     def reason(self):
         return self._reason
+
+    @property
+    def workflow(self):
+        return self._pool.workflow
 
     @property
     def jobs(self):
@@ -469,13 +498,13 @@ class JobPool:
     _pool_owners = {}
     _tmp_folders = {}
 
-    def __init__(self, scaffold, fail_fast=False):
+    def __init__(self, scaffold, fail_fast=False, workflow: "Workflow" = None):
         self._schedulers: list[concurrent.futures.Future] = []
         self.id: int = None
         self._scaffold = scaffold
         self._unhandled_errors = []
         self._running_futures: list[concurrent.futures.Future] = []
-        self._pool: typing.Optional["MPIExecutor"] = None
+        self._mpipool: typing.Optional["MPIExecutor"] = None
         self._job_queue: list[Job] = []
         self._listeners = []
         self._max_wait = 60
@@ -483,6 +512,7 @@ class JobPool:
         self._progress_notifications: list["PoolProgress"] = []
         self._workers_raise_unhandled = False
         self._fail_fast = fail_fast
+        self._workflow = workflow
 
     def __enter__(self):
         self._context = ExitStack()
@@ -518,6 +548,10 @@ class JobPool:
         self._listeners.append(listener)
 
     @property
+    def workflow(self):
+        return self._workflow
+
+    @property
     def status(self):
         return self._status
 
@@ -548,17 +582,21 @@ class JobPool:
         """
         Puts a job onto our internal queue.
         """
-        if self._pool and not self._pool.open:
+        if self._mpipool and not self._mpipool.open:
             raise JobPoolError("No job pool available for job submission.")
         else:
             self.add_notification(PoolJobAddedProgress(self, job))
             self._job_queue.append(job)
+            if self._mpipool:
+                # This job was scheduled after the MPIPool was opened, so immediately
+                # put it on the MPIPool's queue.
+                job._enqueue(self)
 
     def _submit(self, fn, *args, **kwargs):
-        if not self._pool or not self._pool.open:
+        if not self._mpipool or not self._mpipool.open:
             raise JobPoolError("No job pool available for job submission.")
         else:
-            future = self._pool.submit(fn, *args, **kwargs)
+            future = self._mpipool.submit(fn, *args, **kwargs)
             self._running_futures.append(future)
             return future
 
@@ -600,6 +638,10 @@ class JobPool:
         self._schedulers.append(future)
         thread = threading.Thread(target=self._schedule, args=(future, nodes, scheduler))
         thread.start()
+
+    @property
+    def scheduling(self):
+        return any(not f.done() for f in self._schedulers)
 
     def queue(self, f, args=None, kwargs=None, deps=None, **context):
         job = FunctionJob(self, f, args or [], kwargs or {}, deps, **context)
@@ -647,11 +689,11 @@ class JobPool:
         if bsb.options.debug_pool:
             _MPIPool.enable_serde_logging()
         # Create the MPI pool
-        self._pool = _MPIPool.MPIExecutor(
+        self._mpipool = _MPIPool.MPIExecutor(
             loglevel=logging.DEBUG if bsb.options.debug_pool else logging.CRITICAL
         )
 
-        if self._pool.is_worker():
+        if self._mpipool.is_worker():
             # The workers will return out of the pool constructor when they receive
             # the shutdown signal from the master, they return here skipping the
             # master logic.
@@ -666,26 +708,30 @@ class JobPool:
             return
 
         try:
-            # Tell each job in our queue that they have to put themselves in the pool
-            # queue; each job will store their own future and will use the futures of
-            # their previously enqueued dependencies to determine when they can put
-            # themselves on the pool queue.
-            for job in self._job_queue:
-                job._enqueue(self)
-
             # Tell the listeners execution is running
             self.change_status(PoolStatus.EXECUTING)
+            # Kickstart the workers with the queued jobs
+            for job in self._job_queue:
+                job._enqueue(self)
+            # Add the scheduling futures to the running futures, to await them.
+            self._running_futures.extend(self._schedulers)
 
-            # As long as any of the jobs aren't done yet we repeat the wait action with a timeout
-            while any(
+            # Keep executing as long as any of the schedulers or jobs aren't done yet.
+            while self.scheduling or any(
                 job.status == JobStatus.PENDING or job.status == JobStatus.QUEUED
                 for job in self._job_queue
             ):
-                done, not_done = concurrent.futures.wait(
-                    self._running_futures,
-                    timeout=self._max_wait,
-                    return_when="FIRST_COMPLETED",
-                )
+                try:
+                    done, not_done = concurrent.futures.wait(
+                        self._running_futures,
+                        timeout=self._max_wait,
+                        return_when="FIRST_COMPLETED",
+                    )
+                except ValueError:
+                    # Sometimes a ValueError is raised here, perhaps because we modify
+                    # the list below?
+                    continue
+
                 # Complete any jobs that are done
                 for job in self._job_queue:
                     if job._future in done:
@@ -710,7 +756,7 @@ class JobPool:
             raise
         finally:
             # Shut down our internal pool
-            self._pool.shutdown(wait=False, cancel_futures=True)
+            self._mpipool.shutdown(wait=False, cancel_futures=True)
             # Broadcast whether the worker nodes should raise an unhandled error.
             MPI.bcast(self._workers_raise_unhandled)
 
