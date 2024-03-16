@@ -472,6 +472,6 @@ class TestSubmissionContext(
         """
         with self.network.create_job_pool() as pool:
             if pool.is_main():
-                job = pool.queue(sleep_y, (4, 0.2))
+                job = pool.queue(sleep_y, (4, 0.2), number=1)
                 self.assertIn("function sleep_y", job.name)
-                self.assertEqual("One", job.context["number"])
+                self.assertEqual(1, job.context["number"])
