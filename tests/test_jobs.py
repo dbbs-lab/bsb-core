@@ -466,9 +466,12 @@ class TestSubmissionContext(
                 self.assertEqual("{root}.connectivity.test", pool.jobs[0].name)
 
     @timeout(3)
-    def test_no_node_submission(self):
+    def test_no_submitter_submission(self):
+        """
+        Test that in the absence of submitter information the function name is used.
+        """
         with self.network.create_job_pool() as pool:
             if pool.is_main():
-                job = pool.queue(sleep_y, (4, 0.2), submitter={"number": "One"})
+                job = pool.queue(sleep_y, (4, 0.2))
                 self.assertIn("function sleep_y", job.name)
                 self.assertEqual("One", job.context["number"])
