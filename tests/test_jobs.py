@@ -159,6 +159,22 @@ class TestSerialAndParallelScheduler(
             self.assertAlmostEqual(0.7, results[job3])
             self.assertAlmostEqual(0.8, results[job4])
 
+    @timeout(3)
+    def test_schedule(self):
+        with self.network.create_job_pool(quiet=True) as pool:
+
+            def scheduler(node):
+                pool.queue(sleep_y, (5, 0.1))
+                pool.queue(sleep_y, (5, 0.1))
+
+            pool.schedule([1, 1], scheduler)
+
+            results = pool.execute(return_results=True)
+        if pool.is_main():
+            self.assertEqual(
+                [5, 5, 5, 5], [*results.values()], "expected 4 scheduled jobs"
+            )
+
     @timeout(1)
     def test_cancel_job(self):
         """
