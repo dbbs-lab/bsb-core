@@ -44,6 +44,8 @@ _t(
         ),
         JobPoolError=_e(
             JobCancelledError=_e(),
+            JobPoolContextError=_e(),
+            JobSchedulingError=_e(),
         ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
@@ -214,7 +216,9 @@ __all__ = [
     "IntersectionDataNotFoundError",
     "InvalidReferenceError",
     "JobCancelledError",
+    "JobPoolContextError",
     "JobPoolError",
+    "JobSchedulingError",
     "JsonImportError",
     "JsonParseError",
     "JsonReferenceError",

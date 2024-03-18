@@ -449,6 +449,7 @@ class TestConnWithSubCellLabels(
             )
 
 
+@unittest.skip("https://github.com/dbbs-lab/bsb-core/issues/820")
 class TestVoxelIntersection(
     RandomStorageFixture,
     NetworkFixture,

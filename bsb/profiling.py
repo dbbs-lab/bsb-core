@@ -9,8 +9,6 @@ from functools import cache
 from time import time
 from uuid import uuid4
 
-import bsb.options
-
 from .services import MPI
 
 
@@ -145,6 +143,8 @@ def node_meter(*methods):
 
 def meter(f=None, *, name_f=None):
     def decorated(*args, **kwargs):
+        import bsb.options
+
         if bsb.options.profiling:
             session = get_active_session()
             if name_f:
