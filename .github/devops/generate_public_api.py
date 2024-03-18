@@ -13,7 +13,7 @@ def _assign_targets(assign: ast.Assign, id_: str):
 
 @functools.cache
 def get_public_api_map():
-    root = Path(__file__).parent
+    root = Path(__file__).parent.parent.parent / "bsb"
 
     public_api_map = {}
     for file in root.rglob("*.py"):
