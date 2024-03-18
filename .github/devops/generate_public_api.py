@@ -1,13 +1,49 @@
+import ast
 import difflib
+import functools
 import sys
 from pathlib import Path
 
-from bsb import _get_public_api_map
+
+def _assign_targets(assign: ast.Assign, id_: str):
+    return any(
+        target.id == id_ for target in assign.targets if isinstance(target, ast.Name)
+    )
+
+
+@functools.cache
+def get_public_api_map():
+    root = Path(__file__).parent
+
+    public_api_map = {}
+    for file in root.rglob("*.py"):
+        module_parts = file.relative_to(root).parts
+        module = ".".join(
+            module_parts[:-1]
+            + ((module_parts[-1][:-3],) if module_parts[-1] != "__init__.py" else tuple())
+        )
+        module_api = []
+        for assign in ast.parse(file.read_text()).body:
+            if isinstance(assign, ast.Assign):
+                is_api = _assign_targets(assign, "__api__")
+                is_either = is_api or _assign_targets(assign, "__all__")
+                if ((is_either and not module_api) or is_api) and isinstance(
+                    assign.value, ast.List
+                ):
+                    module_api = [
+                        el.value
+                        for el in assign.value.elts
+                        if isinstance(el, ast.Constant)
+                    ]
+        for api in module_api:
+            public_api_map[api] = module
+
+    return public_api_map
 
 
 def public_annotations():
     annotations = []
-    for api, module in _get_public_api_map().items():
+    for api, module in get_public_api_map().items():
         annotation = f'"bsb.{module}.{api}"'
         if api[0].isupper():
             annotation = f"typing.Type[{annotation}]"
@@ -15,7 +51,7 @@ def public_annotations():
 
     lines = [
         "if typing.TYPE_CHECKING:",
-        *sorted(f"  import bsb.{module}" for module in {*_get_public_api_map().values()}),
+        *sorted(f"  import bsb.{module}" for module in {*get_public_api_map().values()}),
         "",
         *sorted(annotations),
         "",
