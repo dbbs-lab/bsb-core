@@ -326,11 +326,14 @@ class DistributorsNode:
             uid = uuid.uuid4()
             loaders = []
             all_meta = {}
+            # Save morphologies one by one
             for gen_morpho, i in generated.items():
                 name = f"{prefix}-{uid}-{i}"
+                # `update_metadata=False` so morphology is incompletely stored.
                 saved = mr.save(name, gen_morpho, update_meta=False)
                 all_meta[name] = saved.get_meta()
                 loaders.append(saved)
+            # Finish morphologies by bulk saving their collective metadata
             mr.update_all_meta(all_meta)
             morphologies = MorphologySet(loaders, indices)
         if not isinstance(morphologies, MorphologySet) and morphologies is not None:
