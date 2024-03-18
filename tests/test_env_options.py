@@ -11,17 +11,15 @@ class TestEnvProfiling(unittest.TestCase):
         "required test env not set",
     )
     @unittest.skipIf(not bsb.options.profiling, "profiling not enabled")
-    def test_root_meter_present(self):
-        session = profiling.get_active_session()
-        self.assertTrue(
-            [m for m in session._meters if m.name == "root_module"],
-            "root meter absent but BSB_PROFILING is set",
+    def test_session_active(self):
+        session_cache = profiling.get_active_session.cache_info()
+        self.assertEqual(
+            1, session_cache.misses, "session inactive while BSB_PROFILING is set"
         )
 
     @unittest.skipIf("BSB_PROFILING" in os.environ, "required test env set")
-    def test_root_meter_absent(self):
-        session = profiling.get_active_session()
-        self.assertFalse(
-            [m for m in session._meters if m.name == "root_module"],
-            "root meter present but BSB_PROFILING is not set",
+    def test_session_inactive(self):
+        session_cache = profiling.get_active_session.cache_info()
+        self.assertEqual(
+            0, session_cache.misses, "session inactive while BSB_PROFILING is set"
         )

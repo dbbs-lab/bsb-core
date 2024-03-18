@@ -37,6 +37,16 @@ for e in _exc.__dict__.values():
     if isinstance(e, type) and issubclass(e, Warning):
         warnings.simplefilter("always", e)
 
+try:
+    from .options import profiling as _pr
+except Exception:
+    pass
+else:
+    if _pr:
+        from .profiling import activate_session
+
+        activate_session()
+
 
 def _get_annotation_submodule(name: str):
     annotation = __annotations__.get(name, None)
