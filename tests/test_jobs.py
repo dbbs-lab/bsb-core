@@ -267,8 +267,8 @@ class TestParallelScheduler(
 
         def try_cancel(progress: PoolProgress):
             if (
-                progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
-                and progress.status == PoolStatus.EXECUTING
+                progress.reason == PoolProgressReason.JOB_STATUS_CHANGE
+                and progress.status == JobStatus.RUNNING
             ):
                 with self.assertWarnsRegex(Warning, "Could not cancel"):
                     progress.jobs[0].cancel("Test")
@@ -304,16 +304,22 @@ class TestParallelScheduler(
         """
         Test that when the pool starts the jobs without dependencies are queued, and those with dependencies are not.
         """
-        outcome = None
+        outcome = True
 
-        # Add a spy listener that checks that the job with dependencies isn't queued yet
-        def spy_initial_pool_queue(progress):
+        # Add a spy listener that checks that the job with dependencies isn't queued or ran
+        # while its dependency isn't finished yet.
+        def spy_initial_pool_queue(progress: PoolProgress):
             nonlocal outcome
-            if outcome is None:
-                outcome = (
-                    JobStatus.QUEUED == progress.jobs[0].status
-                    and not JobStatus.QUEUED == progress.jobs[1].status
-                )
+            if (
+                progress.jobs[0].status == JobStatus.PENDING
+                or progress.jobs[0].status == JobStatus.QUEUED
+                or progress.jobs[0].status == JobStatus.RUNNING
+            ):
+                if (
+                    progress.jobs[1].status == JobStatus.RUNNING
+                    or progress.jobs[1].status == JobStatus.QUEUED
+                ):
+                    outcome = False
 
         with self.network.create_job_pool(quiet=True) as pool:
             pool.add_listener(spy_initial_pool_queue)
