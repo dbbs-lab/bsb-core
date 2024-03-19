@@ -9,7 +9,7 @@ from .cloud_cloud_intersection import CloudHemitype
 
 @config.node
 class CloudToMorphologyIntersection(ConnectionStrategy):
-    presynaptic = config.attr(type=CloudHemitype)
+    presynaptic = config.attr(type=CloudHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
@@ -78,22 +78,13 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                     if np.any(inside_pts):
                         local_selection = (post_points_ids[mbb_check])[inside_pts]
                         if self.affinity < 1.0 and len(local_selection) > 0:
-                            local_selection = local_selection[
-                                np.random.choice(
-                                    local_selection.shape[0],
-                                    np.max(
-                                        [
-                                            1,
-                                            int(
-                                                np.floor(
-                                                    self.affinity * len(local_selection)
-                                                )
-                                            ),
-                                        ]
-                                    ),
-                                ),
-                                :,
-                            ]
+                            nb_targets = np.max(
+                                [1, int(np.floor(self.affinity * len(local_selection)))]
+                            )
+                            chosen_targets = np.random.choice(
+                                local_selection.shape[0], nb_targets
+                            )
+                            local_selection = local_selection[chosen_targets, :]
                         selected_count = len(local_selection)
                         if selected_count > 0:
                             to_connect_post = np.vstack(

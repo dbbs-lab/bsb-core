@@ -53,8 +53,8 @@ class CloudHemitype(Hemitype):
 
 @config.node
 class CloudToCloudIntersection(ConnectionStrategy):
-    presynaptic = config.attr(type=CloudHemitype)
-    postsynaptic = config.attr(type=CloudHemitype)
+    presynaptic = config.attr(type=CloudHemitype, required=True)
+    postsynaptic = config.attr(type=CloudHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):

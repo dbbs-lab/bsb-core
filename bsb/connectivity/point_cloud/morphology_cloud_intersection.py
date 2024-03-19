@@ -9,7 +9,7 @@ from .cloud_cloud_intersection import CloudHemitype
 
 @config.node
 class MorphologyToCloudIntersection(ConnectionStrategy):
-    postsynaptic = config.attr(type=CloudHemitype)
+    postsynaptic = config.attr(type=CloudHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
@@ -31,9 +31,9 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
     def connect(self, pre, post):
         for pre_ps in pre.placement:
             for post_ps in post.placement:
-                self._connect_type(pre_ps.cell_type, pre_ps, post_ps.cell_type, post_ps)
+                self._connect_type(pre_ps, post_ps)
 
-    def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
+    def _connect_type(self, pre_ps, post_ps):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()[:, [0, 2, 1]]
 
@@ -76,22 +76,13 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
                     if np.any(inside_pts):
                         local_selection = (pre_points_ids[mbb_check])[inside_pts]
                         if self.affinity < 1 and len(local_selection) > 0:
-                            local_selection = local_selection[
-                                np.random.choice(
-                                    local_selection.shape[0],
-                                    np.max(
-                                        [
-                                            1,
-                                            int(
-                                                np.floor(
-                                                    self.affinity * len(local_selection)
-                                                )
-                                            ),
-                                        ]
-                                    ),
-                                ),
-                                :,
-                            ]
+                            nb_sources = np.max(
+                                [1, int(np.floor(self.affinity * len(local_selection)))]
+                            )
+                            chosen_targets = np.random.choice(
+                                local_selection.shape[0], nb_sources
+                            )
+                            local_selection = local_selection[chosen_targets, :]
 
                         selected_count = len(local_selection)
                         if selected_count > 0:
