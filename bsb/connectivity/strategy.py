@@ -36,7 +36,12 @@ class Hemitype:
         call_default=False,
         default=(lambda ps: ps.load_morphologies()),
     )
-    """Function to load the morphologies (MorphologySet) from a PlacementSet"""
+    """
+    Function to load the morphologies (MorphologySet) from a PlacementSet. This override
+    can allow temporary dynamic morphology generation during the connectivity phase, from
+    a much smaller, or empty, MorphologySet. It is useful for example when the task would
+    take too much disk space or time otherwise.
+    """
 
 
 class HemitypeCollection:

@@ -175,7 +175,7 @@ class ConfigurationModule:
         parser, tree, meta = _try_parsers(content, self._parser_classes, ext, path=path)
         return _from_parsed(self, parser, tree, meta, path)
 
-    def format_content(self, parser_name, config):
+    def format_content(self, parser_name: str, config: "Configuration"):
         """
         Convert a configuration object to a string using the given parser.
         """
