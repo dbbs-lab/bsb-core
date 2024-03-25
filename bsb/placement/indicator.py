@@ -104,7 +104,6 @@ class PlacementIndicator:
                     )
                     * count_ratio
                 )
-                estimate = self._estim_for_chunk(chunk, estimate)
             elif density_ratio is not None:
                 # Create an indicator based on this strategy for the related CT.
                 # This means we'll read only the CT indications, and ignore any

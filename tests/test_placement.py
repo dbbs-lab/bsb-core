@@ -48,12 +48,15 @@ def single_layer_placement(network, offset=None):
     network.network.origin = offset if offset is not None else [0.0, 0.0, 0.0]
     network.resize()
     dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
+    dud_cell2 = CellType(
+        name="dud2", spatial={"relative_to": dud_cell, "count_ratio": 0.5, "radius": 3.4}
+    )
     network.cell_types["dud"] = dud_cell
     dud = PlacementDud(
         name="dud",
         strategy="PlacementDud",
         partitions=[part],
-        cell_types=[dud_cell],
+        cell_types=[dud_cell, dud_cell2],
         overrides={"dud": {}},
     )
     network.placement["dud"] = dud
@@ -75,22 +78,31 @@ class TestIndicators(
     def test_cascade(self):
         indicators = self.placement.get_indicators()
         dud_ind = indicators["dud"]
+        dud2_ind = indicators["dud2"]
         self.assertEqual(2, dud_ind.indication("radius"))
+        self.assertEqual(3.4, dud2_ind.indication("radius"))
         self.assertEqual(40, dud_ind.indication("count"))
         self.assertEqual(2, dud_ind.get_radius())
+        self.assertEqual(3.4, dud2_ind.get_radius())
         self.placement.overrides.dud.radius = 4
         self.assertEqual(4, dud_ind.indication("radius"))
+        self.assertEqual(3.4, dud2_ind.indication("radius"))
         self.placement.overrides.dud.radius = None
         self.placement.cell_types[0].spatial.radius = None
         self.assertEqual(None, dud_ind.indication("radius"))
         self.assertRaises(IndicatorError, dud_ind.get_radius)
+        self.assertTrue(dud2_ind.indication("relative_to") in self.placement.cell_types)
 
     def test_guess(self):
         indicators = self.placement.get_indicators()
         dud_ind = indicators["dud"]
+        dud2_ind = indicators["dud2"]
+        ratio_dud2 = 0.5
         self.assertEqual(40, dud_ind.guess())
+        self.assertEqual(40 * ratio_dud2, dud2_ind.guess())
         self.placement.overrides.dud.count = 400
         self.assertEqual(400, dud_ind.guess())
+        self.assertEqual(400 * ratio_dud2, dud2_ind.guess())
         bottom_ratio = 1 / 1.2
         bottom = 400 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
@@ -98,15 +110,27 @@ class TestIndicators(
         for x, y, z in ((0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 0)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
+                guess2 = dud2_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
+                self.assertTrue(
+                    np.floor(bottom * ratio_dud2)
+                    <= guess2
+                    <= np.ceil(bottom * ratio_dud2)
+                )
         for x, y, z in ((0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
+                guess2 = dud2_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
+                self.assertTrue(
+                    np.floor(top * ratio_dud2) <= guess2 <= np.ceil(top * ratio_dud2)
+                )
         for x, y, z in ((0, 0, -1), (0, 0, 2), (2, 0, 1), (1, -3, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
+                guess2 = dud2_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
+                self.assertEqual(0, guess2)
 
     def test_negative_guess(self):
         self.placement = single_layer_placement(
@@ -114,6 +138,8 @@ class TestIndicators(
         )
         indicators = self.placement.get_indicators()
         dud_ind = indicators["dud"]
+        dud2_ind = indicators["dud2"]
+        ratio_dud2 = 0.5
         bottom_ratio = 1 / 1.2
         bottom = 40 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
@@ -121,15 +147,27 @@ class TestIndicators(
         for x, y, z in ((-3, -3, -3), (-3, -2, -3), (-2, -3, -3), (-2, -2, -3)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
+                guess2 = dud2_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
+                self.assertTrue(
+                    np.floor(bottom * ratio_dud2)
+                    <= guess2
+                    <= np.ceil(bottom * ratio_dud2)
+                )
         for x, y, z in ((-3, -3, -2), (-3, -2, -2), (-2, -3, -2), (-2, -2, -2)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
+                guess2 = dud2_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
+                self.assertTrue(
+                    np.floor(top * ratio_dud2) <= guess2 <= np.ceil(top * ratio_dud2)
+                )
         for x, y, z in ((0, 0, -1), (0, 0, 0), (2, 0, 0), (1, -3, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
+                guess2 = dud2_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
+                self.assertEqual(0, guess2)
 
 
 @unittest.skipIf(MPI.get_size() > 1, "Skipped during parallel testing.")
