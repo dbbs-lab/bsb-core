@@ -11,7 +11,7 @@ from ..config._attrs import cfgdict
 from ..exceptions import DistributorError, EmptySelectionError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
-from ..reporting import report, warn
+from ..reporting import warn
 from ..storage import Chunk
 from ..voxels import VoxelSet
 from .distributor import DistributorsNode
@@ -53,9 +53,6 @@ class PlacementStrategy(abc.ABC, HasDependencies):
     def __lt__(self, other):
         # This comparison should sort placement strategies by name, via __repr__ below
         return str(self) < str(other)
-
-    def __boot__(self):
-        self._queued_jobs = []
 
     @obj_str_insert
     def __repr__(self):
@@ -130,16 +127,16 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         the default implementation asks each partition to chunk itself and creates 1
         placement job per chunk.
         """
-        # Reset jobs that we own
-        self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
+        deps = set(
+            itertools.chain(
+                *(pool.get_submissions_of(strat) for strat in self.get_deps())
+            )
+        )
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
                 job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
-                self._queued_jobs.append(job)
-        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
@@ -185,14 +182,14 @@ class FixedPositions(PlacementStrategy):
     def queue(self, pool, chunk_size):
         if self.positions is None:
             raise ValueError(f"Please set `.positions` on '{self.name}'.")
-        # Reset jobs that we own
-        self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
+        deps = set(
+            itertools.chain(
+                *(pool.get_submissions_of(strat) for strat in self.get_deps())
+            )
+        )
         for chunk in VoxelSet.fill(self.positions, chunk_size):
-            job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
-            self._queued_jobs.append(job)
-        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
+            pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
 
 
 @config.node

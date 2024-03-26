@@ -70,8 +70,7 @@ nodes with the :meth:`~bsb.services.pool.JobPool.schedule` method:
 
 .. warning::
 
-  Pass in topologically sorted arrays of nodes! Some queueing methods depend on state
-  stored during the scheduling (specifically the ``_queued_jobs`` attribute). Dependencies
+  Pass in topologically sorted arrays of nodes! Dependencies
   are only checked between the nodes, not the jobs, by checking for a ``depends_on``
   attribute.
 
