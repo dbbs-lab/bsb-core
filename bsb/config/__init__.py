@@ -19,7 +19,7 @@ from shutil import copy2 as copy_file
 from .. import plugins
 from .._util import ichain
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
-from . import parsers
+from . import parsers, refs, types
 from ._attrs import (
     ConfigurationAttribute,
     attr,
@@ -49,14 +49,6 @@ from ._make import (
 
 if typing.TYPE_CHECKING:
     from ._config import Configuration
-
-# Add some static type hinting, to help tools figure out this dynamic module
-Configuration: "Configuration"
-
-
-# ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
-# document all the properties.
-from . import refs, types
 
 
 @functools.cache
