@@ -8,12 +8,13 @@ from ..config import refs, types
 from ..exceptions import ConnectivityError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
-from ..reporting import report, warn
+from ..reporting import warn
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
     from ..core import Scaffold
     from ..morphologies import MorphologySet
+    from ..services import JobPool
     from ..storage.interfaces import PlacementSet
 
 
@@ -105,9 +106,6 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
         # This comparison should sort connection strategies by name, via __repr__ below
         return str(self) < str(other)
 
-    def __boot__(self):
-        self._queued_jobs = []
-
     @obj_str_insert
     def __repr__(self):
         if not hasattr(self, "scaffold"):
@@ -162,16 +160,18 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
     def get_region_of_interest(self, chunk):
         pass
 
-    def queue(self, pool):
+    def queue(self, pool: "JobPool"):
         """
         Specifies how to queue this connectivity strategy into a job pool. Can
         be overridden, the default implementation asks each partition to chunk
         itself and creates 1 placement job per chunk.
         """
-        # Reset jobs that we own
-        self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(chain.from_iterable(strat._queued_jobs for strat in self.get_deps()))
+        dep_jobs = set(
+            chain.from_iterable(
+                pool.get_submissions_of(strat) for strat in self.get_deps()
+            )
+        )
         pre_types = self.presynaptic.cell_types
         # Iterate over each chunk that is populated by our presynaptic cell types.
         from_chunks = set(
@@ -191,9 +191,7 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
                 f"in '{self.name}'."
             )
         for chunk, roi in rois.items():
-            job = pool.queue_connectivity(self, [chunk], roi, deps=deps)
-            self._queued_jobs.append(job)
-        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
+            job = pool.queue_connectivity(self, [chunk], roi, deps=dep_jobs)
 
     def get_cell_types(self):
         return set(self.presynaptic.cell_types) | set(self.postsynaptic.cell_types)

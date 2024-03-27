@@ -242,6 +242,10 @@ class SubmissionContext:
         return name
 
     @property
+    def submitter(self):
+        return self._submitter
+
+    @property
     def chunks(self):
         from ..storage import chunklist
 
@@ -295,6 +299,10 @@ class Job(abc.ABC):
         if self.context:
             descr += " (" + ", ".join(f"{k}={v}" for k, v in self.context.items()) + ")"
         return descr
+
+    @property
+    def submitter(self):
+        return self._submit_ctx.submitter
 
     @property
     def context(self):
@@ -577,6 +585,9 @@ class JobPool:
 
     def is_main(self):
         return MPI.get_rank() == 0
+
+    def get_submissions_of(self, submitter):
+        return [job for job in self._job_queue if job.su]
 
     def _put(self, job):
         """
