@@ -24,6 +24,10 @@ Your ``MyOption`` will also be available on all CLI commands as ``--my_setting``
 be read from the ``MY_SETTING`` environment variable.
 """
 
+import functools
+
+from ._options import ProfilingOption, VerbosityOption
+
 # Store the module magic for unpolluted namespace copy
 _module_magic = globals().copy()
 
@@ -49,7 +53,11 @@ def _get_module_option(tag):  # pragma: nocover
     global _module_options
 
     if tag not in _module_options:
-        raise OptionError(f"Unknown module option '{tag}'")
+        if not discover_options.cache_info().misses:
+            discover_options()
+            return _get_module_tag(tag)
+        else:
+            raise OptionError(f"Unknown module option '{tag}'")
     return _module_options[tag]
 
 
@@ -68,7 +76,7 @@ def get_option_classes():
     return discover("options")
 
 
-def get_option(name):
+def get_option_descriptor(name):
     """
     Return an option
 
@@ -268,7 +276,7 @@ def is_module_option_set(tag):
     return _get_module_tag(tag) in _module_option_values
 
 
-def get_options():
+def get_option_descriptors():
     """
     Get all the registered option singletons.
     """
@@ -277,7 +285,16 @@ def get_options():
     return _options.copy()
 
 
-def store(tag, value):
+@functools.cache
+def discover_options():
+    # Register the discoverable options
+    plugins = discover("options")
+    for plugin in plugins.values():
+        option = plugin()
+        register_option(option.name, option)
+
+
+def store_option(tag, value):
     """
     Store an option value permanently in the project settings.
 
@@ -289,7 +306,7 @@ def store(tag, value):
     get_project_option(tag).project = value
 
 
-def read(tag=None):
+def read_option(tag=None):
     """
     Read an option value from the project settings. Returns all project settings if tag is
     omitted.
@@ -307,7 +324,7 @@ def read(tag=None):
         return get_project_option(tag).get(prio="project")
 
 
-def get(tag, prio=None):
+def get_option(tag, prio=None):
     """
     Retrieve the cascaded value for an option.
 
@@ -319,7 +336,7 @@ def get(tag, prio=None):
     :returns: (Possibly prioritized) value of the option.
     :rtype: Any
     """
-    option = get_option(tag)
+    option = get_option_descriptor(tag)
     return option.get(prio=prio)
 
 
@@ -362,27 +379,24 @@ for _key, _value in zip(_post_freeze, map(globals().get, _post_freeze)):
 # Set the module's public API.
 _om.__dict__["__all__"] = sorted([k for k in vars(_om).keys() if not k.startswith("_")])
 
-# Register the discoverable options
-plugins = discover("options")
-for plugin in plugins.values():
-    option = plugin()
-    _om.register_option(option.name, option)
-
 sys.modules[__name__] = _om
+
+register_option("verbosity", VerbosityOption)
+register_option("profiling", ProfilingOption)
 
 # Static public API
 __all__ = [
-    "get",
-    "get_module_option",
     "get_option",
+    "get_module_option",
+    "get_option_descriptor",
     "get_option_classes",
-    "get_options",
+    "get_option_descriptors",
     "get_project_option",
     "is_module_option_set",
-    "read",
+    "read_option",
     "register_option",
     "reset_module_option",
     "set_module_option",
-    "store",
+    "store_option",
     "unregister_option",
 ]
