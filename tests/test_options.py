@@ -215,8 +215,6 @@ class TestScriptOption(unittest.TestCase):
     def test_script_register(self):
         self.opt["verbosity"].unregister()
         self.opt["verbosity"].register()
-        with self.assertRaises(OptionError):
-            self.opt["verbosity"].register()
 
 
 class TestOptions(unittest.TestCase):

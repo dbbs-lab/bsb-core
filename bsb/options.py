@@ -87,6 +87,7 @@ def get_option_descriptor(name):
     """
     global _options
 
+    discover_options()
     if name in _options:
         return _options[name]
     else:
@@ -106,16 +107,17 @@ def register_option(name, option):
     global _options
 
     if name in _options:
-        raise OptionError(
-            f"The '{name}' option name is already taken by {_options[name].__class__}."
-        )
+        if type(_options[name]) != type(option):
+            raise OptionError(
+                f"The '{name}' option name is already taken by {_options[name].__class__}."
+            )
     else:
         _options[name] = option
 
-    for tag in type(option).script.tags:
-        _register_module_option(tag, option)
-    if type(option).project.tags:
-        _register_project_option(option)
+        for tag in type(option).script.tags:
+            _register_module_option(tag, option)
+        if type(option).project.tags:
+            _register_project_option(option)
 
 
 def unregister_option(option):
@@ -176,6 +178,7 @@ def get_project_option(tag):
     :rtype: :class:`.option.BsbOption`
     """
     global _project_options
+    discover_options()
     path = tag.split(".")
     section = _project_options
     for slug in path:
@@ -254,6 +257,7 @@ def get_module_option(tag):
     :type tag: str
     """
     global _module_option_values, _module_options
+    discover_options()
     tag = _get_module_tag(tag)
 
     if tag in _module_option_values:
@@ -282,6 +286,7 @@ def get_option_descriptors():
     """
     global _options
 
+    discover_options()
     return _options.copy()
 
 
@@ -381,8 +386,8 @@ _om.__dict__["__all__"] = sorted([k for k in vars(_om).keys() if not k.startswit
 
 sys.modules[__name__] = _om
 
-register_option("verbosity", VerbosityOption)
-register_option("profiling", ProfilingOption)
+register_option("verbosity", VerbosityOption())
+register_option("profiling", ProfilingOption())
 
 # Static public API
 __all__ = [
