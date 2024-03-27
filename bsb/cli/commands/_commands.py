@@ -8,7 +8,7 @@ from uuid import uuid4
 import errr
 
 from ..._options import ConfigOption
-from ...config import from_file
+from ...config import parse_configuration_file
 from ...core import Scaffold, from_storage
 from ...exceptions import NodeNotFoundError
 from ...option import BsbOption
@@ -137,7 +137,7 @@ class MakeConfigCommand(BaseCommand, name="make-config"):
 
 class BsbCompile(BaseCommand, name="compile"):
     def handler(self, context):
-        cfg = from_file(context.config)
+        cfg = parse_configuration_file(context.config)
         network = Scaffold(cfg)
         network.resize(context.x, context.y, context.z)
         network.compile(
@@ -179,7 +179,7 @@ class BsbCompile(BaseCommand, name="compile"):
 
 class BsbReconfigure(BaseCommand, name="reconfigure"):
     def handler(self, context):
-        cfg = from_file(context.config)
+        cfg = parse_configuration_file(context.config)
         # Bootstrap the scaffold and clear the storage if not in append mode
         storage = open_storage(context.arguments.network)
         storage.store_active_config(cfg)
@@ -200,7 +200,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
         sim_name = context.arguments.simulation
         extra_simulations = {}
         if config_option.is_set("cli"):
-            extra_simulations = from_file(context.config).simulations
+            extra_simulations = parse_configuration_file(context.config).simulations
             for name, sim in extra_simulations.items():
                 if name not in network.simulations and name == sim_name:
                     network.simulations[sim_name] = sim
