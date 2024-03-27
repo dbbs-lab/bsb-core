@@ -899,7 +899,7 @@ class ConnectivitySet(Interface):
     @abc.abstractmethod
     def exists(engine, tag):
         """
-        Must check the existence of the placement set
+        Must check the existence of the connectivity set
         """
         pass
 

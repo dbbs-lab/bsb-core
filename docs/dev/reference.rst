@@ -13,6 +13,7 @@ Provides several services for optional dependencies.
 .. automodule:: bsb.services
    :members:
    :undoc-members:
+   :exclude-members: JobPool
    :show-inheritance:
 
 bsb.topology._layout module

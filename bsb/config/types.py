@@ -766,6 +766,16 @@ class ndarray(TypeHandler):
         return value.tolist()
 
 
+def none():
+    def type_handler(value, _parent, _key=None):
+        if value is not None:
+            raise TypeError("value is not None")
+        return value
+
+    type_handler.__name__ = "a None value"
+    return type_handler
+
+
 class PackageRequirement(TypeHandler):
     def __call__(self, value):
         from packaging.requirements import Requirement
@@ -806,6 +816,7 @@ __all__ = [
     "method_shortcut",
     "mut_excl",
     "ndarray",
+    "none",
     "number",
     "object_",
     "or_",
