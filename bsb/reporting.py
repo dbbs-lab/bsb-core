@@ -1,8 +1,6 @@
 import sys
 import warnings
 
-from .services import MPI
-
 
 def in_notebook():
     try:
@@ -33,6 +31,7 @@ def report(*message, level=2, ongoing=False, nodes=None, all_nodes=False):
     :type ongoing: bool
     """
     from . import options
+    from .services import MPI
 
     message = " ".join(map(str, message))
     rank = MPI.get_rank()
