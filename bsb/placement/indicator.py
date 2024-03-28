@@ -120,6 +120,7 @@ class PlacementIndicator:
                         rel_pl_density * density_ratio, chunk
                     )
                 elif rel_pl_density_key is not None:
+                    # Use the relation's `guess` to guess according to the relation's density key
                     estimate = rel_ind.guess(chunk, voxels) * density_ratio
                 else:
                     raise PlacementRelationError(
