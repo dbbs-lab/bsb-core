@@ -32,3 +32,5 @@ Module contents
    :undoc-members:
 
    .. autoclass:: bsb.storage._files.MorphologyOperationCallable
+
+   .. autoclass:: bsb.storage._files.OperationCallable

@@ -93,8 +93,8 @@ Configuration parsers
 
 **Category:** ``bsb.config.parsers``
 
-Inherit from :class:`.config.parsers.Parser`. When installed a ``from_<plugin-name>``
-parser function is added to the :mod:`bsb.config` module. You can set the class variable
+Inherit from :class:`~.config.parsers.ConfigurationParser`.
+You can set the class variable
 ``data_description`` to describe what kind of data this parser parses to users. You can
 also set ``data_extensions`` to a sequence of extensions that this parser will be
 considered first for when parsing files of unknown content.

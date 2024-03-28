@@ -25,17 +25,10 @@ bsb.placement.indicator module
    :members:
    :undoc-members:
 
-bsb.placement.particle module
------------------------------
+bsb.placement.random module
+---------------------------
 
-.. automodule:: bsb.placement.particle
-   :members:
-   :undoc-members:
-
-bsb.placement.satellite module
-------------------------------
-
-.. automodule:: bsb.placement.satellite
+.. automodule:: bsb.placement.random
    :members:
    :undoc-members:
 

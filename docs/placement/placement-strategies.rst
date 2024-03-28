@@ -5,7 +5,7 @@ List of placement strategies
 RandomPlacement
 *****************
 
-*Class*: :class:`bsb.placement.RandomPlacement <.placement.particle.RandomPlacement>`
+*Class*: :class:`bsb.placement.RandomPlacement <.placement.random.RandomPlacement>`
 
 
 ParallelArrayPlacement
