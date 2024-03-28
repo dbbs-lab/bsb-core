@@ -93,11 +93,13 @@ def copy_configuration_template(template, output="network_configuration.json", p
     copy_file(files[0], output)
 
 
-def format_configuration_content(parser_name: str, config: "Configuration"):
+def format_configuration_content(parser_name: str, config: "Configuration", **kwargs):
     """
     Convert a configuration object to a string using the given parser.
     """
-    return get_parser(parser_name).generate(config.__tree__(), pretty=True)
+    return get_configuration_parser(parser_name, **kwargs).generate(
+        config.__tree__(), pretty=True
+    )
 
 
 def make_configuration_diagram(config):
@@ -144,6 +146,8 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
 
 
 def _from_parsed(parser_name, tree, meta, file=None):
+    from ._config import Configuration
+
     conf = Configuration(tree)
     conf._parser = parser_name
     conf._meta = meta
@@ -174,8 +178,7 @@ def parse_configuration_content(content, parser=None, path=None, **kwargs):
     elif isinstance(parser, str):
         parser_name = parser
         parser = get_configuration_parser(parser_name, **kwargs)
-        parser.parse(content, path)
-        tree, meta = parser().parse(content, path=path)
+        tree, meta = parser.parse(content, path=path)
     else:
         parser_name = parser.__name__
         tree, meta = parser.parse(content, path=path)
