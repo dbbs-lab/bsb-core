@@ -21,11 +21,22 @@ The BSB requires Python 3.9+.
 
 ### pip
 
-This software can be installed as a Python package from PyPI through pip:
+Any package in the BSB ecosystem can be installed from PyPI through `pip`. Most users
+will want to install the main [bsb](https://pypi.org/project/bsb/) framework:
 
 ```
-pip install "bsb>=4.0.0b0"
+pip install "bsb~=4.0"
 ```
+
+Advanced users looking to control install an unconventional combination of plugins might
+be better of installing just this package, and the desired plugins:
+
+```
+pip install "bsb-core~=4.0"
+```
+
+Note that installing `bsb-core` does not come with any plugins installed and the usually
+available storage engines, or configuration parsers will be missing.
 
 ### Developers
 
