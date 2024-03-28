@@ -12,101 +12,85 @@
     end goal of this module.
 """
 
+import functools
+import typing
 from inspect import isclass
 from typing import Type
 
 from .. import plugins
 from ..exceptions import UnknownStorageEngineError
 from ..services import MPI
-from ._chunks import Chunk, chunklist
-from ._files import (
-    CodeDependencyNode,
-    FileDependency,
-    FileDependencyNode,
-    MorphologyDependencyNode,
-    MorphologyOperation,
-    NrrdDependencyNode,
-    Operation,
-)
-from .interfaces import ConnectivitySet, FileStore, MorphologyRepository, PlacementSet
 
-# Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
-# circular imports anyway.
-Chunk.__module__ = __name__
-# Import the interfaces child module through a relative import as a sibling.
-interfaces = __import__("interfaces", globals=globals(), level=1)
-
-# Collect all classes that are a subclass of Interface except Interface itself and
-# store them in a {class_name: class_object} dictionary
-_storage_interfaces = {
-    interface.__name__: interface
-    for interface in interfaces.__dict__.values()
-    if isclass(interface)
-    and issubclass(interface, interfaces.Interface)
-    and interface is not interfaces.Interface
-}
+if typing.TYPE_CHECKING:
+    from .interfaces import (
+        ConnectivitySet,
+        FileStore,
+        MorphologyRepository,
+        PlacementSet,
+    )
 
 
+@functools.cache
+def get_storage_interfaces():
+    from . import interfaces
+
+    # Collect all classes that are a subclass of Interface except Interface itself and
+    # store them in a {class_name: class_object} dictionary
+    return {
+        interface.__name__: interface
+        for interface in interfaces.__dict__.values()
+        if isclass(interface)
+        and issubclass(interface, interfaces.Interface)
+        and interface is not interfaces.Interface
+    }
+
+
+@functools.cache
 def discover_engines():
     """
     Get a dictionary of all available storage engines.
     """
-    engines = plugins.discover("storage.engines")
-    for engine_name, engine_module in engines.items():
-        register_engine(engine_name, engine_module)
-    return engines
+    return plugins.discover("storage.engines")
 
 
+@functools.cache
+def get_engine_support(engine_name):
+    try:
+        engine_module = discover_engines()[engine_name]
+    except KeyError:
+        raise UnknownStorageEngineError(
+            f"Unknown storage engine '{engine_name}'"
+        ) from None
+    engine_support = {
+        interface_name: NotSupported(interface_name)
+        for interface_name in get_storage_interfaces().keys()
+    }
+    engine_support["StorageNode"] = engine_module.StorageNode
+    # Search for interface support
+    for interface_name, interface in get_storage_interfaces().items():
+        for module_item in engine_module.__dict__.values():
+            # Look through module items for child class of interface
+            if (
+                isclass(module_item)
+                and module_item is not interface
+                and issubclass(module_item, interface)
+            ):
+                engine_support[interface_name] = module_item
+                break
+
+    return engine_support
+
+
+@functools.cache
 def get_engines():
-    global _engines
-    init_engines()
-    return {name: module["Engine"] for name, module in _engines.items()}
+    return {
+        name: get_engine_support(name)["Engine"] for name in discover_engines().keys()
+    }
 
 
 def create_engine(name, root, comm):
-    global _engines
-    if name not in _available_engines:
-        raise UnknownStorageEngineError(f"The storage engine '{name}' was not found.")
-    engine = _engines[name]
-    if callable(engine):
-        # Initializer function found, call it to load the engine.
-        _engines[name] = engine = engine()
     # Create an engine from the engine's Engine interface.
-    return engine["Engine"](root, comm)
-
-
-def init_engines():
-    global _engines
-    for engine_name, engine in _engines.items():
-        if callable(engine):
-            _engines[engine_name] = engine()
-
-
-def register_engine(engine_name, engine_module):
-    def init_engine():
-        # Create engine without any supported interfaces
-        engine_support = {
-            interface_name: NotSupported(engine_name, interface_name)
-            for interface_name in _storage_interfaces.keys()
-        }
-        engine_support["StorageNode"] = engine_module.StorageNode
-        # Search for interface support
-        for interface_name, interface in _storage_interfaces.items():
-            for module_item in engine_module.__dict__.values():
-                # Look through module items for child class of interface
-                if (
-                    isclass(module_item)
-                    and module_item is not interface
-                    and issubclass(module_item, interface)
-                ):
-                    engine_support[interface_name] = module_item
-                    break
-
-        return engine_support
-
-    # Set the initializer as a stub for the engine. When the engine is first used, the
-    # initializer is called.
-    _engines[engine_name] = init_engine
+    return get_engine_support(name)["Engine"](root, comm)
 
 
 class NotSupported:
@@ -117,17 +101,13 @@ class NotSupported:
 
     _iface_engine_key = None
 
-    def __init__(self, engine, operation):
-        # Storage which engine and feature it is that isn't supported.
-        self.engine = engine
+    def __init__(self, operation):
         self.operation = operation
 
     def _unsupported_err(self):
         # Throw an error detailing the lack of support of our engine for our feature.
         raise NotImplementedError(
-            "The {} storage engine does not support the {} feature".format(
-                self.engine.upper(), self.operation
-            )
+            f"The storage engine does not support the {self.operation} feature"
         )
 
     def __call__(self, *args, **kwargs):
@@ -143,10 +123,10 @@ class Storage:
     underlying engine.
     """
 
-    _PlacementSet: Type[PlacementSet]
-    _ConnectivitySet: Type[ConnectivitySet]
-    _MorphologyRepository: Type[MorphologyRepository]
-    _FileStore: Type[FileStore]
+    _PlacementSet: Type["PlacementSet"]
+    _ConnectivitySet: Type["ConnectivitySet"]
+    _MorphologyRepository: Type["MorphologyRepository"]
+    _FileStore: Type["FileStore"]
 
     def __init__(self, engine, root, comm=None, main=0, missing_ok=True):
         """
@@ -174,7 +154,7 @@ class Storage:
         # Load the engine's interface onto the object, this allows the end user to create
         # features, but it is not advised. Usually the Storage object
         # itself provides factory methods that should be used instead.
-        for name, interface in _engines[engine].items():
+        for name, interface in get_engine_support(engine).items():
             if name == "StorageNode":
                 continue
             self.__dict__["_" + name] = interface
@@ -405,13 +385,8 @@ def open_storage(root):
 
 
 def get_engine_node(engine_name):
-    init_engines()
     try:
-        engine = _engines[engine_name]
-    except KeyError:
-        raise RuntimeError(f"Unknown storage engine '{engine_name}'")
-    try:
-        return engine["StorageNode"]
+        return get_engine_support(engine_name)["StorageNode"]
     except KeyError:
         raise RuntimeError(
             f"Broken storage engine plugin '{engine_name}' is missing a StorageNode."
@@ -422,57 +397,31 @@ def view_support(engine=None):
     """
     Return which storage engines support which features.
     """
-    init_engines()
     if engine is None:
         return {
             # Loop over all enginges
             engine_name: {
                 # Loop over all features, check whether they're supported
                 feature_name: not isinstance(feature, NotSupported)
-                for feature_name, feature in engine.items()
+                for feature_name, feature in get_engine_support(engine_name).items()
             }
-            for engine_name, engine in _engines.items()
+            for engine_name in discover_engines()
         }
-    elif engine not in _engines:
-        raise UnknownStorageEngineError(
-            "The storage engine '{}' was not found.".format(engine)
-        )
     else:
         # Loop over all features for the specific engine
         return {
             feature_name: not isinstance(feature, NotSupported)
-            for feature_name, feature in _engines[engine].items()
+            for feature_name, feature in get_engine_support(engine).items()
         }
 
 
-# Module setup:
-# * Discover the engine plugins with `discover_engines`
-# * Store engine initializers in `_engines` through `register_engine`
-# Any time something from `_engines` is used, it should be checked if it is callable. If
-# it is, then the engine plugin is not initialized yet and the function should be called
-# and replaced with its return value.
-_engines = {}
-_available_engines = discover_engines()
-
-
 __all__ = [
-    "Chunk",
-    "CodeDependencyNode",
-    "FileDependency",
-    "FileDependencyNode",
     "NotSupported",
-    "MorphologyDependencyNode",
-    "MorphologyOperation",
-    "NrrdDependencyNode",
-    "Operation",
     "Storage",
-    "chunklist",
     "create_engine",
     "discover_engines",
     "get_engine_node",
     "get_engines",
-    "init_engines",
     "open_storage",
-    "register_engine",
     "view_support",
 ]

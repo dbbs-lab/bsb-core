@@ -247,7 +247,7 @@ class SubmissionContext:
 
     @property
     def chunks(self):
-        from ..storage import chunklist
+        from ..storage._chunks import chunklist
 
         return chunklist(self._chunks) if self._chunks is not None else None
 
@@ -469,7 +469,7 @@ class ConnectivityJob(Job):
     """
 
     def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
-        from ..storage import chunklist
+        from ..storage._chunks import chunklist
 
         args = (strategy.name, pre_roi, post_roi)
         context = SubmissionContext(

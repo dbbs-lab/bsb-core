@@ -21,7 +21,8 @@ from .services import MPI, JobPool
 from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
 from .services.pool import Job, Workflow
 from .simulation import get_simulation_adapter
-from .storage import Chunk, Storage, open_storage
+from .storage import Storage, open_storage
+from .storage._chunks import Chunk
 
 if typing.TYPE_CHECKING:
     from .cell_types import CellType

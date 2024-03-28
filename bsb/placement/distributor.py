@@ -12,7 +12,7 @@ from ..config.types import ndarray
 from ..exceptions import EmptySelectionError
 from ..morphologies import MorphologySet, RotationSet
 from ..profiling import node_meter
-from ..storage import NrrdDependencyNode
+from ..storage._files import NrrdDependencyNode
 from ..topology.partition import Partition
 from .indicator import PlacementIndications
 

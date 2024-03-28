@@ -124,6 +124,7 @@ if typing.TYPE_CHECKING:
   import bsb.simulation.simulation
   import bsb.simulation.targetting
   import bsb.storage
+  import bsb.storage._chunks
   import bsb.storage._files
   import bsb.storage.decorators
   import bsb.storage.interfaces
@@ -166,12 +167,12 @@ CellModelTargetting: typing.Type["bsb.simulation.targetting.CellModelTargetting"
 CellTargetting: typing.Type["bsb.simulation.targetting.CellTargetting"]
 CellType: typing.Type["bsb.cell_types.CellType"]
 CfgReferenceError: typing.Type["bsb.exceptions.CfgReferenceError"]
-Chunk: typing.Type["bsb.storage.Chunk"]
+Chunk: typing.Type["bsb.storage._chunks.Chunk"]
 ChunkError: typing.Type["bsb.exceptions.ChunkError"]
 CircularMorphologyError: typing.Type["bsb.exceptions.CircularMorphologyError"]
 ClassError: typing.Type["bsb.exceptions.ClassError"]
 ClassMapMissingError: typing.Type["bsb.exceptions.ClassMapMissingError"]
-CodeDependencyNode: typing.Type["bsb.storage.CodeDependencyNode"]
+CodeDependencyNode: typing.Type["bsb.storage._files.CodeDependencyNode"]
 CodeImportError: typing.Type["bsb.exceptions.CodeImportError"]
 CommandError: typing.Type["bsb.exceptions.CommandError"]
 CompartmentError: typing.Type["bsb.exceptions.CompartmentError"]
@@ -221,8 +222,8 @@ ExplicitNoRotations: typing.Type["bsb.placement.distributor.ExplicitNoRotations"
 ExternalSourceError: typing.Type["bsb.exceptions.ExternalSourceError"]
 FiberIntersection: typing.Type["bsb.connectivity.detailed.fiber_intersection.FiberIntersection"]
 FiberTransform: typing.Type["bsb.connectivity.detailed.fiber_intersection.FiberTransform"]
-FileDependency: typing.Type["bsb.storage.FileDependency"]
-FileDependencyNode: typing.Type["bsb.storage.FileDependencyNode"]
+FileDependency: typing.Type["bsb.storage._files.FileDependency"]
+FileDependencyNode: typing.Type["bsb.storage._files.FileDependencyNode"]
 FileScheme: typing.Type["bsb.storage._files.FileScheme"]
 FileStore: typing.Type["bsb.storage.interfaces.FileStore"]
 FixedIndegree: typing.Type["bsb.connectivity.general.FixedIndegree"]
@@ -268,11 +269,11 @@ MissingSourceError: typing.Type["bsb.exceptions.MissingSourceError"]
 MorphIOParser: typing.Type["bsb.morphologies.parsers.parser.MorphIOParser"]
 Morphology: typing.Type["bsb.morphologies.Morphology"]
 MorphologyDataError: typing.Type["bsb.exceptions.MorphologyDataError"]
-MorphologyDependencyNode: typing.Type["bsb.storage.MorphologyDependencyNode"]
+MorphologyDependencyNode: typing.Type["bsb.storage._files.MorphologyDependencyNode"]
 MorphologyDistributor: typing.Type["bsb.placement.distributor.MorphologyDistributor"]
 MorphologyError: typing.Type["bsb.exceptions.MorphologyError"]
 MorphologyGenerator: typing.Type["bsb.placement.distributor.MorphologyGenerator"]
-MorphologyOperation: typing.Type["bsb.storage.MorphologyOperation"]
+MorphologyOperation: typing.Type["bsb.storage._files.MorphologyOperation"]
 MorphologyParser: typing.Type["bsb.morphologies.parsers.parser.MorphologyParser"]
 MorphologyRepository: typing.Type["bsb.storage.interfaces.MorphologyRepository"]
 MorphologyRepositoryError: typing.Type["bsb.exceptions.MorphologyRepositoryError"]
@@ -296,9 +297,9 @@ NoneReferenceError: typing.Type["bsb.exceptions.NoneReferenceError"]
 NoopLock: typing.Type["bsb.storage.interfaces.NoopLock"]
 NotParallel: typing.Type["bsb.mixins.NotParallel"]
 NotSupported: typing.Type["bsb.storage.NotSupported"]
-NrrdDependencyNode: typing.Type["bsb.storage.NrrdDependencyNode"]
+NrrdDependencyNode: typing.Type["bsb.storage._files.NrrdDependencyNode"]
 NrrdVoxels: typing.Type["bsb.topology.partition.NrrdVoxels"]
-Operation: typing.Type["bsb.storage.Operation"]
+Operation: typing.Type["bsb.storage._files.Operation"]
 OptionDescriptor: typing.Type["bsb.option.OptionDescriptor"]
 OptionError: typing.Type["bsb.exceptions.OptionError"]
 PackageRequirement: typing.Type["bsb.config.types.PackageRequirement"]
@@ -404,7 +405,7 @@ WorkflowError: typing.Type["bsb.services.WorkflowError"]
 activate_session: "bsb.profiling.activate_session"
 box_layout: "bsb.topology.box_layout"
 branch_iter: "bsb.morphologies.branch_iter"
-chunklist: "bsb.storage.chunklist"
+chunklist: "bsb.storage._chunks.chunklist"
 compose_nodes: "bsb.config.compose_nodes"
 copy_configuration_template: "bsb.config.copy_configuration_template"
 create_engine: "bsb.storage.create_engine"
@@ -431,7 +432,6 @@ get_root_regions: "bsb.topology.get_root_regions"
 get_simulation_adapter: "bsb.simulation.get_simulation_adapter"
 handle_cli: "bsb.cli.handle_cli"
 handle_command: "bsb.cli.handle_command"
-init_engines: "bsb.storage.init_engines"
 is_module_option_set: "bsb.options.is_module_option_set"
 is_partition: "bsb.topology.is_partition"
 is_region: "bsb.topology.is_region"
@@ -449,7 +449,6 @@ parse_morphology_file: "bsb.morphologies.parsers.parse_morphology_file"
 parsers: "bsb.config.parsers"
 read_option: "bsb.options.read_option"
 refs: "bsb.config.refs"
-register_engine: "bsb.storage.register_engine"
 register_option: "bsb.options.register_option"
 register_service: "bsb.services.register_service"
 report: "bsb.reporting.report"

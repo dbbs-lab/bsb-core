@@ -622,4 +622,16 @@ class MorphologyPipelineNode(FilePipelineMixin):
             )
 
 
-__all__ = ["UriScheme", "UrlScheme", "FileScheme", "NeuroMorphoScheme"]
+__all__ = [
+    "CodeDependencyNode",
+    "FileDependency",
+    "FileDependencyNode",
+    "FileScheme",
+    "MorphologyDependencyNode",
+    "MorphologyOperation",
+    "NeuroMorphoScheme",
+    "NrrdDependencyNode",
+    "Operation",
+    "UriScheme",
+    "UrlScheme",
+]
