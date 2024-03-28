@@ -7,19 +7,19 @@ config.attr/dict/list/ref/reflist`` to populate your classes with powerful attri
 """
 
 import builtins
+import functools
 import glob
 import itertools
 import os
 import sys
 import traceback
 import typing
-from importlib.machinery import ModuleSpec
 from shutil import copy2 as copy_file
 
 from .. import plugins
 from .._util import ichain
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
-from . import parsers
+from . import parsers, refs, types
 from ._attrs import (
     ConfigurationAttribute,
     attr,
@@ -47,177 +47,81 @@ from ._make import (
     walk_nodes,
 )
 
-_path = __path__
-ConfigurationAttribute.__module__ = __name__
-
 if typing.TYPE_CHECKING:
     from ._config import Configuration
 
-# Add some static type hinting, to help tools figure out this dynamic module
-Configuration: "Configuration"
+
+@functools.cache
+def __getattr__(name):
+    if name == "Configuration":
+        # Load the Configuration class on demand, not on import, to avoid circular
+        # dependencies.
+        from ._config import Configuration
+
+        return Configuration
+    else:
+        raise object.__getattribute__(sys.modules[__name__], name)
 
 
-# ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
-# document all the properties.
-class ConfigurationModule:
-    from . import refs, types
-
-    def __init__(self, name):
-        self.__name__ = name
-
-    parsers = parsers
-    attr = staticmethod(attr)
-    list = staticmethod(list)
-    dict = staticmethod(dict)
-    ref = staticmethod(ref)
-    reflist = staticmethod(reflist)
-    slot = staticmethod(slot)
-    property = staticmethod(property)
-    provide = staticmethod(provide)
-    catch_all = staticmethod(catch_all)
-    unset = staticmethod(unset)
-
-    node = staticmethod(node)
-    root = staticmethod(root)
-    dynamic = staticmethod(dynamic)
-    pluggable = staticmethod(pluggable)
-    file = staticmethod(file)
-
-    walk_node_attributes = staticmethod(walk_node_attributes)
-    get_config_attributes = staticmethod(get_config_attributes)
-    walk_nodes = staticmethod(walk_nodes)
-    compose_nodes = staticmethod(compose_nodes)
-    on = staticmethod(on)
-    after = staticmethod(after)
-    before = staticmethod(before)
-    run_hook = staticmethod(run_hook)
-    has_hook = staticmethod(has_hook)
-
-    Distribution = Distribution
-
-    _parser_classes = {}
-
-    # The __path__ attribute needs to be retained to mark this module as a package with
-    # submodules (config.refs, config.parsers.json, ...)
-    __path__ = _path
-    __spec__ = ModuleSpec(__name__, __loader__, origin=__file__)
-
-    # Load the Configuration class on demand, not on import, to avoid circular
-    # dependencies.
-    @builtins.property
-    def Configuration(self):
-        if not hasattr(self, "_cfg_cls"):
-            from ._config import Configuration
-
-            self._cfg_cls = Configuration
-            assert self._cfg_cls.__module__ == __name__
-        return self._cfg_cls
-
-    @builtins.property
-    def ConfigurationAttribute(self):
-        return ConfigurationAttribute
-
-    def get_parser(self, parser_name):
-        """
-        Create an instance of a configuration parser that can parse configuration
-        strings into configuration trees, or serialize trees into strings.
-
-        Configuration trees can be cast into Configuration objects.
-        """
-        if parser_name not in self._parser_classes:
-            raise PluginError("Configuration parser '{}' not found".format(parser_name))
-        return self._parser_classes[parser_name]()
-
-    def get_config_path(self):
-        import os
-
-        env_paths = os.environ.get("BSB_CONFIG_PATH", None)
-        if env_paths is None:
-            env_paths = ()
-        else:
-            env_paths = env_paths.split(":")
-        plugin_paths = plugins.discover("config.templates")
-        return [*itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values())]
-
-    def copy_template(self, template, output="network_configuration.json", path=None):
-        path = [
-            *map(
-                os.path.abspath,
-                itertools.chain(self.get_config_path(), path or ()),
-            )
-        ]
-        for d in path:
-            if files := glob.glob(os.path.join(d, template)):
-                break
-        else:
-            raise ConfigTemplateNotFoundError(
-                "'%template%' not found in config path %path%", template, path
-            )
-        copy_file(files[0], output)
-
-    def from_file(self, file):
-        """
-        Create a configuration object from a path or file-like object.
-        """
-        if not hasattr(file, "read"):
-            with open(file, "r") as f:
-                return self.from_file(f)
-        path = getattr(file, "name", None)
-        if path is not None:
-            path = os.path.abspath(path)
-        return self.from_content(file.read(), path)
-
-    def from_content(self, content, path=None):
-        """
-        Create a configuration object from a content string
-        """
-        ext = path.split(".")[-1] if path is not None else None
-        parser, tree, meta = _try_parsers(content, self._parser_classes, ext, path=path)
-        return _from_parsed(self, parser, tree, meta, path)
-
-    def format_content(self, parser_name: str, config: "Configuration"):
-        """
-        Convert a configuration object to a string using the given parser.
-        """
-        return self.get_parser(parser_name).generate(config.__tree__(), pretty=True)
-
-    __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
-
-    def make_config_diagram(self, config):
-        dot = f'digraph "{config.name or "network"}" {{'
-        for c in config.cell_types.values():
-            dot += f'\n  {c.name}[label="{c.name}"]'
-        for name, conn in config.connectivity.items():
-            for pre in conn.presynaptic.cell_types:
-                for post in conn.postsynaptic.cell_types:
-                    dot += f'\n  {pre.name} -> {post.name}[label="{name}"];'
-        dot += "\n}\n"
-        return dot
-
-
-def _parser_method_docs(parser):
-    mod = parser.__module__
-    mod = mod[8:] if mod.startswith("scaffold.") else mod
-    class_role = ":class:`{} <{}.{}>`".format(parser.__name__, mod, parser.__name__)
-    if parser.data_description:
-        descr = " " + parser.data_description
-    else:  # pragma: nocover
-        descr = ""
-    return (
-        "Create a Configuration object from"
-        + descr
-        + " data from an object or file. The data is passed to the "
-        + class_role
-        + """.
-
-        :param file: Path to a file to read the data from.
-        :type file: str
-        :param data: Data object to hand directly to the parser
-        :type data: Any
-        :returns: A Configuration
-        :rtype: :class:`~.config.Configuration`
+def get_parser(parser_name):
     """
-    )
+    Create an instance of a configuration parser that can parse configuration
+    strings into configuration trees, or serialize trees into strings.
+
+    Configuration trees can be cast into Configuration objects.
+    """
+    parsers = plugins.discover("config.parsers")
+    if parser_name not in parsers:
+        raise PluginError("Configuration parser '{}' not found".format(parser_name))
+    return parsers[parser_name]()
+
+
+def get_config_path():
+    import os
+
+    env_paths = os.environ.get("BSB_CONFIG_PATH", None)
+    if env_paths is None:
+        env_paths = ()
+    else:
+        env_paths = env_paths.split(":")
+    plugin_paths = plugins.discover("config.templates")
+    return [*itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values())]
+
+
+def copy_configuration_template(template, output="network_configuration.json", path=None):
+    path = [
+        *map(
+            os.path.abspath,
+            itertools.chain(get_config_path(), path or ()),
+        )
+    ]
+    for d in path:
+        if files := glob.glob(os.path.join(d, template)):
+            break
+    else:
+        raise ConfigTemplateNotFoundError(
+            "'%template%' not found in config path %path%", template, path
+        )
+    copy_file(files[0], output)
+
+
+def format_configuration_content(parser_name: str, config: "Configuration"):
+    """
+    Convert a configuration object to a string using the given parser.
+    """
+    return get_parser(parser_name).generate(config.__tree__(), pretty=True)
+
+
+def make_configuration_diagram(config):
+    dot = f'digraph "{config.name or "network"}" {{'
+    for c in config.cell_types.values():
+        dot += f'\n  {c.name}[label="{c.name}"]'
+    for name, conn in config.connectivity.items():
+        for pre in conn.presynaptic.cell_types:
+            for post in conn.postsynaptic.cell_types:
+                dot += f'\n  {pre.name} -> {post.name}[label="{name}"];'
+    dot += "\n}\n"
+    return dot
 
 
 def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
@@ -251,46 +155,44 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
     raise ParserError("\n".join(ichain(msges)) + f"\n{msg}")
 
 
-def _from_parsed(self, parser_name, tree, meta, file=None):
-    conf = self.Configuration(tree)
+def _from_parsed(parser_name, tree, meta, file=None):
+    conf = Configuration(tree)
     conf._parser = parser_name
     conf._meta = meta
     conf._file = file
     return conf
 
 
-def parser_factory(name, parser):
-    # This factory produces the methods for the `bsb.config.from_*` parser methods that
-    # load the content of a file-like object or a simple string as a Configuration object.
-    def parser_method(self, file=None, data=None, path=None):
-        if file is not None:
-            if hasattr(file, "read"):
-                data = file.read()
-                try:
-                    path = path or os.fspath(file)
-                except TypeError:
-                    pass
-            else:
-                file = os.path.abspath(file)
-                path = path or file
-                with open(file, "r") as f:
-                    data = f.read()
-        tree, meta = parser().parse(data, path=path)
-        return _from_parsed(self, name, tree, meta, file)
-
-    parser_method.__name__ = "from_" + name
-    # parser_method.__doc__ = _parser_method_docs(parser)
-    return parser_method
+def parse_configuration_file(file, parser=None, path=None, **kwargs):
+    if hasattr(file, "read"):
+        data = file.read()
+        try:
+            path = str(path) or os.fspath(file)
+        except TypeError:
+            pass
+    else:
+        file = os.path.abspath(file)
+        path = path or file
+        with open(file, "r") as f:
+            data = f.read()
+    return parse_configuration_content(data, parser, path, **kwargs)
 
 
-# Load all the `config.parsers` plugins and create a `from_*` method for them.
-for name, parser in plugins.discover("config.parsers").items():
-    ConfigurationModule._parser_classes[name] = parser
-    setattr(ConfigurationModule, "from_" + name, parser_factory(name, parser))
-    ConfigurationModule.__all__.append("from_" + name)
+def parse_configuration_content(content, parser=None, path=None, **kwargs):
+    if parser is None:
+        parser_classes = plugins.discover("config.parsers")
+        ext = path.split(".")[-1] if path is not None else None
+        parser_name, tree, meta = _try_parsers(content, parser_classes, ext, path=path)
+    elif isinstance(parser, str):
+        parser_name = parser
+        parser = plugins.discover("config.parsers")[parser_name](**kwargs)
+        parser.parse(content, path)
+        tree, meta = parser().parse(content, path=path)
+    else:
+        parser_name = parser.__name__
+        tree, meta = parser.parse(content, path=path)
+    return _from_parsed(parser_name, tree, meta, path)
 
-ConfigurationModule.__all__ = sorted(ConfigurationModule.__all__)
-sys.modules[__name__] = ConfigurationModule(__name__)
 
 # Static public API
 __all__ = [
@@ -302,23 +204,22 @@ __all__ = [
     "before",
     "catch_all",
     "compose_nodes",
-    "copy_template",
+    "copy_configuration_template",
     "dict",
     "dynamic",
     "file",
-    "format_content",
-    "from_content",
-    "from_file",
-    "from_json",
+    "format_configuration_content",
     "get_config_attributes",
     "get_config_path",
     "get_parser",
     "has_hook",
     "list",
-    "make_config_diagram",
+    "make_configuration_diagram",
     "node",
     "on",
     "parsers",
+    "parse_configuration_file",
+    "parse_configuration_content",
     "pluggable",
     "property",
     "provide",
@@ -337,16 +238,15 @@ __api__ = [
     "ConfigurationAttribute",
     "Distribution",
     "compose_nodes",
-    "copy_template",
-    "format_content",
-    "from_content",
-    "from_file",
-    "from_json",
+    "copy_configuration_template",
+    "format_configuration_content",
     "get_config_attributes",
     "get_config_path",
     "get_parser",
     "make_config_diagram",
     "parsers",
+    "parse_configuration_file",
+    "parse_configuration_content",
     "refs",
     "types",
     "walk_node_attributes",

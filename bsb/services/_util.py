@@ -1,6 +1,6 @@
 import importlib
 
-from ..exceptions import *
+from ..exceptions import DependencyError
 
 
 class ErrorModule:

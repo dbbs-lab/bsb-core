@@ -15,7 +15,7 @@ from .strategy import ConnectionStrategy
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
-    from ..storage import FileDependencyNode
+    from ..storage._files import FileDependencyNode
     from ..topology import Partition
 
 

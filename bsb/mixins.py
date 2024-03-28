@@ -5,7 +5,7 @@ from graphlib import TopologicalSorter
 
 from . import _util as _gutil
 from .reporting import warn
-from .storage import Chunk
+from .storage._chunks import Chunk
 
 if typing.TYPE_CHECKING:
     from .services import JobPool

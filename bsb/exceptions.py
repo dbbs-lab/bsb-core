@@ -56,21 +56,7 @@ _t(
             InvalidReferenceError=_e("value"),
         ),
         NodeNotFoundError=_e("query"),
-        AdapterError=_e(
-            NeuronError=_e(
-                DeviceConnectionError=_e(),
-                TransmitterError=_e(),
-            ),
-            NestError=_e(
-                NestKernelError=_e(
-                    NestModuleError=_e(),
-                ),
-                NestModelError=_e(),
-                NestConnectError=_e(),
-            ),
-            ParallelIntegrityError=_e("rank"),
-            ArborError=_e(),
-        ),
+        AdapterError=_e(),
         ConnectivityError=_e(
             ExternalSourceError=_e(
                 MissingSourceError=_e(),
@@ -170,7 +156,6 @@ class PackageRequirementWarning(ScaffoldWarning):
 __all__ = [
     "AdapterError",
     "AllenApiError",
-    "ArborError",
     "AttributeMissingError",
     "BootError",
     "CLIError",
@@ -197,7 +182,6 @@ __all__ = [
     "DatasetExistsError",
     "DatasetNotFoundError",
     "DependencyError",
-    "DeviceConnectionError",
     "DistributionCastError",
     "DistributorError",
     "DryrunError",
@@ -230,12 +214,6 @@ __all__ = [
     "MorphologyError",
     "MorphologyRepositoryError",
     "MorphologyWarning",
-    "NestConnectError",
-    "NestError",
-    "NestKernelError",
-    "NestModelError",
-    "NestModuleError",
-    "NeuronError",
     "NoReferenceAttributeSignal",
     "NodeNotFoundError",
     "NoneReferenceError",
@@ -243,7 +221,6 @@ __all__ = [
     "PackageRequirementWarning",
     "PackingError",
     "PackingWarning",
-    "ParallelIntegrityError",
     "ParameterError",
     "ParserError",
     "PlacementError",
@@ -262,7 +239,6 @@ __all__ = [
     "SourceQualityError",
     "StorageError",
     "TopologyError",
-    "TransmitterError",
     "TreeError",
     "TypeHandlingError",
     "UnfitClassCastError",

@@ -29,16 +29,16 @@ class CLIContext(Context):
 
 
 def reset_cli_context():
-    from .options import get_options
+    from .options import get_option_descriptors
 
-    for opt in get_options().values():
+    for opt in get_option_descriptors().values():
         del opt.cli
 
 
 def get_cli_context():
-    from .options import get_options
+    from .options import get_option_descriptors
 
-    return CLIContext(get_options())
+    return CLIContext(get_option_descriptors())
 
 
 def _tags_to_namespace(tags):

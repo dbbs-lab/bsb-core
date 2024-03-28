@@ -331,7 +331,7 @@ def file(**kwargs):
     """
     Create a file dependency attribute.
     """
-    from ..storage import FileDependencyNode
+    from ..storage._files import FileDependencyNode
 
     kwargs.setdefault("type", FileDependencyNode)
     return attr(**kwargs)

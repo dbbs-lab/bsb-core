@@ -21,7 +21,8 @@ from .services import MPI, JobPool
 from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
 from .services.pool import Job, Workflow
 from .simulation import get_simulation_adapter
-from .storage import Chunk, Storage, open_storage
+from .storage import Storage, open_storage
+from .storage._chunks import Chunk
 
 if typing.TYPE_CHECKING:
     from .cell_types import CellType
@@ -86,7 +87,7 @@ def _get_linked_config(storage=None):
         path = cfg._meta.get("path", None)
     if path and os.path.exists(path):
         with open(path, "r") as f:
-            cfg = bsb.config.from_file(f)
+            cfg = bsb.config.parse_configuration_file(f)
             return cfg
     else:
         return None
@@ -716,9 +717,9 @@ class Scaffold:
         return [*self.configuration.morphologies]
 
     def get_config_diagram(self):
-        from .config import make_config_diagram
+        from .config import make_configuration_diagram
 
-        return make_config_diagram(self.configuration)
+        return make_configuration_diagram(self.configuration)
 
     def get_storage_diagram(self):
         dot = f'digraph "{self.configuration.name or "network"}" {{'

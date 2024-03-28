@@ -19,7 +19,7 @@ from ..exceptions import (
     NodeNotFoundError,
     RequirementError,
 )
-from ..storage import Chunk
+from ..storage._chunks import Chunk
 from ..storage._files import NrrdDependencyNode
 from ..storage._util import _cached_file
 from ..voxels import VoxelSet
