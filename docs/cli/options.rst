@@ -52,24 +52,24 @@ Using project values
 
 Project values are stored in the Python project configuration file ``pyproject.toml`` in
 the ``tools.bsb`` section. You can modify the `TOML <https://toml.io/en/>`_ content in the
-file, or use :func:`.options.store`:
+file, or use :func:`.options.store_option`:
 
 .. _store:
 
 .. code-block:: python
 
-  import bsb.options
+  from bsb import store_option
 
-  bsb.options.store("verbosity", 4)
+  store_option("verbosity", 4)
 
 The value will be written to ``pyproject.toml`` and saved permanently at project level. To
-read any ``pyproject.toml`` values you can use :func:`.options.read`:
+read any ``pyproject.toml`` values you can use :func:`.options.read_option`:
 
 .. code-block:: python
 
-  import bsb.options
+  from bsb import read_option
 
-  link = bsb.options.read("networks.config_link")
+  link = read_option("networks.config_link")
 
 Using env values
 ----------------

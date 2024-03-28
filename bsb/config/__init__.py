@@ -18,8 +18,8 @@ from shutil import copy2 as copy_file
 
 from .. import plugins
 from .._util import ichain
-from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
-from . import parsers, refs, types
+from ..exceptions import ConfigTemplateNotFoundError, ParserError
+from . import refs, types
 from ._attrs import (
     ConfigurationAttribute,
     attr,
@@ -46,6 +46,7 @@ from ._make import (
     walk_node_attributes,
     walk_nodes,
 )
+from .parsers import get_configuration_parser, get_configuration_parser_classes
 
 if typing.TYPE_CHECKING:
     from ._config import Configuration
@@ -61,19 +62,6 @@ def __getattr__(name):
         return Configuration
     else:
         raise object.__getattribute__(sys.modules[__name__], name)
-
-
-def get_parser(parser_name):
-    """
-    Create an instance of a configuration parser that can parse configuration
-    strings into configuration trees, or serialize trees into strings.
-
-    Configuration trees can be cast into Configuration objects.
-    """
-    parsers = plugins.discover("config.parsers")
-    if parser_name not in parsers:
-        raise PluginError("Configuration parser '{}' not found".format(parser_name))
-    return parsers[parser_name]()
 
 
 def get_config_path():
@@ -105,11 +93,13 @@ def copy_configuration_template(template, output="network_configuration.json", p
     copy_file(files[0], output)
 
 
-def format_configuration_content(parser_name: str, config: "Configuration"):
+def format_configuration_content(parser_name: str, config: "Configuration", **kwargs):
     """
     Convert a configuration object to a string using the given parser.
     """
-    return get_parser(parser_name).generate(config.__tree__(), pretty=True)
+    return get_configuration_parser(parser_name, **kwargs).generate(
+        config.__tree__(), pretty=True
+    )
 
 
 def make_configuration_diagram(config):
@@ -156,6 +146,8 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
 
 
 def _from_parsed(parser_name, tree, meta, file=None):
+    from ._config import Configuration
+
     conf = Configuration(tree)
     conf._parser = parser_name
     conf._meta = meta
@@ -180,14 +172,13 @@ def parse_configuration_file(file, parser=None, path=None, **kwargs):
 
 def parse_configuration_content(content, parser=None, path=None, **kwargs):
     if parser is None:
-        parser_classes = plugins.discover("config.parsers")
+        parser_classes = get_configuration_parser_classes()
         ext = path.split(".")[-1] if path is not None else None
         parser_name, tree, meta = _try_parsers(content, parser_classes, ext, path=path)
     elif isinstance(parser, str):
         parser_name = parser
-        parser = plugins.discover("config.parsers")[parser_name](**kwargs)
-        parser.parse(content, path)
-        tree, meta = parser().parse(content, path=path)
+        parser = get_configuration_parser(parser_name, **kwargs)
+        tree, meta = parser.parse(content, path=path)
     else:
         parser_name = parser.__name__
         tree, meta = parser.parse(content, path=path)
@@ -211,19 +202,18 @@ __all__ = [
     "format_configuration_content",
     "get_config_attributes",
     "get_config_path",
-    "get_parser",
     "has_hook",
     "list",
     "make_configuration_diagram",
     "node",
     "on",
-    "parsers",
     "parse_configuration_file",
     "parse_configuration_content",
     "pluggable",
     "property",
     "provide",
     "ref",
+    "refs",
     "reflist",
     "root",
     "run_hook",
@@ -242,9 +232,7 @@ __api__ = [
     "format_configuration_content",
     "get_config_attributes",
     "get_config_path",
-    "get_parser",
     "make_config_diagram",
-    "parsers",
     "parse_configuration_file",
     "parse_configuration_content",
     "refs",

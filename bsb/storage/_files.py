@@ -480,6 +480,10 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 
 class MorphologyOperationCallable(OperationCallable):
+    """
+    Hello
+    """
+
     def __call__(self, obj: "Morphology", **kwargs: typing.Any) -> "Morphology":
         pass
 

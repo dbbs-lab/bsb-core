@@ -74,7 +74,7 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         :func:`~bsb.core.Scaffold.place_cells` method.
 
         :param chunk: Chunk to fill
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :param indicators: Dictionary of each cell type to its PlacementIndicator
         :type indicators: Mapping[str, bsb.placement.indicator.PlacementIndicator]
         """
