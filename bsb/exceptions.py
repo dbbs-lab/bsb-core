@@ -107,12 +107,7 @@ _t(
         ),
         DataNotProvidedError=_e(),
         PluginError=_e("plugin"),
-        ParserError=_e(
-            JsonParseError=_e(
-                JsonReferenceError=_e(),
-                JsonImportError=_e(),
-            ),
-        ),
+        ParserError=_e(),
         ClassError=_e(),
     ),
 )
@@ -142,10 +137,6 @@ class MorphologyWarning(ScaffoldWarning):
 
 
 class ConnectivityWarning(ScaffoldWarning):
-    pass
-
-
-class QuiverFieldWarning(ScaffoldWarning):
     pass
 
 
@@ -203,9 +194,6 @@ __all__ = [
     "JobPoolContextError",
     "JobPoolError",
     "JobSchedulingError",
-    "JsonImportError",
-    "JsonParseError",
-    "JsonReferenceError",
     "LayoutError",
     "MissingActiveConfigError",
     "MissingMorphologyError",
@@ -227,7 +215,6 @@ __all__ = [
     "PlacementRelationError",
     "PlacementWarning",
     "PluginError",
-    "QuiverFieldWarning",
     "ReadOnlyOptionError",
     "RedoError",
     "ReificationError",

@@ -460,7 +460,7 @@ class PlacementSet(Interface):
         Clear (some chunks of) the placement set.
 
         :param chunks: If given, the specific chunks to clear.
-        :type chunks: List[bsb.storage.Chunk]
+        :type chunks: List[bsb.storage._chunks.Chunk]
         """
         pass
 
@@ -470,7 +470,7 @@ class PlacementSet(Interface):
         Get all the chunks that exist in the placement set.
 
         :returns: List of existing chunks.
-        :rtype: List[bsb.storage.Chunk]
+        :rtype: List[bsb.storage._chunks.Chunk]
         """
         pass
 
@@ -544,7 +544,7 @@ class PlacementSet(Interface):
         morphologies, but no positions, is not allowed, passing just positions is allowed)
 
         :param chunk: The chunk to store data in.
-        :type chunk: ~bsb.storage.Chunk
+        :type chunk: ~bsb.storage._chunks.Chunk
         :param positions: Cell positions
         :type positions: numpy.ndarray
         :param rotations: Cell rotations
@@ -568,7 +568,7 @@ class PlacementSet(Interface):
 
         :param name:
         :param chunk: The chunk to store data in.
-        :type chunk: ~bsb.storage.Chunk
+        :type chunk: ~bsb.storage._chunks.Chunk
         :param data: Arbitrary user data. You decide |:heart:|
         :type data: numpy.ndarray
         """
@@ -584,7 +584,7 @@ class PlacementSet(Interface):
         Should limit the scope of the placement set to the given chunks.
 
         :param chunks: List of chunks
-        :type chunks: list[bsb.storage.Chunk]
+        :type chunks: list[bsb.storage._chunks.Chunk]
         """
         pass
 
@@ -1061,7 +1061,7 @@ class ConnectivityIterator:
 
         :returns: The presynaptic chunk, presynaptic locations, postsynaptic chunk,
           and postsynaptic locations.
-        :rtype: Tuple[~bsb.storage.Chunk, numpy.ndarray, ~bsb.storage.Chunk, numpy.ndarray]
+        :rtype: Tuple[~bsb.storage._chunks.Chunk, numpy.ndarray, ~bsb.storage._chunks.Chunk, numpy.ndarray]
         """
         yield from (
             self._offset_block(*data)

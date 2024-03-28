@@ -43,12 +43,12 @@
   },
   "placement": {
     "base_placement": {
-      "strategy": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.RandomPlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
     },
     "top_placement": {
-      "strategy": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.RandomPlacement",
       "cell_types": ["top_type"],
       "partitions": ["top_layer"]
     }
