@@ -587,7 +587,7 @@ class JobPool:
         return MPI.get_rank() == 0
 
     def get_submissions_of(self, submitter):
-        return [job for job in self._job_queue if job.su]
+        return [job for job in self._job_queue if job.submitter == submitter]
 
     def _put(self, job):
         """
