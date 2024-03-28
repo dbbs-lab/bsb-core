@@ -112,16 +112,19 @@ class PlacementIndicator:
                 rel_ind = PlacementIndicator(self._strat, relation)
                 rel_density = rel_ind.indication("density")
                 rel_pl_density = rel_ind.indication("planar_density")
+                rel_pl_density_key = rel_ind.indication("density_key")
                 if rel_density is not None:
                     estimate = self._density_to_estim(rel_density * density_ratio, chunk)
                 elif rel_pl_density is not None:
                     estimate = self._pdensity_to_estim(
                         rel_pl_density * density_ratio, chunk
                     )
+                elif rel_pl_density_key is not None:
+                    estimate = rel_ind.guess(chunk, voxels) * density_ratio
                 else:
                     raise PlacementRelationError(
                         f"{self.cell_type.name} requires relation {relation.name}"
-                        + "to specify density information."
+                        + " to specify density information."
                     )
             else:
                 raise PlacementError(
