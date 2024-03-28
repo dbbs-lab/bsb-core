@@ -18,7 +18,7 @@ from shutil import copy2 as copy_file
 
 from .. import plugins
 from .._util import ichain
-from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
+from ..exceptions import ConfigTemplateNotFoundError, ParserError
 from . import refs, types
 from ._attrs import (
     ConfigurationAttribute,
@@ -46,6 +46,7 @@ from ._make import (
     walk_node_attributes,
     walk_nodes,
 )
+from .parsers import get_configuration_parser, get_configuration_parser_classes
 
 if typing.TYPE_CHECKING:
     from ._config import Configuration
@@ -61,19 +62,6 @@ def __getattr__(name):
         return Configuration
     else:
         raise object.__getattribute__(sys.modules[__name__], name)
-
-
-def get_parser(parser_name):
-    """
-    Create an instance of a configuration parser that can parse configuration
-    strings into configuration trees, or serialize trees into strings.
-
-    Configuration trees can be cast into Configuration objects.
-    """
-    parsers = plugins.discover("config.parsers")
-    if parser_name not in parsers:
-        raise PluginError("Configuration parser '{}' not found".format(parser_name))
-    return parsers[parser_name]()
 
 
 def get_config_path():
@@ -180,12 +168,12 @@ def parse_configuration_file(file, parser=None, path=None, **kwargs):
 
 def parse_configuration_content(content, parser=None, path=None, **kwargs):
     if parser is None:
-        parser_classes = plugins.discover("config.parsers")
+        parser_classes = get_configuration_parser_classes()
         ext = path.split(".")[-1] if path is not None else None
         parser_name, tree, meta = _try_parsers(content, parser_classes, ext, path=path)
     elif isinstance(parser, str):
         parser_name = parser
-        parser = plugins.discover("config.parsers")[parser_name](**kwargs)
+        parser = get_configuration_parser(parser_name, **kwargs)
         parser.parse(content, path)
         tree, meta = parser().parse(content, path=path)
     else:
@@ -211,7 +199,6 @@ __all__ = [
     "format_configuration_content",
     "get_config_attributes",
     "get_config_path",
-    "get_parser",
     "has_hook",
     "list",
     "make_configuration_diagram",
@@ -242,7 +229,6 @@ __api__ = [
     "format_configuration_content",
     "get_config_attributes",
     "get_config_path",
-    "get_parser",
     "make_config_diagram",
     "parse_configuration_file",
     "parse_configuration_content",

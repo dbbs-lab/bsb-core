@@ -1,4 +1,7 @@
 import abc
+import functools
+
+from ..exceptions import PluginError
 
 
 class ConfigurationParser(abc.ABC):
@@ -11,14 +14,28 @@ class ConfigurationParser(abc.ABC):
         pass
 
 
-def get_parser_classes():
+@functools.cache
+def get_configuration_parser_classes():
     from ..plugins import discover
 
     return discover("config.parsers")
 
 
-def get_parser(parser):
-    return get_parser_classes()[parser]()
+def get_configuration_parser(parser, **kwargs):
+    """
+    Create an instance of a configuration parser that can parse configuration
+    strings into configuration trees, or serialize trees into strings.
+
+    Configuration trees can be cast into Configuration objects.
+    """
+    parsers = get_configuration_parser_classes()
+    if parser not in parsers:
+        raise PluginError(f"Configuration parser '{parser}' not found")
+    return parsers[parser](**kwargs)
 
 
-__all__ = ["ConfigurationParser", "get_parser", "get_parser_classes"]
+__all__ = [
+    "ConfigurationParser",
+    "get_configuration_parser",
+    "get_configuration_parser_classes",
+]
