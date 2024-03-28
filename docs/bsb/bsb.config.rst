@@ -36,6 +36,8 @@ Module contents
    :undoc-members:
    :show-inheritance:
 
+   .. autoclass:: bsb.config.Configuration
+
 Dev
 ---
 

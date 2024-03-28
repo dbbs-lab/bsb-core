@@ -111,3 +111,6 @@ def _safe_ids(self, other):
         np.array(self, copy=False).view(Chunk)._safe_id(),
         np.array(other, copy=False).view(Chunk)._safe_id(),
     )
+
+
+__all__ = ["Chunk", "chunklist"]

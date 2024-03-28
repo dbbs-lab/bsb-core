@@ -36,7 +36,6 @@ Project settings are contained in the ``pyproject.toml`` file.
   verbosity = 3
 
   [tools.bsb.links]
-  morpho = [ "sys", "morphologies.hdf5", "newer",]
   config = "auto"
 
   [tools.bsb.links."thalamus.hdf5"]

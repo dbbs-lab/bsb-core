@@ -12,7 +12,7 @@ from ..exceptions import DistributorError, EmptySelectionError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
 from ..reporting import warn
-from ..storage import Chunk
+from ..storage._chunks import Chunk
 from ..voxels import VoxelSet
 from .distributor import DistributorsNode
 from .indicator import PlacementIndications, PlacementIndicator
