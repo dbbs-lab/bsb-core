@@ -79,8 +79,8 @@ docs = [
     "sphinx_design~=0.5.0",
     "sphinx-copybutton~=0.5.0",
     "sphinxext-bsb~=0.2.2",
-    "bsb-json>=0.0.0b5",
-    "bsb-yaml>=0.0.0b4",
+    "bsb-json>=0.0.0b7",
+    "bsb-yaml>=0.0.0b5",
 ]
 dev = [
     "build~=1.0",
