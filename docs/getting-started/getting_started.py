@@ -18,7 +18,7 @@ config.regions.add(
 config.cell_types.add("top_type", spatial=dict(radius=7, count=10))
 config.placement.add(
     "all_placement",
-    strategy="bsb.placement.ParticlePlacement",
+    strategy="bsb.placement.RandomPlacement",
     cell_types=["base_type", "top_type"],
     partitions=["base_layer"],
 )

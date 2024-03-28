@@ -205,7 +205,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
             partitions=dict(test_part=dict(type="test")),
             placement=dict(
                 voxel_density=dict(
-                    strategy="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.RandomPlacement",
                     partitions=["test_part"],
                     cell_types=["test_cell"],
                 )
@@ -247,7 +247,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
                     cell_types=["test_cell2"],
                 ),
                 ch4_c25=dict(
-                    strategy="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.RandomPlacement",
                     partitions=["first_layer"],
                     cell_types=["test_cell"],
                 ),

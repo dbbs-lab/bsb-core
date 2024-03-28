@@ -85,9 +85,7 @@ if typing.TYPE_CHECKING:
   import bsb.config.parsers
   import bsb.config.refs
   import bsb.config.types
-  import bsb.connectivity.detailed.fiber_intersection
   import bsb.connectivity.detailed.shared
-  import bsb.connectivity.detailed.touch_detection
   import bsb.connectivity.detailed.voxel_intersection
   import bsb.connectivity.general
   import bsb.connectivity.import_
@@ -105,8 +103,7 @@ if typing.TYPE_CHECKING:
   import bsb.placement.distributor
   import bsb.placement.import_
   import bsb.placement.indicator
-  import bsb.placement.particle
-  import bsb.placement.satellite
+  import bsb.placement.random
   import bsb.placement.strategy
   import bsb.plugins
   import bsb.postprocessing
@@ -136,7 +133,6 @@ if typing.TYPE_CHECKING:
 
 AdapterError: typing.Type["bsb.exceptions.AdapterError"]
 AdapterProgress: typing.Type["bsb.simulation.adapter.AdapterProgress"]
-AdaptiveNeighbourhood: typing.Type["bsb.placement.particle.AdaptiveNeighbourhood"]
 AfterConnectivityHook: typing.Type["bsb.postprocessing.AfterConnectivityHook"]
 AfterPlacementHook: typing.Type["bsb.postprocessing.AfterPlacementHook"]
 AllToAll: typing.Type["bsb.connectivity.general.AllToAll"]
@@ -144,7 +140,6 @@ AllenApiError: typing.Type["bsb.exceptions.AllenApiError"]
 AllenStructure: typing.Type["bsb.topology.partition.AllenStructure"]
 AttributeMissingError: typing.Type["bsb.exceptions.AttributeMissingError"]
 BaseCommand: typing.Type["bsb.cli.commands.BaseCommand"]
-BaseParser: typing.Type["bsb.cli.commands.BaseParser"]
 BidirectionalContact: typing.Type["bsb.postprocessing.BidirectionalContact"]
 BootError: typing.Type["bsb.exceptions.BootError"]
 BoxTree: typing.Type["bsb.voxels.BoxTree"]
@@ -181,6 +176,7 @@ Configuration: typing.Type["bsb.config.Configuration"]
 ConfigurationAttribute: typing.Type["bsb.config.ConfigurationAttribute"]
 ConfigurationError: typing.Type["bsb.exceptions.ConfigurationError"]
 ConfigurationFormatError: typing.Type["bsb.exceptions.ConfigurationFormatError"]
+ConfigurationParser: typing.Type["bsb.config.parsers.ConfigurationParser"]
 ConfigurationWarning: typing.Type["bsb.exceptions.ConfigurationWarning"]
 ConnectionModel: typing.Type["bsb.simulation.connection.ConnectionModel"]
 ConnectionStrategy: typing.Type["bsb.connectivity.strategy.ConnectionStrategy"]
@@ -218,8 +214,6 @@ Entities: typing.Type["bsb.placement.strategy.Entities"]
 EnvOptionDescriptor: typing.Type["bsb.option.EnvOptionDescriptor"]
 ExplicitNoRotations: typing.Type["bsb.placement.distributor.ExplicitNoRotations"]
 ExternalSourceError: typing.Type["bsb.exceptions.ExternalSourceError"]
-FiberIntersection: typing.Type["bsb.connectivity.detailed.fiber_intersection.FiberIntersection"]
-FiberTransform: typing.Type["bsb.connectivity.detailed.fiber_intersection.FiberTransform"]
 FileDependency: typing.Type["bsb.storage._files.FileDependency"]
 FileDependencyNode: typing.Type["bsb.storage._files.FileDependencyNode"]
 FileScheme: typing.Type["bsb.storage._files.FileScheme"]
@@ -250,11 +244,7 @@ JobPool: typing.Type["bsb.services.JobPool"]
 JobPoolContextError: typing.Type["bsb.exceptions.JobPoolContextError"]
 JobPoolError: typing.Type["bsb.exceptions.JobPoolError"]
 JobSchedulingError: typing.Type["bsb.exceptions.JobSchedulingError"]
-JsonImportError: typing.Type["bsb.exceptions.JsonImportError"]
-JsonParseError: typing.Type["bsb.exceptions.JsonParseError"]
-JsonReferenceError: typing.Type["bsb.exceptions.JsonReferenceError"]
 LabelTargetting: typing.Type["bsb.simulation.targetting.LabelTargetting"]
-LargeParticleSystem: typing.Type["bsb.placement.particle.LargeParticleSystem"]
 Layer: typing.Type["bsb.topology.partition.Layer"]
 LayoutError: typing.Type["bsb.exceptions.LayoutError"]
 LocationTargetting: typing.Type["bsb.simulation.targetting.LocationTargetting"]
@@ -279,7 +269,6 @@ MorphologySelector: typing.Type["bsb.morphologies.selector.MorphologySelector"]
 MorphologySet: typing.Type["bsb.morphologies.MorphologySet"]
 MorphologyWarning: typing.Type["bsb.exceptions.MorphologyWarning"]
 NameSelector: typing.Type["bsb.morphologies.selector.NameSelector"]
-Neighbourhood: typing.Type["bsb.placement.particle.Neighbourhood"]
 NetworkDescription: typing.Type["bsb.storage.interfaces.NetworkDescription"]
 NeuroMorphoScheme: typing.Type["bsb.storage._files.NeuroMorphoScheme"]
 NeuroMorphoSelector: typing.Type["bsb.morphologies.selector.NeuroMorphoSelector"]
@@ -302,12 +291,7 @@ ParallelArrayPlacement: typing.Type["bsb.placement.arrays.ParallelArrayPlacement
 Parameter: typing.Type["bsb.simulation.parameter.Parameter"]
 ParameterError: typing.Type["bsb.exceptions.ParameterError"]
 ParameterValue: typing.Type["bsb.simulation.parameter.ParameterValue"]
-Parser: typing.Type["bsb.config.parsers.Parser"]
 ParserError: typing.Type["bsb.exceptions.ParserError"]
-Particle: typing.Type["bsb.placement.particle.Particle"]
-ParticlePlacement: typing.Type["bsb.placement.particle.ParticlePlacement"]
-ParticleSystem: typing.Type["bsb.placement.particle.ParticleSystem"]
-ParticleVoxel: typing.Type["bsb.placement.particle.ParticleVoxel"]
 Partition: typing.Type["bsb.topology.partition.Partition"]
 PlacementError: typing.Type["bsb.exceptions.PlacementError"]
 PlacementIndications: typing.Type["bsb.cell_types.PlacementIndications"]
@@ -321,10 +305,8 @@ PluginError: typing.Type["bsb.exceptions.PluginError"]
 ProfilingSession: typing.Type["bsb.profiling.ProfilingSession"]
 ProgressEvent: typing.Type["bsb.simulation.simulation.ProgressEvent"]
 ProjectOptionDescriptor: typing.Type["bsb.option.ProjectOptionDescriptor"]
-QuiverFieldWarning: typing.Type["bsb.exceptions.QuiverFieldWarning"]
-QuiverTransform: typing.Type["bsb.connectivity.detailed.fiber_intersection.QuiverTransform"]
 RandomMorphologies: typing.Type["bsb.placement.distributor.RandomMorphologies"]
-RandomPlacement: typing.Type["bsb.placement.particle.RandomPlacement"]
+RandomPlacement: typing.Type["bsb.placement.random.RandomPlacement"]
 RandomRotations: typing.Type["bsb.placement.distributor.RandomRotations"]
 ReadOnlyManager: typing.Type["bsb.storage.interfaces.ReadOnlyManager"]
 ReadOnlyOptionError: typing.Type["bsb.exceptions.ReadOnlyOptionError"]
@@ -342,8 +324,6 @@ RootCommand: typing.Type["bsb.cli.commands.RootCommand"]
 RotationDistributor: typing.Type["bsb.placement.distributor.RotationDistributor"]
 RotationSet: typing.Type["bsb.morphologies.RotationSet"]
 RoundRobinMorphologies: typing.Type["bsb.placement.distributor.RoundRobinMorphologies"]
-Satellite: typing.Type["bsb.placement.satellite.Satellite"]
-SatelliteIndicator: typing.Type["bsb.placement.satellite.SatelliteIndicator"]
 Scaffold: typing.Type["bsb.core.Scaffold"]
 ScaffoldError: typing.Type["bsb.exceptions.ScaffoldError"]
 ScaffoldWarning: typing.Type["bsb.exceptions.ScaffoldWarning"]
@@ -357,7 +337,6 @@ SimulationError: typing.Type["bsb.exceptions.SimulationError"]
 SimulationRecorder: typing.Type["bsb.simulation.results.SimulationRecorder"]
 SimulationResult: typing.Type["bsb.simulation.results.SimulationResult"]
 SimulatorAdapter: typing.Type["bsb.simulation.adapter.SimulatorAdapter"]
-SmallestNeighbourhood: typing.Type["bsb.placement.particle.SmallestNeighbourhood"]
 SomaTargetting: typing.Type["bsb.simulation.targetting.SomaTargetting"]
 SourceQualityError: typing.Type["bsb.exceptions.SourceQualityError"]
 SphericalTargetting: typing.Type["bsb.simulation.targetting.SphericalTargetting"]
@@ -371,8 +350,6 @@ StoredMorphology: typing.Type["bsb.storage.interfaces.StoredMorphology"]
 SubTree: typing.Type["bsb.morphologies.SubTree"]
 Targetting: typing.Type["bsb.simulation.targetting.Targetting"]
 TopologyError: typing.Type["bsb.exceptions.TopologyError"]
-TouchDetector: typing.Type["bsb.connectivity.detailed.touch_detection.TouchDetector"]
-TouchInformation: typing.Type["bsb.connectivity.detailed.touch_detection.TouchInformation"]
 TreeError: typing.Type["bsb.exceptions.TreeError"]
 TypeHandler: typing.Type["bsb.config.types.TypeHandler"]
 TypeHandlingError: typing.Type["bsb.exceptions.TypeHandlingError"]
@@ -414,7 +391,7 @@ get_option: "bsb.options.get_option"
 get_option_classes: "bsb.options.get_option_classes"
 get_option_descriptor: "bsb.options.get_option_descriptor"
 get_option_descriptors: "bsb.options.get_option_descriptors"
-get_parser: "bsb.config.parsers.get_parser"
+get_parser: "bsb.config.get_parser"
 get_parser_classes: "bsb.config.parsers.get_parser_classes"
 get_partitions: "bsb.topology.get_partitions"
 get_project_option: "bsb.options.get_project_option"
@@ -436,7 +413,6 @@ parse_configuration_content: "bsb.config.parse_configuration_content"
 parse_configuration_file: "bsb.config.parse_configuration_file"
 parse_morphology_content: "bsb.morphologies.parsers.parse_morphology_content"
 parse_morphology_file: "bsb.morphologies.parsers.parse_morphology_file"
-parsers: "bsb.config.parsers"
 read_option: "bsb.options.read_option"
 refs: "bsb.config.refs"
 register_option: "bsb.options.register_option"

@@ -72,7 +72,7 @@ class PlacementIndicator:
         Float estimates are converted to int using an acceptance-rejection method.
 
         :param chunk: if provided, will estimate the number of cell within the Chunk.
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :param voxels: if provided, will estimate the number of cell within the VoxelSet.
             Only for cells with the indication "density_key" set or with the indication
             "relative_to" set and the target cell has the indication "density_key" set.

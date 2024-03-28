@@ -19,7 +19,7 @@ from shutil import copy2 as copy_file
 from .. import plugins
 from .._util import ichain
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
-from . import parsers, refs, types
+from . import refs, types
 from ._attrs import (
     ConfigurationAttribute,
     attr,
@@ -217,13 +217,13 @@ __all__ = [
     "make_configuration_diagram",
     "node",
     "on",
-    "parsers",
     "parse_configuration_file",
     "parse_configuration_content",
     "pluggable",
     "property",
     "provide",
     "ref",
+    "refs",
     "reflist",
     "root",
     "run_hook",
@@ -244,7 +244,6 @@ __api__ = [
     "get_config_path",
     "get_parser",
     "make_config_diagram",
-    "parsers",
     "parse_configuration_file",
     "parse_configuration_content",
     "refs",

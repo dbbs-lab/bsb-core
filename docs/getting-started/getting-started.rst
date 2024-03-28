@@ -123,9 +123,8 @@ The ``placement`` blocks use the cell type indications to place cell types into
 partitions. You can use other :class:`PlacementStrategies
 <.placement.strategy.PlacementStrategy>` by setting the :guilabel:`strategy` attribute.
 The BSB offers some strategies out of the box, or you can implement your own. The
-:class:`~bsb.placement.particle.ParticlePlacement` considers the cells as spheres and
-bumps them around as repelling particles until there is no overlap between them. The data
-is stored in :class:`PlacementSets <.storage.interfaces.PlacementSet>` per cell type.
+:class:`~bsb.placement.particle.RandomPlacement` places cells randomly in the assigned
+volume.
 
 Take another look at your network:
 

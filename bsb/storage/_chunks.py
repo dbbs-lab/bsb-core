@@ -1,12 +1,11 @@
 import typing
 
 import numpy as np
-import numpy.typing as npt
 
 from ..exceptions import ChunkError
 
 _iinfo = np.iinfo(np.int16)
-Chunklike = typing.Union["Chunk", npt.ArrayLike]
+Chunklike = typing.Union["Chunk", "numpy.typing.ArrayLike"]
 
 
 class Chunk(np.ndarray):
@@ -102,7 +101,10 @@ class Chunk(np.ndarray):
         )
 
 
-def chunklist(chunks: typing.Iterable[Chunklike]) -> typing.List[Chunk]:
+def chunklist(chunks) -> typing.List[Chunk]:
+    """
+    Convert an iterable of chunk like objects to a sorted unique chunklist
+    """
     return sorted(set(c if isinstance(c, Chunk) else Chunk(c, None) for c in chunks))
 
 

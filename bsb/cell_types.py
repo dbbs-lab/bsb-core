@@ -98,7 +98,7 @@ class CellType:
         Retrieve this cell type's placement data
 
         :param chunks: When given, restricts the placement data to these chunks.
-        :type chunks: List[bsb.storage.Chunk]
+        :type chunks: List[bsb.storage._chunks.Chunk]
         """
         return self.scaffold.get_placement_set(self, *args, **kwargs)
 

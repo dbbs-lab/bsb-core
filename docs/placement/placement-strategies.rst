@@ -2,11 +2,6 @@
 List of placement strategies
 ############################
 
-ParticlePlacement
-*****************
-
-*Class*: :class:`bsb.placement.ParticlePlacement <.placement.particle.ParticlePlacement>`
-
 RandomPlacement
 *****************
 
@@ -18,12 +13,6 @@ ParallelArrayPlacement
 
 *Class*: :class:`bsb.placement.ParallelArrayPlacement
 <.placement.arrays.ParallelArrayPlacement>`
-
-SatellitePlacement
-******************
-
-*Class*: :class:`bsb.placement.Satellite
-*<.placement.satellite.Satellite>`
 
 FixedPositions
 **************
