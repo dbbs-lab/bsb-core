@@ -16,7 +16,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-
     - name: Install apt dependencies
       run: |
         sudo apt update
@@ -24,6 +23,15 @@ jobs:
         sudo apt install openmpi-bin libopenmpi-dev
         # Install `libhdf5` for `morphio`
         sudo apt install libhdf5-dev
+
+    - name: Cache pip
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
 
     - name: Install dependencies & self
       run: |
