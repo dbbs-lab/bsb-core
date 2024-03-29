@@ -1,12 +1,14 @@
+import json
 import os
 import shutil
 from datetime import datetime
+from pathlib import Path
 
 import shortuuid
 
 from ... import config
 from ...services import MPILock
-from ..decorators import on_main, on_main_until
+from ..decorators import on_main_until
 from ..interfaces import Engine, NoopLock
 from ..interfaces import StorageNode as IStorageNode
 from .file_store import FileStore
@@ -21,6 +23,11 @@ class FileSystemEngine(Engine):
     @property
     def root_slug(self):
         return os.path.relpath(self._root)
+
+    @property
+    def versions(self):
+        path = Path(self._root) / "versions.txt"
+        return json.loads(path.read_text())
 
     @classmethod
     def recognizes(cls, root):
@@ -52,8 +59,14 @@ class FileSystemEngine(Engine):
 
     @on_main_until(lambda self: self.exists())
     def create(self):
+        from ... import __version__
+
         os.makedirs(os.path.join(self._root, "files"), exist_ok=True)
         os.makedirs(os.path.join(self._root, "file_meta"), exist_ok=True)
+        path = Path(self._root) / "versions.txt"
+        path.write_text(
+            json.dumps({"bsb": __version__, "engine": "fs", "version": __version__})
+        )
 
     @on_main_until(lambda self: self.exists())
     def move(self, new_root):

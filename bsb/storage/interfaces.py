@@ -99,6 +99,15 @@ class Engine(Interface):
 
     @property
     @abc.abstractmethod
+    def versions(self):
+        """
+        Must return a dictionary containing the version of the engine package, and bsb
+        package, used to last write to this storage object.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
     def root_slug(self):
         """
         Must return a pathlike unique identifier for the root of the storage object.
