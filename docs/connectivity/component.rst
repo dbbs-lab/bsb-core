@@ -102,9 +102,7 @@ The example connects cells that are near each other, between a :guilabel:`min` a
 
 .. code-block:: python
 
-  from bsb.connectivity import ConnectionStrategy
-  from bsb.exceptions import ConfigurationError
-  from bsb import config
+  from bsb import ConnectionStrategy, ConfigurationError, config
   import numpy as np
   import scipy.spatial.distance as dist
 

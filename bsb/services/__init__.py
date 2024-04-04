@@ -17,6 +17,7 @@ MPILock service
 """
 
 from .pool import JobPool as _JobPool  # noqa
+from .pool import WorkflowError
 
 JobPool = _JobPool
 """
@@ -32,4 +33,4 @@ def register_service(attr, provider):
     globals()[attr] = provider
 
 
-__all__ = ["MPI", "MPILock", "JobPool", "register_service"]
+__all__ = ["MPI", "MPILock", "JobPool", "register_service", "WorkflowError"]

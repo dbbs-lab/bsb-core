@@ -2,8 +2,7 @@ import unittest
 
 from bsb_test import NetworkFixture, RandomStorageFixture, get_test_config
 
-from bsb.config import Configuration
-from bsb.exceptions import InputError
+from bsb import Configuration, InputError
 
 
 class TestSingleTypeCompilation(

@@ -1,7 +1,7 @@
+from bsb_plot import plot_network
+
 import bsb.options
-from bsb.config import from_json
-from bsb.core import Scaffold
-from bsb.plotting import plot_network
+from bsb import Scaffold, from_json
 
 bsb.options.verbosity = 3
 config = from_json("network_configuration.json")
@@ -18,7 +18,7 @@ config.regions.add(
 config.cell_types.add("top_type", spatial=dict(radius=7, count=10))
 config.placement.add(
     "all_placement",
-    strategy="bsb.placement.ParticlePlacement",
+    strategy="bsb.placement.RandomPlacement",
     cell_types=["base_type", "top_type"],
     partitions=["base_layer"],
 )

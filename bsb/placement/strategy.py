@@ -7,17 +7,12 @@ import numpy as np
 from .. import config
 from .._util import obj_str_insert
 from ..config import refs, types
-from ..config._attrs import cfgdict, cfglist
-from ..exceptions import (
-    DistributorError,
-    EmptySelectionError,
-    MissingSourceError,
-    SourceQualityError,
-)
+from ..config._attrs import cfgdict
+from ..exceptions import DistributorError, EmptySelectionError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
-from ..reporting import report
-from ..storage import Chunk
+from ..reporting import warn
+from ..storage._chunks import Chunk
 from ..voxels import VoxelSet
 from .distributor import DistributorsNode
 from .indicator import PlacementIndications, PlacementIndicator
@@ -59,9 +54,6 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         # This comparison should sort placement strategies by name, via __repr__ below
         return str(self) < str(other)
 
-    def __boot__(self):
-        self._queued_jobs = []
-
     @obj_str_insert
     def __repr__(self):
         config_name = self.name
@@ -82,7 +74,7 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         :func:`~bsb.core.Scaffold.place_cells` method.
 
         :param chunk: Chunk to fill
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :param indicators: Dictionary of each cell type to its PlacementIndicator
         :type indicators: Mapping[str, bsb.placement.indicator.PlacementIndicator]
         """
@@ -92,18 +84,22 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         if additional is None:
             additional = {}
         if self.distribute._has_mdistr() or indicator.use_morphologies():
+            selector_error = None
             try:
                 morphologies, rotations = self.distribute._specials(
                     self.partitions, indicator, positions
                 )
             except EmptySelectionError as e:
-                selectors = ", ".join(f"{s}" for s in e.selectors)
+                selector_error = ", ".join(str(s) for s in e.selectors)
+            if selector_error:
+                # Starting from Python 3.11, even though we raise from None, the original
+                # EmptySelectionError somehow still gets pickled and contains unpicklable
+                # elements. So we work around by raising here, outside of the exception
+                # context.
                 raise DistributorError(
-                    "%property% distribution of `%strategy.name%` couldn't find any"
-                    + f" morphologies with the following selector(s): {selectors}",
-                    "Morphology",
-                    self,
-                ) from None
+                    "Morphology distribution couldn't find any"
+                    + f" morphologies with the following selector(s): {selector_error}"
+                )
         elif self.distribute._has_rdistr():
             rotations = self.distribute(
                 "rotations", self.partitions, indicator, positions
@@ -131,16 +127,16 @@ class PlacementStrategy(abc.ABC, HasDependencies):
         the default implementation asks each partition to chunk itself and creates 1
         placement job per chunk.
         """
-        # Reset jobs that we own
-        self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
+        deps = set(
+            itertools.chain(
+                *(pool.get_submissions_of(strat) for strat in self.get_deps())
+            )
+        )
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
                 job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
-                self._queued_jobs.append(job)
-        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
@@ -171,6 +167,9 @@ class FixedPositions(PlacementStrategy):
             raise ValueError(
                 f"Please set `.positions` on '{self.name}' before placement."
             )
+        if not len(self.positions):
+            warn(f"No positions given to {self.get_node_name()}.")
+            return
         for indicator in indicators.values():
             inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
             self.place_cells(indicator, self.positions[inside_chunk], chunk)
@@ -183,23 +182,22 @@ class FixedPositions(PlacementStrategy):
     def queue(self, pool, chunk_size):
         if self.positions is None:
             raise ValueError(f"Please set `.positions` on '{self.name}'.")
-        # Reset jobs that we own
-        self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
+        deps = set(
+            itertools.chain(
+                *(pool.get_submissions_of(strat) for strat in self.get_deps())
+            )
+        )
         for chunk in VoxelSet.fill(self.positions, chunk_size):
-            job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
-            self._queued_jobs.append(job)
-        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
+            pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
 
 
+@config.node
 class Entities(PlacementStrategy):
     """
     Implementation of the placement of entities that do not have a 3D position,
     but that need to be connected with other cells of the network.
     """
-
-    entities = True
 
     def queue(self, pool, chunk_size):
         # Entities ignore chunks since they don't intrinsically store any data.
@@ -215,3 +213,6 @@ class Entities(PlacementStrategy):
                 for p in self.partitions
             )
             self.scaffold.create_entities(cell_type, n)
+
+
+__all__ = ["Entities", "FixedPositions", "PlacementStrategy"]

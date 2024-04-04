@@ -1,5 +1,3 @@
-import itertools
-import os
 import typing
 
 import numpy as np
@@ -74,3 +72,6 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
                 demuxed[:, 0] -= lowmux
                 self.connect_cells(pre_ps, ps, demuxed, post_targets[demux_idx])
                 lowmux = highmux
+
+
+__all__ = ["AllToAll", "Convergence", "FixedIndegree"]

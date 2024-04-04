@@ -10,3 +10,6 @@ class ParameterValue:
 @config.dynamic(attr_name="type", auto_classmap=True, required=False)
 class Parameter:
     value: ParameterValue = config.attr(type=ParameterValue)
+
+
+__all__ = ["Parameter", "ParameterValue"]

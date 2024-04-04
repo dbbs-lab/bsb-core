@@ -13,7 +13,7 @@ from ...config import types
 from .. import Morphology
 
 if typing.TYPE_CHECKING:
-    from ...storage import FileDependency
+    from ...storage._files import FileDependency
 
 
 @config.dynamic(attr_name="parser", auto_classmap=True, default="bsb")
@@ -43,7 +43,7 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
     """
 
     def parse(self, file: typing.Union["FileDependency", str]):
-        from ...storage import FileDependency
+        from ...storage._files import FileDependency
 
         if not isinstance(file, FileDependency):
             file = FileDependency(file)
@@ -210,7 +210,7 @@ class MorphIOParser(MorphologyParser, classmap_entry="morphio"):
         )
 
     def parse(self, file: typing.Union["FileDependency", str]) -> Morphology:
-        from ...storage import FileDependency
+        from ...storage._files import FileDependency
 
         if isinstance(file, str):
             file = FileDependency(file)
@@ -264,3 +264,6 @@ class MorphIOParser(MorphologyParser, classmap_entry="morphio"):
             morpho._check_shared()
         ), "MorphIO import didn't result in shareable buffers."
         return morpho
+
+
+__all__ = ["BsbParser", "MorphIOParser", "MorphologyParser"]

@@ -7,7 +7,7 @@ from .._util import merge_dicts
 from ..cell_types import CellType
 from ..connectivity import ConnectionStrategy
 from ..placement import PlacementStrategy
-from ..postprocessing import PostProcessingHook
+from ..postprocessing import AfterPlacementHook
 from ..simulation.simulation import Simulation
 from ..storage._files import (
     CodeDependencyNode,
@@ -122,8 +122,8 @@ class Configuration:
     """
     Network placement strategies
     """
-    after_placement: cfgdict[str, PostProcessingHook] = config.dict(
-        type=PostProcessingHook,
+    after_placement: cfgdict[str, AfterPlacementHook] = config.dict(
+        type=AfterPlacementHook,
     )
     connectivity: cfgdict[str, ConnectionStrategy] = config.dict(
         type=ConnectionStrategy,
@@ -132,8 +132,8 @@ class Configuration:
     """
     Network connectivity strategies
     """
-    after_connectivity: cfgdict[str, PostProcessingHook] = config.dict(
-        type=PostProcessingHook,
+    after_connectivity: cfgdict[str, AfterPlacementHook] = config.dict(
+        type=AfterPlacementHook,
     )
     simulations: cfgdict[str, Simulation] = config.dict(
         type=Simulation,
@@ -146,7 +146,7 @@ class Configuration:
     @classmethod
     def default(cls, **kwargs):
         default_args = dict(
-            storage={"engine": "hdf5"},
+            storage={"engine": "fs"},
             network={"x": 200, "y": 200, "z": 200},
             partitions={},
             cell_types={},

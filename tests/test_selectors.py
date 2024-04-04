@@ -2,14 +2,18 @@ import unittest
 
 from bsb_test import RandomStorageFixture, skip_nointernet, skip_parallel
 
-from bsb.cell_types import CellType
-from bsb.config import Configuration
-from bsb.core import Scaffold
-from bsb.exceptions import MissingMorphologyError, SelectorError
-from bsb.morphologies import Branch, Morphology
-from bsb.morphologies.selector import NameSelector
-from bsb.services import MPI
-from bsb.storage.interfaces import StoredMorphology
+from bsb import (
+    MPI,
+    Branch,
+    CellType,
+    Configuration,
+    MissingMorphologyError,
+    Morphology,
+    NameSelector,
+    Scaffold,
+    SelectorError,
+    StoredMorphology,
+)
 
 
 def spoof(*names):

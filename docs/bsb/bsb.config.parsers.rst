@@ -5,4 +5,4 @@ Module contents
 ---------------
 
 .. automodule:: bsb.config.parsers
-   :members: Parser
+   :members:

@@ -2,8 +2,6 @@
 Topology module
 """
 
-import numpy as np
-
 from ._layout import box_layout
 from .partition import AllenStructure, Layer, NrrdVoxels, Partition
 from .region import Region, RegionGroup, Stack
@@ -104,3 +102,13 @@ def get_root_regions(regions):
         collect_deps(region, managed)
 
     return list(set(list(regions)) - managed)
+
+
+__all__ = [
+    "box_layout",
+    "create_topology",
+    "get_partitions",
+    "get_root_regions",
+    "is_partition",
+    "is_region",
+]

@@ -805,6 +805,16 @@ class ndarray(TypeHandler):
         return value.tolist()
 
 
+def none():
+    def type_handler(value, _parent, _key=None):
+        if value is not None:
+            raise TypeError("value is not None")
+        return value
+
+    type_handler.__name__ = "a None value"
+    return type_handler
+
+
 class PackageRequirement(TypeHandler):
     def __call__(self, value):
         from packaging.requirements import Requirement
@@ -820,3 +830,38 @@ class PackageRequirement(TypeHandler):
 
     def __hint__(self):
         return "numpy==1.24.0"
+
+
+__all__ = [
+    "PackageRequirement",
+    "TypeHandler",
+    "WeakInverter",
+    "any_",
+    "class_",
+    "deg_to_radian",
+    "dict",
+    "distribution",
+    "evaluation",
+    "float",
+    "fraction",
+    "function_",
+    "in_",
+    "in_classmap",
+    "int",
+    "key",
+    "list",
+    "list_or_scalar",
+    "method",
+    "method_shortcut",
+    "mut_excl",
+    "ndarray",
+    "none",
+    "number",
+    "object_",
+    "or_",
+    "scalar_expand",
+    "shortform",
+    "str",
+    "voxel_size",
+]
+__api__ = ["PackageRequirement", "TypeHandler", "WeakInverter"]

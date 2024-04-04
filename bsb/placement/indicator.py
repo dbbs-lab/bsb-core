@@ -72,7 +72,7 @@ class PlacementIndicator:
         Float estimates are converted to int using an acceptance-rejection method.
 
         :param chunk: if provided, will estimate the number of cell within the Chunk.
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :param voxels: if provided, will estimate the number of cell within the VoxelSet.
             Only for cells with the indication "density_key" set or with the indication
             "relative_to" set and the target cell has the indication "density_key" set.
@@ -104,7 +104,6 @@ class PlacementIndicator:
                     )
                     * count_ratio
                 )
-                estimate = self._estim_for_chunk(chunk, estimate)
             elif density_ratio is not None:
                 # Create an indicator based on this strategy for the related CT.
                 # This means we'll read only the CT indications, and ignore any
@@ -113,22 +112,24 @@ class PlacementIndicator:
                 rel_ind = PlacementIndicator(self._strat, relation)
                 rel_density = rel_ind.indication("density")
                 rel_pl_density = rel_ind.indication("planar_density")
+                rel_pl_density_key = rel_ind.indication("density_key")
                 if rel_density is not None:
                     estimate = self._density_to_estim(rel_density * density_ratio, chunk)
                 elif rel_pl_density is not None:
                     estimate = self._pdensity_to_estim(
                         rel_pl_density * density_ratio, chunk
                     )
+                elif rel_pl_density_key is not None:
+                    # Use the relation's `guess` to guess according to the relation's density key
+                    estimate = rel_ind.guess(chunk, voxels) * density_ratio
                 else:
                     raise PlacementRelationError(
-                        "%cell_type.name% requires relation %relation.name%"
-                        + "to specify density information.",
-                        self.cell_type,
-                        relation,
+                        f"{self.cell_type.name} requires relation {relation.name}"
+                        + " to specify density information."
                     )
             else:
                 raise PlacementError(
-                    "Relation specified but no ratio indications provided."
+                    f"Relation specified but no ratio indications provided."
                 )
         if density_key is not None:
             if voxels is None:
@@ -194,3 +195,6 @@ class PlacementIndicator:
         return voxels.get_data(key).ravel().astype(float) * np.prod(
             voxels.get_size_matrix(copy=False), axis=1
         )
+
+
+__all__ = ["PlacementIndicator"]

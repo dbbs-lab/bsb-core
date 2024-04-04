@@ -10,25 +10,24 @@ from bsb_test import (
 )
 from scipy.spatial.transform import Rotation
 
-from bsb._encoding import EncodedLabels
-from bsb.config._config import Configuration
-from bsb.core import Scaffold
-from bsb.exceptions import CastError, EmptyBranchError, MorphologyError
-from bsb.morphologies import (
+from bsb import (
     Branch,
+    BsbParser,
+    CastError,
+    Configuration,
+    EmptyBranchError,
     Morphology,
+    MorphologyDependencyNode,
+    MorphologyError,
+    MorphologyOperation,
     MorphologySet,
+    NeuroMorphoScheme,
     RotationSet,
+    Scaffold,
+    StoredMorphology,
     parse_morphology_file,
 )
-from bsb.morphologies.parsers.parser import BsbParser
-from bsb.services import JobPool
-from bsb.storage._files import (
-    MorphologyDependencyNode,
-    MorphologyOperation,
-    NeuroMorphoScheme,
-)
-from bsb.storage.interfaces import StoredMorphology
+from bsb._encoding import EncodedLabels
 
 
 class TestIO(NumpyTestCase, unittest.TestCase):
@@ -1236,10 +1235,10 @@ class TestMorphologyPipelineNode(
             ]
         )
         scaffold = Scaffold(cfg, self.storage)
-        pool = JobPool(scaffold)
-        cfg.morphologies[0].queue(pool)
-        self.assertEqual(1, len(pool._queue))
-        pool.execute()
+        with scaffold.create_job_pool(quiet=True) as pool:
+            cfg.morphologies[0].queue(pool)
+            self.assertEqual(1, len(pool.jobs))
+            pool.execute()
         m_mio = scaffold.morphologies.load("test_mio")
         self.assertEqual(12, len(m_mio), "Expected 12 points in morpho")
         self.assertClose(0, m_mio.points[:, 2], "Rotation step skipped")
@@ -1268,10 +1267,10 @@ class TestMorphologyPipelineNode(
             ]
         )
         scaffold = Scaffold(cfg, self.storage)
-        pool = JobPool(scaffold)
-        cfg.morphologies[0].queue(pool)
-        self.assertEqual(2, len(pool._queue))
-        pool.execute()
+        with scaffold.create_job_pool(quiet=True) as pool:
+            cfg.morphologies[0].queue(pool)
+            self.assertEqual(2, len(pool.jobs))
+            pool.execute()
         m_mio = scaffold.morphologies.load("test_mio")
         m_bsb = scaffold.morphologies.load("test_bsb")
         # The MorphIO parser by default skips the boundary between soma and other tags

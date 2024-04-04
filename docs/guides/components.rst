@@ -63,8 +63,7 @@ cells:
 
 .. code-block:: python
 
-  from bsb.cell_types import MorphologySelector
-  from bsb import config
+  from bsb import config, MorphologySelector
 
   @config.node
   class MySizeSelector(MorphologySelector):

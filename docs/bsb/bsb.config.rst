@@ -36,6 +36,10 @@ Module contents
    :undoc-members:
    :show-inheritance:
 
+   .. autoclass:: bsb.config.Configuration
+
+      .. automethod:: bsb.config.Configuration.default
+
 Dev
 ---
 

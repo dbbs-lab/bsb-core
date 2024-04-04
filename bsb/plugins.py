@@ -74,3 +74,5 @@ def _decorate_advert(advert, entry):
 
 # Registry to insert plugins without having to install them, intended for testing purposes.
 _unittest_plugins = defaultdict(list)
+
+__all__ = ["discover"]

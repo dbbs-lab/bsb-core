@@ -2,21 +2,31 @@ import unittest
 from time import sleep
 
 import numpy as np
-from bsb_test import NumpyTestCase, RandomStorageFixture, get_test_config, timeout
+from bsb_test import (
+    NetworkFixture,
+    NumpyTestCase,
+    RandomStorageFixture,
+    get_test_config,
+    skip_parallel,
+)
 
-from bsb import config
-from bsb.cell_types import CellType
-from bsb.config import Configuration
-from bsb.connectivity import ConnectionStrategy
-from bsb.core import Scaffold
-from bsb.exceptions import *
-from bsb.mixins import NotParallel
-from bsb.placement import PlacementStrategy, RandomPlacement
-from bsb.services import MPI
-from bsb.services.pool import FakeFuture, JobPool, create_job_pool
-from bsb.storage import Chunk
-from bsb.topology import Partition, Region
-from bsb.voxels import VoxelData, VoxelSet
+from bsb import (
+    MPI,
+    CellType,
+    Chunk,
+    Configuration,
+    IndicatorError,
+    PackingWarning,
+    Partition,
+    PlacementError,
+    PlacementRelationError,
+    PlacementStrategy,
+    Scaffold,
+    VoxelData,
+    Voxels,
+    VoxelSet,
+    WorkflowError,
+)
 
 
 def dud_tester(scaffold, x, y):
@@ -35,53 +45,121 @@ class PlacementDud(PlacementStrategy):
         pass
 
 
-def single_layer_placement(offset=[0.0, 0.0, 0.0]):
-    network = Scaffold()
-    network.partitions["dud_layer"] = part = Partition(name="dud_layer", thickness=120)
-    network.regions["dud_region"] = Region(name="dud_region", children=[part])
-    dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
-    network.cell_types["dud"] = dud_cell
+class VoxTest(Voxels, classmap_entry="vox_test"):
+    loc_data = np.random.rand(8, 8, 8)
+
+    def get_voxelset(self):
+        return VoxelSet(
+            np.transpose(np.nonzero(self.loc_data)),
+            np.array([100, 100, 100], dtype=int),
+            data=self.loc_data.flatten(),
+            data_keys=["vox_density"],
+        )
+
+
+def single_layer_placement(network, offset=None):
+    # fixme: https://github.com/dbbs-lab/bsb-core/issues/812
+    network.topology.children.append(part := Partition(name="dud_layer", thickness=120))
+    network.network.origin = offset if offset is not None else [0.0, 0.0, 0.0]
+    network.resize()
+    dud_cell = CellType(name="cell_w_count", spatial={"count": 40, "radius": 2})
+    dud_cell2 = CellType(
+        name="cell_rel_count",
+        spatial={"relative_to": "cell_w_count", "count_ratio": 0.5, "radius": 3.4},
+    )
+    dud_cell7 = CellType(name="cell_no_ind", spatial={"radius": 1.0})
+    network.cell_types["cell_w_count"] = dud_cell
+    network.cell_types["cell_rel_count"] = dud_cell2
+    network.cell_types["cell_no_ind"] = dud_cell7
     dud = PlacementDud(
         name="dud",
         strategy="PlacementDud",
         partitions=[part],
-        cell_types=[dud_cell],
-        overrides={"dud": {}},
+        cell_types=[dud_cell, dud_cell2, dud_cell7],
+        overrides={"cell_w_count": {}},
     )
-    network.network.origin = offset
     network.placement["dud"] = dud
-    network.configuration._bootstrap(network)
-    return dud, network
+    return dud
 
 
-_dud, _net = single_layer_placement()
+def single_vox_placement(network, voxels):
+    network.topology.children.append(voxels)
+    network.network.origin = [0.0, 0.0, 0.0]
+    network.resize()
+    dud_cell = CellType(
+        name="cell_density_key",
+        spatial={"density_key": "vox_density", "radius": 5.6},
+    )
+    dud_cell2 = CellType(
+        name="cell_rel_dens_key",
+        spatial={"relative_to": "cell_density_key", "density_ratio": 2.0, "radius": 5.6},
+    )
+    dud_cell3 = CellType(
+        name="cell_rel_dens_no_ratio",
+        spatial={"relative_to": "cell_density_key", "radius": 5.6},
+    )
+    dud_cell4 = CellType(
+        name="cell_w_dens",
+        spatial={"density": 0.1, "radius": 5.6},
+    )
+    network.cell_types["cell_density_key"] = dud_cell
+    network.cell_types["cell_rel_dens_key"] = dud_cell2
+    network.cell_types["cell_rel_dens_no_ratio"] = dud_cell3
+    network.cell_types["cell_w_dens"] = dud_cell4
+    dud2 = PlacementDud(
+        name="dud2",
+        strategy="PlacementDud",
+        partitions=[voxels],
+        cell_types=[dud_cell2, dud_cell, dud_cell3, dud_cell4],
+        overrides={"cell_rel_dens_key": {}, "cell_density_key": {}},
+    )
+    network.placement["dud2"] = dud2
+    return dud2
 
 
 def _chunk(x, y, z):
     return Chunk((x, y, z), (100, 100, 100))
 
 
-class TestIndicators(unittest.TestCase):
+class TestIndicators(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="fs"
+):
+    def setUp(self):
+        self.cfg = Configuration.default()
+        super().setUp()
+        self.voxels = VoxTest()
+        self.placement = single_layer_placement(self.network)
+        self.placement2 = single_vox_placement(self.network, self.voxels)
+
     def test_cascade(self):
-        indicators = _dud.get_indicators()
-        dud_ind = indicators["dud"]
+        indicators = self.placement.get_indicators()
+        dud_ind = indicators["cell_w_count"]
+        dud2_ind = indicators["cell_rel_count"]
         self.assertEqual(2, dud_ind.indication("radius"))
         self.assertEqual(40, dud_ind.indication("count"))
         self.assertEqual(2, dud_ind.get_radius())
-        _dud.overrides.dud.radius = 4
+        self.placement.overrides.cell_w_count.radius = 4
         self.assertEqual(4, dud_ind.indication("radius"))
-        _dud.overrides.dud.radius = None
-        _dud.cell_types[0].spatial.radius = None
+        self.placement.overrides.cell_w_count.radius = None
+        self.placement.cell_types[0].spatial.radius = None
         self.assertEqual(None, dud_ind.indication("radius"))
         self.assertRaises(IndicatorError, dud_ind.get_radius)
+        self.assertTrue(dud2_ind.indication("relative_to") in self.placement.cell_types)
+        self.assertEqual(dud2_ind.indication("count_ratio"), 0.5)
+        indicators = self.placement2.get_indicators()
+        dud3_ind = indicators["cell_rel_dens_key"]
+        self.assertEqual(dud3_ind.indication("density_ratio"), 2.0)
 
-    def test_guess(self):
-        dud, network = single_layer_placement()
-        indicators = dud.get_indicators()
-        dud_ind = indicators["dud"]
+    def test_guess_count(self):
+        indicators = self.placement.get_indicators()
+        dud_ind = indicators["cell_w_count"]
+        dud2_ind = indicators["cell_rel_count"]
+        ratio_dud2 = 0.5
         self.assertEqual(40, dud_ind.guess())
-        dud.overrides.dud.count = 400
+        self.assertEqual(40 * ratio_dud2, dud2_ind.guess())
+        self.placement.overrides.cell_w_count.count = 400
         self.assertEqual(400, dud_ind.guess())
+        self.assertEqual(400 * ratio_dud2, dud2_ind.guess())
         bottom_ratio = 1 / 1.2
         bottom = 400 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
@@ -98,11 +176,58 @@ class TestIndicators(unittest.TestCase):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
+        with self.assertRaises(IndicatorError):
+            indicators["cell_no_ind"].guess()
 
-    def test_negative_guess(self):
-        dud, network = single_layer_placement(offset=np.array([-300.0, -300.0, -300.0]))
-        indicators = dud.get_indicators()
-        dud_ind = indicators["dud"]
+    def test_guess_vox_density(self):
+        indicators = self.placement2.get_indicators()
+        dud3_ind = indicators["cell_rel_dens_key"]
+        dud4_ind = indicators["cell_density_key"]
+        ratio_dud3 = 2.0
+        with self.assertRaises(Exception):
+            # No voxel set provided
+            dud4_ind.guess()
+
+        predicted_count = (self.voxels.loc_data * 100**3).flatten()
+        guess4 = dud4_ind.guess(voxels=self.voxels.get_voxelset())
+        guess3 = dud3_ind.guess(voxels=self.voxels.get_voxelset())
+        self.assertTrue(np.all(np.absolute(predicted_count - guess4) <= 1))
+
+        self.assertTrue(
+            np.all(
+                np.absolute((predicted_count * ratio_dud3) - guess3)
+                <= np.ceil(ratio_dud3)
+            )
+        )
+        self.placement2.overrides.cell_rel_dens_key.relative_to = self.network.cell_types[
+            "cell_w_count"
+        ]
+        with self.assertRaises(PlacementRelationError):
+            # Cannot estimate relative to an estimate without density key
+            dud3_ind.guess()
+        with self.assertRaises(PlacementError):
+            # Cannot estimate relative to without a ratio
+            indicators["cell_rel_dens_no_ratio"].guess()
+
+        self.assertEqual(
+            0.1 * self.voxels.loc_data.size * 100**3, indicators["cell_w_dens"].guess()
+        )
+        self.placement2.overrides.cell_rel_dens_key.relative_to = self.network.cell_types[
+            "cell_w_dens"
+        ]
+        self.assertEqual(0.2 * self.voxels.loc_data.size * 100**3, dud3_ind.guess())
+
+        self.placement2.overrides.cell_density_key.density_key = "bla"
+        with self.assertRaises(RuntimeError):
+            # voxel density key not found
+            dud4_ind.guess(voxels=self.voxels.get_voxelset())
+
+    def test_negative_guess_count(self):
+        self.placement = single_layer_placement(
+            self.network, offset=np.array([-300.0, -300.0, -300.0])
+        )
+        indicators = self.placement.get_indicators()
+        dud_ind = indicators["cell_w_count"]
         bottom_ratio = 1 / 1.2
         bottom = 40 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
@@ -121,148 +246,7 @@ class TestIndicators(unittest.TestCase):
                 self.assertEqual(0, guess)
 
 
-class SchedulerBaseTest:
-    @timeout(3)
-    def test_create_pool(self):
-        pool = create_job_pool(_net)
-
-    @timeout(3)
-    def test_single_job(self):
-        pool = JobPool(_net)
-        job = pool.queue(dud_tester, (5, 0.1))
-        pool.execute()
-
-    @timeout(3)
-    def test_listeners(self):
-        i = 0
-
-        def spy(job):
-            nonlocal i
-            i += 1
-
-        pool = JobPool(_net, listeners=[spy])
-        job = pool.queue(dud_tester, (5, 0.1))
-        pool.execute()
-        if not MPI.get_rank():
-            self.assertEqual(1, i, "Listeners not executed.")
-
-    def test_placement_job(self):
-        pool = JobPool(_net)
-        job = pool.queue_placement(_dud, _chunk(0, 0, 0))
-        pool.execute()
-
-    def test_chunked_job(self):
-        pool = JobPool(_net)
-        job = pool.queue_chunk(chunk_tester, _chunk(0, 0, 0))
-        pool.execute()
-
-    def test_notparallel_ps_job(test):
-        spy = 0
-
-        @config.node
-        class SerialPStrat(NotParallel, PlacementStrategy):
-            def place(self, chunk, indicators):
-                nonlocal spy
-                test.assertEqual(Chunk([0, 0, 0], None), chunk)
-                spy += 1
-
-        pool = JobPool(_net)
-        pstrat = _net.placement.add(
-            "test", SerialPStrat(strategy="", cell_types=[], partitions=[])
-        )
-        pstrat.queue(pool, None)
-        pool.execute()
-        test.assertEqual(1, sum(MPI.allgather(spy)))
-
-    def test_notparallel_cs_job(test):
-        spy = 0
-
-        @config.node
-        class SerialCStrat(NotParallel, ConnectionStrategy):
-            def connect(self, pre, post):
-                nonlocal spy
-
-                spy += 1
-
-        pool = JobPool(_net)
-        cstrat = _net.connectivity.add(
-            "test",
-            SerialCStrat(
-                strategy="",
-                presynaptic={"cell_types": []},
-                postsynaptic={"cell_types": []},
-            ),
-        )
-        cstrat.queue(pool)
-        pool.execute()
-        test.assertEqual(1, sum(MPI.allgather(spy)))
-
-
-@unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
-class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
-    @timeout(3)
-    def test_double_pool(self):
-        pool = JobPool(_net)
-        job = pool.queue(dud_tester, (5, 0.1))
-        pool.execute()
-        pool = JobPool(_net)
-        job = pool.queue(dud_tester, (5, 0.1))
-        pool.execute()
-
-    @timeout(3)
-    def test_master_loop(self):
-        pool = JobPool(_net)
-        job = pool.queue(dud_tester, (5, 0.1))
-        executed = False
-
-        def spy_loop(p):
-            nonlocal executed
-            executed = True
-
-        pool.execute(master_event_loop=spy_loop)
-        if MPI.get_rank():
-            self.assertFalse(executed, "workers executed master loop")
-        else:
-            self.assertTrue(executed, "master loop skipped")
-
-    @timeout(3)
-    def test_fake_futures(self):
-        pool = JobPool(_net)
-        job = pool.queue(dud_tester, (5, 0.1))
-        self.assertIs(FakeFuture.done, job._future.done.__func__)
-        self.assertFalse(job._future.done())
-        self.assertFalse(job._future.running())
-
-    @timeout(3)
-    def test_dependencies(self):
-        pool = JobPool(_net)
-        job = pool.queue(dud_tester, (5, 0.1))
-        job2 = pool.queue(dud_tester, (5, 0.1), deps=[job])
-        result = None
-
-        def spy_queue(jobs):
-            nonlocal result
-            if result is None:
-                result = jobs[0]._future.running() and not jobs[1]._future.running()
-
-        pool.execute(master_event_loop=spy_queue)
-        if not MPI.get_rank():
-            self.assertTrue(result, "A job with unfinished dependencies was scheduled.")
-
-    @unittest.expectedFailure
-    def test_notparallel_cs_job(test):
-        raise Exception("MPI voodoo deadlocks simple nonlocal assigment")
-
-    @unittest.expectedFailure
-    def test_notparallel_ps_job(test):
-        raise Exception("MPI voodoo deadlocks simple nonlocal assigment")
-
-
 @unittest.skipIf(MPI.get_size() > 1, "Skipped during parallel testing.")
-class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
-    pass
-
-
 class TestPlacementStrategies(
     RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
 ):
@@ -335,7 +319,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
             partitions=dict(test_part=dict(type="test")),
             placement=dict(
                 voxel_density=dict(
-                    strategy="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.RandomPlacement",
                     partitions=["test_part"],
                     cell_types=["test_cell"],
                 )
@@ -377,7 +361,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
                     cell_types=["test_cell2"],
                 ),
                 ch4_c25=dict(
-                    strategy="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.RandomPlacement",
                     partitions=["first_layer"],
                     cell_types=["test_cell"],
                 ),
@@ -387,23 +371,22 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
     def test_packing_factor_error1(self):
         cfg = self._config_packing_fact()
         network = Scaffold(cfg, self.storage)
-        with self.assertRaisesRegex(
-            PackingError,
-            r"Packing factor .* exceeds geometrical maximum packing for spheres \(0\.64\).*",
-        ):
+        with self.assertRaises(WorkflowError):
             network.compile(clear=True)
 
     def test_packing_factor_error2(self):
         cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1.3, count=100))
         network = Scaffold(cfg, self.storage)
-        with self.assertRaisesRegex(
-            PackingError,
-            r"Packing factor .* too high to resolve with ParticlePlacement.*",
-        ):
+        with self.assertRaises(WorkflowError):
             network.compile(clear=True)
 
+    @skip_parallel
     def test_packing_factor_warning(self):
+        """
+        Test that particle placement warns for high density packing. Skipped during parallel because the warning
+        is raised on a worker and can't be asserted on all nodes.
+        """
         cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1, count=100))
         network = Scaffold(cfg, self.storage)

@@ -126,35 +126,19 @@ Scripting
 The value of layers in scripting is usually limited because they only contain spatial
 information.
 
-Retrieving layers
-=================
-
-Layers can be retrieved from a :class:`ScaffoldConfig <.config.ScaffoldConfig>`:
+Retrieving partitions
+=====================
 
 .. code-block:: python
 
-  from bsb.config import JSONConfig
+  from bsb import from_json
 
-  config = JSONConfig("mouse_cerebellum")
-  layer = config.get_layer(name="granular_layer")
+  config = from_json("mouse_cerebellum.json")
+  layer = config.partitions.granular_layer
 
 A :class:`Scaffold <.core.Scaffold>` also stores its configuration:
 
 .. code-block:: python
 
-  layer = scaffold.configuration.get_layer(name="granular_layer")
-
-All :class:`Layered <.placement.Layered>` placement strategies store a reference to their layer
-instance:
-
-.. code-block:: python
-
-  placement = scaffold.get_cell_type("granule_cell").placement
-  layer_name = placement.layer
-  layer = placement.layer_instance
-
-.. note::
-
-  The instance of a placement strategy's layer is added only after initialisation of the
-  placement strategy, which occurs only after the scaffold is bootstrapped (so after
-  ``scaffold = Scaffold(config)``)
+  scaffold = from_storage("network.hdf5")
+  layer = scaffold.partitions.granular_layer

@@ -1,21 +1,13 @@
 import os
 import pathlib
-import sys
 import tempfile
 import unittest
 
 import toml
 
-from bsb import options
-from bsb._contexts import get_cli_context
+from bsb import OptionError, ReadOnlyOptionError, options
 from bsb.cli import handle_command
-from bsb.exceptions import *
-from bsb.option import (
-    _pyproject_bsb,
-    _pyproject_content,
-    _pyproject_path,
-    _save_pyproject_bsb,
-)
+from bsb.option import _pyproject_content, _pyproject_path
 
 
 class TestCLIOption(unittest.TestCase):
@@ -61,7 +53,7 @@ class TestCLIOption(unittest.TestCase):
 
 class TestEnvOption(unittest.TestCase):
     def setUp(self):
-        self.opt = options.get_options()
+        self.opt = options.get_option_descriptors()
 
     def test_env_get(self):
         for opt in self.opt.values():
@@ -163,26 +155,30 @@ class TestProjectOption(unittest.TestCase):
 
     def test_project_settings(self):
         with self.assertRaises(OptionError):
-            options.store("version", "hello.json")
+            options.store_option("version", "hello.json")
         with self.assertRaises(OptionError):
-            options.store("versionnnn", "hello.json")
+            options.store_option("versionnnn", "hello.json")
         with self.assertRaises(OptionError):
-            options.read("versionnnn")
+            options.read_option("versionnnn")
         with open(self.proj, "w") as f:
             toml.dump({}, f)
-        options.store("config", "hello.json")
-        self.assertEqual("hello.json", options.read("config"), "not stored/read")
-        self.assertEqual("hello.json", options.get("config", prio="project"), "prio bork")
-        self.assertEqual({"config": "hello.json"}, options.read(), "read all failed")
-        opt = options.get_options()["config"]
+        options.store_option("config", "hello.json")
+        self.assertEqual("hello.json", options.read_option("config"), "not stored/read")
+        self.assertEqual(
+            "hello.json", options.get_option("config", prio="project"), "prio bork"
+        )
+        self.assertEqual(
+            {"config": "hello.json"}, options.read_option(), "read all failed"
+        )
+        opt = options.get_option_descriptors()["config"]
         self.assertTrue(type(opt).project.is_set(opt), "written and read but not is_set")
         del opt.project
-        self.assertEqual(None, options.read("config"), "not deleted")
+        self.assertEqual(None, options.read_option("config"), "not deleted")
 
 
 class TestScriptOption(unittest.TestCase):
     def setUp(self):
-        self.opt = options.get_options()
+        self.opt = options.get_option_descriptors()
 
     def test_script_get(self):
         from bsb import __version__
@@ -219,18 +215,16 @@ class TestScriptOption(unittest.TestCase):
     def test_script_register(self):
         self.opt["verbosity"].unregister()
         self.opt["verbosity"].register()
-        with self.assertRaises(OptionError):
-            self.opt["verbosity"].register()
 
 
 class TestOptions(unittest.TestCase):
     def setUp(self):
-        self.opt = options.get_options()
+        self.opt = options.get_option_descriptors()
 
     def test_get_option(self):
-        cfg_opt = options.get_option("config")
+        cfg_opt = options.get_option_descriptor("config")
         with self.assertRaises(OptionError):
-            options.get_option("doesntexist")
+            options.get_option_descriptor("doesntexist")
 
     def test_discovery(self):
         cls = options.get_option_classes()

@@ -364,7 +364,7 @@ def _bubble_up_warnings(log):
 
 
 def _bootstrap_components(components, file_store=None):
-    from bsb.storage._files import CodeDependencyNode
+    from ..storage._files import CodeDependencyNode
 
     for component in components:
         component_node = CodeDependencyNode(component)
@@ -397,16 +397,21 @@ def get_config_attributes(cls):
 
 def _get_node_name(self):
     name = ".<missing>"
-    if hasattr(self, "attr_name"):
+    if getattr(self, "attr_name", None) is not None:
         name = "." + str(self.attr_name)
-    if hasattr(self, "_config_key"):
+    if getattr(self, "_config_key", None) is not None:
         name = "." + str(self._config_key)
     if hasattr(self, "_config_index"):
         if self._config_index is None:
             return "{removed}"
         else:
             name = "[" + str(self._config_index) + "]"
-    return self._config_parent.get_node_name() + name
+    if getattr(self, "name", None) is not None:
+        name = "." + self.name
+    if getattr(self, "_config_parent", None):
+        return self._config_parent.get_node_name() + name
+    else:
+        return "{standalone}" + name
 
 
 def make_get_node_name(node_cls, root):
@@ -514,7 +519,6 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
         class_ref = cfg_classname
         class_name = cfg_classname.__name__
     else:
-        print("classname?", cfg_classname, classmap)
         class_ref = _load_object(cfg_classname, module_path)
         class_name = class_ref.__name__
 

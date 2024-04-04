@@ -8,7 +8,7 @@ from uuid import uuid4
 import errr
 
 from ..._options import ConfigOption
-from ...config import from_file
+from ...config import parse_configuration_file
 from ...core import Scaffold, from_storage
 from ...exceptions import NodeNotFoundError
 from ...option import BsbOption
@@ -56,12 +56,6 @@ class Output(BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FIL
     pass
 
 
-class Plot(
-    BsbOption, name="plot", cli=("plot", "p"), env=("BSB_PLOT_NETWORK",), flag=True
-):
-    pass
-
-
 class SkipPlacement(
     BsbOption,
     name="skip_placement",
@@ -102,6 +96,16 @@ class SkipAfterConnectivity(
     pass
 
 
+class IgnoreErrors(
+    BsbOption,
+    name="ignore_errors",
+    cli=("ignore", "ignore-errors"),
+    env=("BSB_IGNORE_ERRORS",),
+    flag=True,
+):
+    pass
+
+
 def _flatten_arr_args(arr):
     if arr is None:
         return arr
@@ -133,7 +137,7 @@ class MakeConfigCommand(BaseCommand, name="make-config"):
 
 class BsbCompile(BaseCommand, name="compile"):
     def handler(self, context):
-        cfg = from_file(context.config)
+        cfg = parse_configuration_file(context.config)
         network = Scaffold(cfg)
         network.resize(context.x, context.y, context.z)
         network.compile(
@@ -147,12 +151,8 @@ class BsbCompile(BaseCommand, name="compile"):
             force=context.force,
             append=context.append,
             redo=context.redo,
+            fail_fast=not context.ignore_errors,
         )
-
-        if context.plot:
-            from bsb.plotting import plot_network
-
-            plot_network(network)
 
     def get_options(self):
         return {
@@ -169,8 +169,8 @@ class BsbCompile(BaseCommand, name="compile"):
             "append": Append(),
             "redo": Redo(),
             "clear": Clear(),
-            "plot": Plot(),
             "output": Output(),
+            "ignore_errors": IgnoreErrors(),
         }
 
     def add_parser_arguments(self, parser):
@@ -179,7 +179,7 @@ class BsbCompile(BaseCommand, name="compile"):
 
 class BsbReconfigure(BaseCommand, name="reconfigure"):
     def handler(self, context):
-        cfg = from_file(context.config)
+        cfg = parse_configuration_file(context.config)
         # Bootstrap the scaffold and clear the storage if not in append mode
         storage = open_storage(context.arguments.network)
         storage.store_active_config(cfg)
@@ -200,7 +200,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
         sim_name = context.arguments.simulation
         extra_simulations = {}
         if config_option.is_set("cli"):
-            extra_simulations = from_file(context.config).simulations
+            extra_simulations = parse_configuration_file(context.config).simulations
             for name, sim in extra_simulations.items():
                 if name not in network.simulations and name == sim_name:
                     network.simulations[sim_name] = sim

@@ -40,7 +40,7 @@ Example of a Python class for labeling neurons.
 
 .. code-block:: python
 
-  from bsb.postprocessing import PostProcessingHook
+  from bsb import PostProcessingHook
 
 
   class LabelCellA(PostProcessingHook):

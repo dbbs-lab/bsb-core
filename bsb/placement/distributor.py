@@ -12,7 +12,7 @@ from ..config.types import ndarray
 from ..exceptions import EmptySelectionError
 from ..morphologies import MorphologySet, RotationSet
 from ..profiling import node_meter
-from ..storage import NrrdDependencyNode
+from ..storage._files import NrrdDependencyNode
 from ..topology.partition import Partition
 from .indicator import PlacementIndications
 
@@ -326,11 +326,14 @@ class DistributorsNode:
             uid = uuid.uuid4()
             loaders = []
             all_meta = {}
+            # Save morphologies one by one
             for gen_morpho, i in generated.items():
                 name = f"{prefix}-{uid}-{i}"
+                # `update_metadata=False` so morphology is incompletely stored.
                 saved = mr.save(name, gen_morpho, update_meta=False)
                 all_meta[name] = saved.get_meta()
                 loaders.append(saved)
+            # Finish morphologies by bulk saving their collective metadata
             mr.update_all_meta(all_meta)
             morphologies = MorphologySet(loaders, indices)
         if not isinstance(morphologies, MorphologySet) and morphologies is not None:
@@ -345,3 +348,20 @@ class DistributorsNode:
     def _has_rdistr(self):
         # This function checks if this distributor node has specified a rotation distributor
         return self.__class__.rotations.is_dirty(self)
+
+
+__all__ = [
+    "DistributionContext",
+    "Distributor",
+    "DistributorsNode",
+    "ExplicitNoRotations",
+    "Implicit",
+    "ImplicitNoRotations",
+    "MorphologyDistributor",
+    "MorphologyGenerator",
+    "RandomMorphologies",
+    "RandomRotations",
+    "RotationDistributor",
+    "RoundRobinMorphologies",
+    "VolumetricRotations",
+]

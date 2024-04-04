@@ -12,12 +12,12 @@ from .. import config
 from ..config import refs
 from ..exceptions import ConfigurationError
 from ..mixins import NotParallel
-from ..storage import Chunk
+from ..storage._chunks import Chunk
 from .strategy import PlacementStrategy
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
-    from ..storage import FileDependencyNode
+    from ..storage._files import FileDependencyNode
     from ..topology import Partition
 
 
@@ -143,3 +143,6 @@ def _safe_float(value: typing.Any) -> float:
         return float(value)
     except ValueError:
         return float("nan")
+
+
+__all__ = ["CsvImportPlacement", "ImportPlacement"]

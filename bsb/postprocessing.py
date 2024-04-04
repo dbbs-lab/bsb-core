@@ -1,25 +1,44 @@
+import abc
+
 import numpy as np
 
 from . import config
 from .config import refs
-from .exceptions import ConnectivityWarning, MorphologyDataError, MorphologyError
-from .reporting import report, warn
+from .exceptions import MorphologyDataError, MorphologyError
+from .reporting import report
 
 
 @config.dynamic(attr_name="strategy")
-class PostProcessingHook:
-    def after_placement(self):
-        raise NotImplementedError(
-            "`after_placement` hook not defined on " + self.__class__.__name__
+class AfterPlacementHook(abc.ABC):
+    name: str = config.attr(key=True)
+
+    def queue(self, pool):
+        pool.queue(
+            lambda scaffold: scaffold.after_placement[self.name].postprocess(),
+            submitter=self,
         )
 
-    def after_connectivity(self):
-        raise NotImplementedError(
-            "`after_connectivity` hook not defined on " + self.__class__.__name__
+    @abc.abstractmethod
+    def postprocess(self):
+        pass
+
+
+@config.dynamic(attr_name="strategy")
+class AfterConnectivityHook(abc.ABC):
+    name: str = config.attr(key=True)
+
+    def queue(self, pool):
+        pool.queue(
+            lambda scaffold: scaffold.after_connectivity[self.name].postprocess(),
+            submitter=self,
         )
 
+    @abc.abstractmethod
+    def postprocess(self):
+        pass
 
-class SpoofDetails(PostProcessingHook):
+
+class SpoofDetails(AfterConnectivityHook):
     """
     Create fake morphological intersections between already connected non-detailed
     connection types.
@@ -27,7 +46,7 @@ class SpoofDetails(PostProcessingHook):
 
     casts = {"presynaptic": str, "postsynaptic": str}
 
-    def after_connectivity(self):
+    def postprocess(self):
         # Check which connection types exist between the pre- and postsynaptic types.
         connection_results = self.scaffold.get_connection_cache_by_cell_type(
             presynaptic=self.presynaptic, postsynaptic=self.postsynaptic
@@ -123,7 +142,7 @@ class SpoofDetails(PostProcessingHook):
 
 
 @config.node
-class Relay(PostProcessingHook):
+class Relay(AfterConnectivityHook):
     """
     Replaces connections on a cell with the relayed connections to the connection targets
     of that cell. Not implemented yet.
@@ -131,36 +150,13 @@ class Relay(PostProcessingHook):
 
     cell_types = config.reflist(refs.cell_type_ref)
 
-    def after_placement(self):
+    def postprocess(self):
         pass
 
 
-class MissingAxon(PostProcessingHook):
-    def validate(self):
-        super().validate()
-        if not hasattr(self, "exclude"):
-            self.exclude = []
-
-    def after_connectivity(self):
-        for n, ct in self.scaffold.configuration.connection_types.items():
-            for type in self.types:
-                if ct.from_cell_types[0].name == type:
-                    for tag in ct.tags:
-                        if tag in self.exclude:
-                            continue
-                        if tag not in self.scaffold.connection_compartments:
-                            warn(
-                                f"MissingAxon hook skipped {tag}, missing detailed intersection data.",
-                                ConnectivityWarning,
-                            )
-                            continue
-                        compartment_matrix = self.scaffold.connection_compartments[tag]
-                        compartment_matrix[:, 0] = np.zeros(len(compartment_matrix))
-
-
-class BidirectionalContact(PostProcessingHook):
+class BidirectionalContact(AfterConnectivityHook):
     # Replicates all contacts (connections and compartments) to have bidirection in gaps
-    def after_connectivity(self):
+    def postprocess(self):
         for type in self.types:
             self.scaffold.cell_connections_by_tag[type] = self._invert_append(
                 self.scaffold.cell_connections_by_tag[type]
@@ -174,3 +170,12 @@ class BidirectionalContact(PostProcessingHook):
 
     def _invert_append(self, old):
         return np.concatenate((old, np.stack((old[:, 1], old[:, 0]), axis=1)), axis=0)
+
+
+__all__ = [
+    "BidirectionalContact",
+    "AfterPlacementHook",
+    "AfterConnectivityHook",
+    "Relay",
+    "SpoofDetails",
+]

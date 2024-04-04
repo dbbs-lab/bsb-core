@@ -1,6 +1,6 @@
 import itertools
 import os
-import time
+import sys
 import typing
 
 import numpy as np
@@ -8,19 +8,26 @@ import numpy as np
 from ._util import obj_str_insert
 from .config._config import Configuration
 from .connectivity import ConnectionStrategy
-from .exceptions import InputError, NodeNotFoundError, RedoError, ScaffoldError
+from .exceptions import (
+    InputError,
+    MissingActiveConfigError,
+    NodeNotFoundError,
+    RedoError,
+)
 from .placement import PlacementStrategy
 from .profiling import meter
-from .reporting import report, warn
-from .services import MPI
-from .services.pool import create_job_pool
+from .reporting import report
+from .services import MPI, JobPool
+from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
+from .services.pool import Job, Workflow
 from .simulation import get_simulation_adapter
-from .storage import Chunk, Storage, open_storage
+from .storage import Storage, open_storage
+from .storage._chunks import Chunk
 
 if typing.TYPE_CHECKING:
     from .cell_types import CellType
     from .config._config import NetworkNode as Network
-    from .postprocessing import PostProcessingHook
+    from .postprocessing import AfterPlacementHook
     from .simulation.simulation import Simulation
     from .storage.interfaces import (
         ConnectivitySet,
@@ -80,7 +87,7 @@ def _get_linked_config(storage=None):
         path = cfg._meta.get("path", None)
     if path and os.path.exists(path):
         with open(path, "r") as f:
-            cfg = bsb.config.from_file(f)
+            cfg = bsb.config.parse_configuration_file(f)
             return cfg
     else:
         return None
@@ -104,9 +111,9 @@ class Scaffold:
     partitions: typing.Dict[str, "Partition"]
     cell_types: typing.Dict[str, "CellType"]
     placement: typing.Dict[str, "PlacementStrategy"]
-    after_placement: typing.Dict[str, "PostProcessingHook"]
+    after_placement: typing.Dict[str, "AfterPlacementHook"]
     connectivity: typing.Dict[str, "ConnectionStrategy"]
-    after_connectivity: typing.Dict[str, "PostProcessingHook"]
+    after_connectivity: typing.Dict[str, "AfterPlacementHook"]
     simulations: typing.Dict[str, "Simulation"]
 
     def __init__(self, config=None, storage=None, clear=False, comm=None):
@@ -124,6 +131,9 @@ class Scaffold:
         :returns: A network object
         :rtype: :class:`~.core.Scaffold`
         """
+        self._pool_listeners: list[tuple[typing.Callable[[list["Job"]], None], float]] = (
+            []
+        )
         self._configuration = None
         self._storage = None
         self._comm = comm or MPI
@@ -154,7 +164,10 @@ class Scaffold:
                 report(f"Pulling configuration from linked {linked}.", level=2)
                 config = linked
             elif storage is not None:
-                config = storage.load_active_config()
+                try:
+                    config = storage.load_active_config()
+                except MissingActiveConfigError:
+                    config = Configuration.default()
             else:
                 config = Configuration.default()
         if not storage:
@@ -240,38 +253,36 @@ class Scaffold:
         if y is not None:
             self.network.y = y
         if z is not None:
-            z = self.network.z
+            self.network.z = z
         self.topology.do_layout(
-            box_layout([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
+            box_layout(
+                self.network.origin,
+                np.array(self.network.origin)
+                + [self.network.x, self.network.y, self.network.z],
+            )
         )
 
     @meter()
-    def run_placement(self, strategies=None, DEBUG=True, pipelines=True):
+    def run_placement(self, strategies=None, fail_fast=True, pipelines=True):
         """
         Run placement strategies.
         """
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = [*self.placement]
+            strategies = [*self.placement.values()]
         strategies = PlacementStrategy.sort_deps(strategies)
-        pool = create_job_pool(self)
-        if pool.is_master():
-            for strategy in strategies:
-                strategy.queue(pool, self.network.chunk_size)
-            loop = self._progress_terminal_loop(pool, debug=DEBUG)
-            try:
-                pool.execute(loop)
-            except Exception:
-                self._stop_progress_loop(loop, debug=DEBUG)
-                raise
-            finally:
-                self._stop_progress_loop(loop, debug=DEBUG)
-        else:
+        with self.create_job_pool(fail_fast=fail_fast) as pool:
+            if pool.is_main():
+
+                def scheduler(strategy):
+                    strategy.queue(pool, self.network.chunk_size)
+
+                pool.schedule(strategies, scheduler)
             pool.execute()
 
     @meter()
-    def run_connectivity(self, strategies=None, DEBUG=True, pipelines=True):
+    def run_connectivity(self, strategies=None, fail_fast=True, pipelines=True):
         """
         Run connection strategies.
         """
@@ -280,19 +291,9 @@ class Scaffold:
         if strategies is None:
             strategies = set(self.connectivity.values())
         strategies = ConnectionStrategy.sort_deps(strategies)
-        pool = create_job_pool(self)
-        if pool.is_master():
-            for strategy in strategies:
-                strategy.queue(pool)
-            loop = self._progress_terminal_loop(pool, debug=DEBUG)
-            try:
-                pool.execute(loop)
-            except Exception:
-                self._stop_progress_loop(loop, debug=DEBUG)
-                raise
-            finally:
-                self._stop_progress_loop(loop, debug=DEBUG)
-        else:
+        with self.create_job_pool(fail_fast=fail_fast) as pool:
+            if pool.is_main():
+                pool.schedule(strategies)
             pool.execute()
 
     @meter()
@@ -303,26 +304,28 @@ class Scaffold:
         self.run_placement([strategy])
 
     @meter()
-    def run_after_placement(self, pipelines=True):
+    def run_after_placement(self, hooks=None, fail_fast=None, pipelines=True):
         """
         Run after placement hooks.
         """
-        if self.after_placement:
-            warn("After placement disabled")
-        # pool = create_job_pool(self)
-        # for hook in self.configuration.after_placement.values():
-        #     pool.queue(hook.after_placement)
-        # pool.execute(self._pool_event_loop)
+        if hooks is None:
+            hooks = self.after_placement
+        with self.create_job_pool(fail_fast) as pool:
+            if pool.is_main():
+                pool.schedule(hooks)
+            pool.execute()
 
     @meter()
-    def run_after_connectivity(self, pipelines=True):
+    def run_after_connectivity(self, hooks=None, fail_fast=None, pipelines=True):
         """
         Run after placement hooks.
         """
-        if self.after_connectivity:
-            warn("After connectivity disabled")
-        # for hook in self.configuration.after_connectivity.values():
-        #     hook.after_connectivity()
+        if hooks is None:
+            hooks = self.after_placement
+        with self.create_job_pool(fail_fast) as pool:
+            if pool.is_main():
+                pool.schedule(hooks)
+            pool.execute()
 
     @meter()
     def compile(
@@ -337,13 +340,20 @@ class Scaffold:
         append=False,
         redo=False,
         force=False,
+        fail_fast=True,
     ):
         """
         Run reconstruction steps in the scaffold sequence to obtain a full network.
         """
         existed = self.storage.preexisted
-        p_strats = self.get_placement(skip=skip, only=only)
-        c_strats = self.get_connectivity(skip=skip, only=only)
+        if skip_placement:
+            p_strats = []
+        else:
+            p_strats = self.get_placement(skip=skip, only=only)
+        if skip_connectivity:
+            c_strats = []
+        else:
+            c_strats = self.get_connectivity(skip=skip, only=only)
         todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
         report(f"Compiling the following strategies: {todo_list_str}", level=2)
         if _bad_flag(clear) or _bad_flag(redo) or _bad_flag(append):
@@ -357,12 +367,14 @@ class Scaffold:
             if not (clear or append or redo):
                 raise FileExistsError(
                     f"The `{self.storage.format}` storage"
-                    + f" at `{self.storage.root}` already exists."
-                    + " Use the `clear`, `append` or `redo` arguments"
-                    + " to pick what to do with stored data."
+                    + f" at `{self.storage.root}` already exists. Either move/delete it,"
+                    + " or pass one of the `clear`, `append` or `redo` arguments"
+                    + " to pick what to do with the existing data."
                 )
             if clear:
                 report("Clearing data", level=2)
+                # Clear the placement and connectivity data, but leave any cached files
+                # and morphologies intact.
                 self.clear_placement()
                 self.clear_connectivity()
             elif redo:
@@ -374,42 +386,48 @@ class Scaffold:
             # else:
             #   append mode is luckily simpler, just don't clear anything :)
 
-        t = time.time()
-        self.run_pipelines()
+        phases = ["pipelines"]
         if not skip_placement:
-            placement_todo = ", ".join(s.name for s in p_strats)
-            report(f"Starting placement strategies: {placement_todo}", level=2)
-            self.run_placement(p_strats, pipelines=False)
+            phases.append("placement")
         if not skip_after_placement:
-            self.run_after_placement(pipelines=False)
+            phases.append("after_placement")
         if not skip_connectivity:
-            connectivity_todo = ", ".join(s.name for s in c_strats)
-            report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
-            self.run_connectivity(c_strats, pipelines=False)
+            phases.append("connectivity")
         if not skip_after_connectivity:
-            self.run_after_connectivity(pipelines=False)
-        report("Runtime: {}".format(time.time() - t), 2)
-        # After compilation we should flag the storage as having existed before so that
-        # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
-        self.storage._preexisted = True
+            phases.append("after_connectivity")
+        self._workflow = Workflow(phases)
+        try:
+            self.run_pipelines(fail_fast=fail_fast)
+            self._workflow.next_phase()
+            if not skip_placement:
+                placement_todo = ", ".join(s.name for s in p_strats)
+                report(f"Starting placement strategies: {placement_todo}", level=2)
+                self.run_placement(p_strats, fail_fast=fail_fast, pipelines=False)
+                self._workflow.next_phase()
+            if not skip_after_placement:
+                self.run_after_placement(pipelines=False, fail_fast=fail_fast)
+                self._workflow.next_phase()
+            if not skip_connectivity:
+                connectivity_todo = ", ".join(s.name for s in c_strats)
+                report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
+                self.run_connectivity(c_strats, fail_fast=fail_fast, pipelines=False)
+                self._workflow.next_phase()
+            if not skip_after_connectivity:
+                self.run_after_connectivity(pipelines=False)
+                self._workflow.next_phase()
+        finally:
+            # After compilation we should flag the storage as having existed before so that
+            # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
+            self.storage._preexisted = True
+            del self._workflow
 
     @meter()
-    def run_pipelines(self, pipelines=None, DEBUG=True):
+    def run_pipelines(self, fail_fast=True, pipelines=None):
         if pipelines is None:
             pipelines = self.get_dependency_pipelines()
-        pool = create_job_pool(self)
-        if pool.is_master():
-            for pipeline in pipelines:
-                pipeline.queue(pool)
-            loop = self._progress_terminal_loop(pool, debug=DEBUG)
-            try:
-                pool.execute(loop)
-            except Exception:
-                self._stop_progress_loop(loop, debug=DEBUG)
-                raise
-            finally:
-                self._stop_progress_loop(loop, debug=DEBUG)
-        else:
+        with self.create_job_pool(fail_fast=fail_fast) as pool:
+            if pool.is_main():
+                pool.schedule(pipelines)
             pool.execute()
 
     @meter()
@@ -610,60 +628,6 @@ class Scaffold:
         except KeyError as e:
             raise NodeNotFoundError(f"Cell type `{e.args[0]}` not found.")
 
-    def _progress_terminal_loop(self, pool, debug=False):
-        import time
-
-        if debug:
-
-            def loop(jobs):
-                print("Total jobs:", len(jobs))
-                print("Running jobs:", sum(1 for q in jobs if q._future.running()))
-                print("Finished:", sum(1 for q in jobs if q._future.done()))
-                time.sleep(1)
-
-            return loop
-
-        import curses
-
-        stdscr = curses.initscr()
-        curses.noecho()
-        curses.cbreak()
-        stdscr.keypad(True)
-
-        def loop(jobs):
-            total = len(jobs)
-            running = list(q for q in jobs if q._future.running())
-            done = sum(1 for q in jobs if q._future.done())
-
-            stdscr.clear()
-            stdscr.addstr(0, 0, "-- Reconstruction progress --")
-            stdscr.addstr(1, 2, f"Total jobs: {total}")
-            stdscr.addstr(2, 2, f"Remaining jobs: {total - done}")
-            stdscr.addstr(3, 2, f"Running jobs: {len(running)}")
-            stdscr.addstr(4, 2, f"Finished jobs: {done}")
-            for i, j in enumerate(running):
-                stdscr.addstr(
-                    6 + i,
-                    2,
-                    f"* Worker {i}: <{j._cname}>{j._name} {j._c}",
-                )
-
-            stdscr.refresh()
-            time.sleep(0.1)
-
-        loop._stdscr = stdscr
-        return loop
-
-    def _stop_progress_loop(self, loop, debug=False):
-        if debug:
-            return
-        import curses
-
-        curses.nocbreak()
-        loop._stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-
     def _connectivity_query(self, any_query=set(), pre_query=set(), post_query=set()):
         # Filter network connection types for any type that satisfies both
         # the presynaptic and postsynaptic query. Empty queries satisfy all
@@ -702,12 +666,15 @@ class Scaffold:
 
         c_contrib = set(c_strats)
         conn_wipe = full_wipe.copy()
-        while True:
-            contrib = set(self.get_connectivity(anywhere=conn_wipe))
-            conn_wipe.update(itertools.chain(*(ct.get_cell_types() for ct in contrib)))
-            if contrib.issubset(c_contrib):
-                break
-            c_contrib.update(contrib)
+        if full_wipe:
+            while True:
+                contrib = set(self.get_connectivity(anywhere=conn_wipe))
+                conn_wipe.update(
+                    itertools.chain(*(ct.get_cell_types() for ct in contrib))
+                )
+                if contrib.issubset(c_contrib):
+                    break
+                c_contrib.update(contrib)
         report(
             "Redo-affected connectivity: " + " ".join(cs.name for cs in c_contrib),
             level=2,
@@ -750,9 +717,9 @@ class Scaffold:
         return [*self.configuration.morphologies]
 
     def get_config_diagram(self):
-        from .config import make_config_diagram
+        from .config import make_configuration_diagram
 
-        return make_config_diagram(self.configuration)
+        return make_configuration_diagram(self.configuration)
 
     def get_storage_diagram(self):
         dot = f'digraph "{self.configuration.name or "network"}" {{'
@@ -785,6 +752,39 @@ class Scaffold:
             ) from None
         return cs
 
+    def create_job_pool(self, fail_fast=None, quiet=False):
+        pool = JobPool(
+            self, fail_fast=fail_fast, workflow=getattr(self, "_workflow", None)
+        )
+        try:
+            # Check whether stdout is a TTY, and that it is larger than 0x0
+            # (e.g. MPI sets it to 0x0 unless an xterm is emulated.
+            tty = os.isatty(sys.stdout.fileno()) and sum(os.get_terminal_size())
+        except Exception:
+            tty = False
+        if tty:
+            fps = 25
+            default_listener = TTYTerminalListener(fps)
+            default_max_wait = 1 / fps
+        else:
+            default_listener = NonTTYTerminalListener()
+            default_max_wait = None
+        if self._pool_listeners:
+            for listener, max_wait in self._pool_listeners:
+                pool.add_listener(listener, max_wait=max_wait)
+        elif not quiet:
+            pool.add_listener(default_listener, max_wait=default_max_wait)
+        return pool
+
+    def register_listener(self, listener, max_wait=None):
+        self._pool_listeners.append((listener, max_wait))
+
+    def remove_listener(self, listener):
+        for i, (l, _) in enumerate(self._pool_listeners):
+            if l is listener:
+                self._pool_listeners.pop(i)
+                break
+
 
 class ReportListener:
     def __init__(self, scaffold, file):
@@ -800,3 +800,6 @@ class ReportListener:
             + str(progress.time),
             token="simulation_progress",
         )
+
+
+__all__ = ["ReportListener", "Scaffold", "from_storage"]

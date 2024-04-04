@@ -6,7 +6,7 @@ from ... import config
 from ...config import types
 from ...exceptions import ConnectivityWarning
 from ...reporting import warn
-from ...storage import Chunk
+from ...storage._chunks import Chunk
 
 
 class Intersectional:
@@ -61,3 +61,6 @@ class Intersectional:
                 return int(np.floor(ln * aff) + (np.random.rand() < ((ln * aff) % 1)))
 
             return (np.random.choice(q, sizemod(q), replace=False) for q in query)
+
+
+__all__ = ["Intersectional"]

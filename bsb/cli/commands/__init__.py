@@ -149,3 +149,6 @@ def load_root_command():
     # class using the `__init_subclass__` function.
     discover("commands")
     return RootCommand()
+
+
+__all__ = ["BaseCommand", "BsbCommand", "RootCommand", "load_root_command"]

@@ -1,5 +1,4 @@
-from bsb.config import from_json
-from bsb.core import Scaffold
+from bsb import Scaffold, from_json
 
 cfg = from_json("network_configuration.json")
 network = Scaffold(cfg)

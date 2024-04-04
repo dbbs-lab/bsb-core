@@ -14,14 +14,12 @@ import numpy as np
 from .. import config
 from ..config import types
 from ..exceptions import (
-    AllenApiError,
     ConfigurationError,
     LayoutError,
     NodeNotFoundError,
     RequirementError,
 )
-from ..reporting import report
-from ..storage import Chunk
+from ..storage._chunks import Chunk
 from ..storage._files import NrrdDependencyNode
 from ..storage._util import _cached_file
 from ..voxels import VoxelSet
@@ -69,7 +67,7 @@ class Partition(abc.ABC):
         Calculate the volume of the partition in μm^3.
 
         :param chunk: If given, limit the volume of the partition inside of the chunk.
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :returns: Volume of the partition (in the chunk)
         :rtype: float
         """
@@ -81,7 +79,7 @@ class Partition(abc.ABC):
         Calculate the surface of the partition in μm^2.
 
         :param chunk: If given, limit the surface of the partition inside of the chunk.
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :returns: Surface of the partition (in the chunk)
         :rtype: float
         """
@@ -96,7 +94,7 @@ class Partition(abc.ABC):
         :param chunk_size: Size per chunk (in μm). The slicing always starts at [0, 0, 0].
         :type chunk_size: numpy.ndarray
         :returns: Chunks occupied by this partition
-        :rtype: List[bsb.storage.Chunk]
+        :rtype: List[bsb.storage._chunks.Chunk]
         """
         pass
 
@@ -107,7 +105,7 @@ class Partition(abc.ABC):
         with cells by the placement module.
 
         :param chunk: The chunk to calculate voxels for.
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :returns: The set of voxels that together make up the shape of this partition in
           this chunk.
         :rtype: bsb.voxels.VoxelSet
@@ -675,3 +673,6 @@ def _repeat_first():
         return first
 
     return repeater
+
+
+__all__ = ["AllenStructure", "Layer", "NrrdVoxels", "Partition", "Rhomboid", "Voxels"]

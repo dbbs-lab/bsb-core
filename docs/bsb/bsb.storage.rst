@@ -23,13 +23,14 @@ Module contents
    :undoc-members:
    :show-inheritance:
 
-Dev
----
+   .. autofunction:: bsb.storage._chunks.chunklist
 
-.. autoclass:: bsb.storage._files.FileDependency
+   .. autoclass:: bsb.storage._chunks.Chunk
 
-.. autoclass:: bsb.storage._files.CodeDependencyNode
+.. automodule:: bsb.storage._files
+   :members:
+   :undoc-members:
 
-.. autoclass:: bsb.storage._files.MorphologyDependencyNode
+   .. autoclass:: bsb.storage._files.MorphologyOperationCallable
 
-.. autoclass:: bsb.storage._files.NrrdDependencyNode
+   .. autoclass:: bsb.storage._files.OperationCallable
