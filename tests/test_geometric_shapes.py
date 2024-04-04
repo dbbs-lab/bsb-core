@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from bsb_test import NumpyTestCase
 
-from bsb.connectivity.point_cloud.geometric_shapes import (
+from bsb import (
     Cone,
     Cuboid,
     Cylinder,

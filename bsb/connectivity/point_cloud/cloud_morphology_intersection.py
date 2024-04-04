@@ -1,9 +1,8 @@
 import numpy as np
 
-from bsb import config
-from bsb.connectivity import ConnectionStrategy
-
+from ... import config
 from ...config import types
+from .. import ConnectionStrategy
 from .cloud_cloud_intersection import CloudHemitype
 
 

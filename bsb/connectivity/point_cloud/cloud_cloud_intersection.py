@@ -1,11 +1,10 @@
 import numpy as np
 
-from bsb import config
-from bsb.connectivity import ConnectionStrategy
-from bsb.connectivity.strategy import Hemitype
-
+from ... import config
 from ...config import types
 from ...trees import BoxTree
+from .. import ConnectionStrategy
+from ..strategy import Hemitype
 from .geometric_shapes import ShapesComposition
 
 

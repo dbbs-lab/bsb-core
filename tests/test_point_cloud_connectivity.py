@@ -8,9 +8,14 @@ from bsb_test import (
     RandomStorageFixture,
 )
 
-from bsb.config import Configuration
-from bsb.core import Scaffold
-from bsb.exceptions import DatasetNotFoundError
+from bsb import (
+    CloudToCloudIntersection,
+    CloudToMorphologyIntersection,
+    Configuration,
+    DatasetNotFoundError,
+    MorphologyToCloudIntersection,
+    Scaffold,
+)
 
 
 class TestPointCloudConnectivity(
@@ -70,41 +75,33 @@ class TestPointCloudConnectivity(
             "labels": [["sphere"]],
         }
         # All the points of the point cloud are inside the geometric shape
-        self.network.connectivity.add(
-            "cloud_to_cloud_1",
-            dict(
-                strategy="bsb.connectivity.point_cloud.CloudToCloudIntersection",
-                presynaptic=dict(
-                    cell_types=["test_cell_pc_1"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                postsynaptic=dict(
-                    cell_types=["test_cell_pc_1"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                affinity=0.1,
+        self.network.connectivity["cloud_to_cloud_1"] = CloudToCloudIntersection(
+            presynaptic=dict(
+                cell_types=["test_cell_pc_1"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
             ),
+            postsynaptic=dict(
+                cell_types=["test_cell_pc_1"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
+            ),
+            affinity=0.1,
         )
 
         # There are no intersections between the point clouds
-        self.network.connectivity.add(
-            "cloud_to_cloud_2",
-            dict(
-                strategy="bsb.connectivity.point_cloud.CloudToCloudIntersection",
-                presynaptic=dict(
-                    cell_types=["test_cell_pc_1"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                postsynaptic=dict(
-                    cell_types=["test_cell_pc_2"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                affinity=0.1,
+        self.network.connectivity["cloud_to_cloud_2"] = CloudToCloudIntersection(
+            presynaptic=dict(
+                cell_types=["test_cell_pc_1"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
             ),
+            postsynaptic=dict(
+                cell_types=["test_cell_pc_2"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
+            ),
+            affinity=0.1,
         )
 
         self.network.compile(skip_placement=True, append=True)
@@ -132,33 +129,25 @@ class TestPointCloudConnectivity(
         }
 
         # We know a priori that there are intersections between the point cloud and the morphology
-        self.network.connectivity.add(
-            "cloud_to_morpho_1",
-            dict(
-                strategy="bsb.connectivity.point_cloud.CloudToMorphologyIntersection",
-                presynaptic=dict(
-                    cell_types=["test_cell_pc_2"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                postsynaptic=dict(cell_types=["test_cell_morpho"]),
-                affinity=0.1,
+        self.network.connectivity["cloud_to_morpho_1"] = CloudToMorphologyIntersection(
+            presynaptic=dict(
+                cell_types=["test_cell_pc_2"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
             ),
+            postsynaptic=dict(cell_types=["test_cell_morpho"]),
+            affinity=0.1,
         )
 
         # There are no intersections between the point clouds
-        self.network.connectivity.add(
-            "cloud_to_morpho_2",
-            dict(
-                strategy="bsb.connectivity.point_cloud.CloudToMorphologyIntersection",
-                presynaptic=dict(
-                    cell_types=["test_cell_pc_1"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                postsynaptic=dict(cell_types=["test_cell_morpho"]),
-                affinity=0.1,
+        self.network.connectivity["cloud_to_morpho_2"] = CloudToMorphologyIntersection(
+            presynaptic=dict(
+                cell_types=["test_cell_pc_1"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
             ),
+            postsynaptic=dict(cell_types=["test_cell_morpho"]),
+            affinity=0.1,
         )
 
         self.network.compile(skip_placement=True, append=True)
@@ -185,33 +174,25 @@ class TestPointCloudConnectivity(
         }
 
         # We know a priori that there are intersections between the point cloud and the morphology
-        self.network.connectivity.add(
-            "cloud_to_morpho_1",
-            dict(
-                strategy="bsb.connectivity.point_cloud.MorphologyToCloudIntersection",
-                postsynaptic=dict(
-                    cell_types=["test_cell_pc_2"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                presynaptic=dict(cell_types=["test_cell_morpho"]),
-                affinity=0.1,
+        self.network.connectivity["cloud_to_morpho_1"] = MorphologyToCloudIntersection(
+            postsynaptic=dict(
+                cell_types=["test_cell_pc_2"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
             ),
+            presynaptic=dict(cell_types=["test_cell_morpho"]),
+            affinity=0.1,
         )
 
         # There are no intersections between the point clouds
-        self.network.connectivity.add(
-            "cloud_to_morpho_2",
-            dict(
-                strategy="bsb.connectivity.point_cloud.MorphologyToCloudIntersection",
-                postsynaptic=dict(
-                    cell_types=["test_cell_pc_1"],
-                    shapes_composition=ball_shape,
-                    morphology_labels=["soma"],
-                ),
-                presynaptic=dict(cell_types=["test_cell_morpho"]),
-                affinity=0.1,
+        self.network.connectivity["cloud_to_morpho_2"] = MorphologyToCloudIntersection(
+            postsynaptic=dict(
+                cell_types=["test_cell_pc_1"],
+                shapes_composition=ball_shape,
+                morphology_labels=["soma"],
             ),
+            presynaptic=dict(cell_types=["test_cell_morpho"]),
+            affinity=0.1,
         )
 
         self.network.compile(skip_placement=True, append=True)

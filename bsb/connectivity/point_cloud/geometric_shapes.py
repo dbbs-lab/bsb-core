@@ -7,9 +7,8 @@ import numpy
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-from bsb import config
-from bsb.config import types
-
+from ... import config
+from ...config import types
 from .cloud_mesh_utils import (
     rotate_3d_mesh_by_rot_mat,
     rotate_3d_mesh_by_vec,
