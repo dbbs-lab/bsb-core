@@ -26,7 +26,7 @@ class CloudHemitype(Hemitype):
 
         :param chunks: List of chunks containing the cell types
             (see bsb.connectivity.strategy.Hemitype.get_all_chunks)
-        :type chunks: List[bsb.storage.Chunk]
+        :type chunks: List[bsb.storage._chunks.Chunk]
         :param chunk_dimension: Size of a chunk
         :type chunk_dimension: float
         :return: List of bounding boxes in the form [min_x, min_y, min_z, max_x, max_y, max_z]

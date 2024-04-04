@@ -53,7 +53,7 @@ class Hemitype:
         Get the list of all chunks where the cell types were placed
 
         :return: List of Chunks
-        :rtype: List[bsb.storage.Chunk]
+        :rtype: List[bsb.storage._chunks.Chunk]
         """
         return [
             c for ct in self.cell_types for c in ct.get_placement_set().get_all_chunks()
@@ -198,9 +198,9 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
         chunk containing the presynaptic neurons.
 
         :param chunk: Presynaptic chunk
-        :type chunk: bsb.storage.Chunk
+        :type chunk: bsb.storage._chunks.Chunk
         :returns: List of postsynaptic chunks
-        :rtype: List[bsb.storage.Chunk]
+        :rtype: List[bsb.storage._chunks.Chunk]
         """
         pass
 
