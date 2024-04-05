@@ -8,13 +8,11 @@ from bsb_test import (
     RandomStorageFixture,
 )
 
-from bsb import (
+from bsb import Configuration, DatasetNotFoundError, Scaffold
+from bsb.connectivity import (
     CloudToCloudIntersection,
     CloudToMorphologyIntersection,
-    Configuration,
-    DatasetNotFoundError,
     MorphologyToCloudIntersection,
-    Scaffold,
 )
 
 

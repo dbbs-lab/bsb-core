@@ -4,6 +4,7 @@ from ... import config
 from ...config import types
 from .. import ConnectionStrategy
 from .cloud_cloud_intersection import CloudHemitype
+from .cloud_morphology_intersection import _create_cloud_conn_arrays
 
 
 @config.node
@@ -49,23 +50,9 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
             branches = morpho.get_branches()
 
             # Build ids array from the morphology
-            morpho_points = 0
-            for b in branches:
-                morpho_points += len(b.points)
-            pre_points_ids = np.empty([morpho_points, 3], dtype=int)
-            pre_morpho_coord = np.empty([morpho_points, 3], dtype=float)
-            local_ptr = 0
-            for i, b in enumerate(branches):
-                pre_points_ids[local_ptr : local_ptr + len(b.points), 0] = pre_id
-                pre_points_ids[local_ptr : local_ptr + len(b.points), 1] = i
-                pre_points_ids[local_ptr : local_ptr + len(b.points), 2] = np.arange(
-                    len(b.points)
-                )
-                tmp = b.points + pre_coord
-                # Swap y and z
-                tmp[:, [1, 2]] = tmp[:, [2, 1]]
-                pre_morpho_coord[local_ptr : local_ptr + len(b.points)] = tmp
-                local_ptr += len(b.points)
+            pre_points_ids, pre_morpho_coord = _create_cloud_conn_arrays(
+                branches, pre_id, pre_coord
+            )
 
             for post_id, post_coord in enumerate(post_pos):
                 post_cloud.translate(post_coord)

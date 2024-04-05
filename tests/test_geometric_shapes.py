@@ -3,7 +3,8 @@ import unittest
 import numpy as np
 from bsb_test import NumpyTestCase
 
-from bsb import (
+from bsb import RequirementError
+from bsb.connectivity import (
     Cone,
     Cuboid,
     Cylinder,
@@ -12,7 +13,6 @@ from bsb import (
     ShapesComposition,
     Sphere,
 )
-from bsb.exceptions import RequirementError
 
 
 class TestGeometricShapes(unittest.TestCase, NumpyTestCase):

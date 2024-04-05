@@ -6,6 +6,24 @@ from .. import ConnectionStrategy
 from .cloud_cloud_intersection import CloudHemitype
 
 
+def _create_cloud_conn_arrays(branches, ids, coord):
+    morpho_points = 0
+    for b in branches:
+        morpho_points += len(b.points)
+    points_ids = np.empty([morpho_points, 3], dtype=int)
+    morpho_coord = np.empty([morpho_points, 3], dtype=float)
+    local_ptr = 0
+    for i, b in enumerate(branches):
+        points_ids[local_ptr : local_ptr + len(b.points), 0] = ids
+        points_ids[local_ptr : local_ptr + len(b.points), 1] = i
+        points_ids[local_ptr : local_ptr + len(b.points), 2] = np.arange(len(b.points))
+        tmp = b.points + coord
+        tmp[:, [1, 2]] = tmp[:, [2, 1]]
+        morpho_coord[local_ptr : local_ptr + len(b.points), :] = tmp
+        local_ptr += len(b.points)
+    return points_ids, morpho_coord
+
+
 @config.node
 class CloudToMorphologyIntersection(ConnectionStrategy):
     presynaptic = config.attr(type=CloudHemitype, required=True)
@@ -50,22 +68,9 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
             branches = morpho.get_branches()
 
             # Build ids array from the morphology
-            morpho_points = 0
-            for b in branches:
-                morpho_points += len(b.points)
-            post_points_ids = np.empty([morpho_points, 3], dtype=int)
-            post_morpho_coord = np.empty([morpho_points, 3], dtype=float)
-            local_ptr = 0
-            for i, b in enumerate(branches):
-                post_points_ids[local_ptr : local_ptr + len(b.points), 0] = post_id
-                post_points_ids[local_ptr : local_ptr + len(b.points), 1] = i
-                post_points_ids[local_ptr : local_ptr + len(b.points), 2] = np.arange(
-                    len(b.points)
-                )
-                tmp = b.points + post_coord
-                tmp[:, [1, 2]] = tmp[:, [2, 1]]
-                post_morpho_coord[local_ptr : local_ptr + len(b.points), :] = tmp
-                local_ptr += len(b.points)
+            post_points_ids, post_morpho_coord = _create_cloud_conn_arrays(
+                branches, post_id, post_coord
+            )
 
             for pre_id, pre_coord in enumerate(pre_pos):
                 pre_cloud.translate(pre_coord)

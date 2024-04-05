@@ -3,25 +3,240 @@ from __future__ import annotations
 import abc
 from typing import List, Tuple
 
-import numpy
 import numpy as np
+from scipy.interpolate import interp1d
 from scipy.spatial.transform import Rotation as R
 
 from ... import config
 from ...config import types
-from .cloud_mesh_utils import (
-    rotate_3d_mesh_by_rot_mat,
-    rotate_3d_mesh_by_vec,
-    translate_3d_mesh_by_vec,
-    uniform_surface_sampling,
-    uniform_surface_wireframe,
-)
+
+
+def _reshape_vectors(rot_pts, x, y, z):
+    xrot = rot_pts[:, 0].reshape(x.shape)
+    yrot = rot_pts[:, 1].reshape(y.shape)
+    zrot = rot_pts[:, 2].reshape(z.shape)
+
+    return xrot, yrot, zrot
+
+
+def rotate_3d_mesh_by_vec(
+    x: np.ndarray, y: np.ndarray, z: np.ndarray, rot_versor: np.ndarray, angle: float
+):
+    """
+    Rotate meshgrid points according to a rotation versor and angle.
+
+    :param numpy.ndarray[numpy.ndarray[float]] x: x coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] y: y coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] z: z coordinate points of the meshgrid
+    :param numpy.ndarray[float] rot_versor: vector representing rotation versor
+    :param float angle: rotation angle in radian
+    :return: Rotated x, y, z coordinate points
+    :rtype: Tuple[numpy.ndarray[numpy.ndarray[float]]
+    """
+
+    # Arrange point coordinates in shape (N, 3) for vectorized processing
+    pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
+
+    # Create and apply rotation
+    rot = R.from_rotvec(rot_versor * angle)
+    rot_pts = rot.apply(pts)
+
+    # return to original shape of meshgrid
+    return _reshape_vectors(rot_pts, x, y, z)
+
+
+def translate_3d_mesh_by_vec(
+    x: np.ndarray, y: np.ndarray, z: np.ndarray, t_vec: np.ndarray
+):
+    """
+    Translate meshgrid points according to a 3d vector.
+
+    :param numpy.ndarray[numpy.ndarray[float]] x: x coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] y: y coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] z: z coordinate points of the meshgrid
+    :param numpy.ndarray[float] t_vec: translation vector
+    :return: Translated x, y, z coordinate points
+    :rtype: Tuple[numpy.ndarray[numpy.ndarray[float]]
+    """
+
+    # Arrange point coordinates in shape (N, 3) for vectorized processing
+    pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
+    pts = pts + t_vec
+    # return to original shape of meshgrid
+    return _reshape_vectors(pts, x, y, z)
+
+
+def rotate_3d_mesh_by_rot_mat(
+    x: np.ndarray, y: np.ndarray, z: np.ndarray, rot_mat: np.ndarray
+):
+    """
+    Rotate meshgrid points according to a rotation matrix.
+
+    :param numpy.ndarray[numpy.ndarray[float]] x: x coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] y: y coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] z: z coordinate points of the meshgrid
+    :param numpy.ndarray[numpy.ndarray[float]] rot_mat: rotation matrix, shape (3,3)
+    :return: Rotated x, y, z coordinate points
+    :rtype: Tuple[numpy.ndarray[numpy.ndarray[float]]
+    """
+
+    # Arrange point coordinates in shape (N, 3) for vectorized processing
+    pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
+
+    # Create and apply rotation
+    rot = R.from_matrix(rot_mat)
+    rot_pts = rot.apply(pts)
+
+    # return to original shape of meshgrid
+    return _reshape_vectors(rot_pts, x, y, z)
+
+
+def _surface_resampling(
+    surface_function,
+    theta_min=0,
+    theta_max=2 * np.pi,
+    phi_min=0,
+    phi_max=np.pi,
+    precision=25,
+):
+    # first sampling to estimate surface distribution
+    theta, phi = np.meshgrid(
+        np.linspace(theta_min, theta_max, precision),
+        np.linspace(phi_min, phi_max, precision),
+    )
+    coords = surface_function(theta, phi)
+
+    # estimate surfaces, decomposing it into parallelograms along theta and phi
+    delta_t_temp = np.diff(coords, axis=2)
+    delta_u_temp = np.diff(coords, axis=1)
+    delta_t = np.zeros(coords.shape)
+    delta_u = np.zeros(coords.shape)
+    delta_t[: coords.shape[0], : coords.shape[1], 1 : coords.shape[2]] = delta_t_temp
+    delta_u[: coords.shape[0], 1 : coords.shape[1], : coords.shape[2]] = delta_u_temp
+    delta_S = np.linalg.norm(np.cross(delta_t, delta_u, 0, 0), axis=2)
+    cum_S_t = np.cumsum(delta_S.sum(axis=0))
+    cum_S_u = np.cumsum(delta_S.sum(axis=1))
+    return theta, phi, cum_S_t, cum_S_u
+
+
+def uniform_surface_sampling(
+    n_points,
+    surface_function,
+    theta_min=0,
+    theta_max=2 * np.pi,
+    phi_min=0,
+    phi_max=np.pi,
+    precision=25,
+):
+    """
+    Uniform-like random sampling of polar coordinates based on surface estimation.
+    This sampling is useful on elliptic surfaces (e.g. sphere).
+    Algorithm based on https://github.com/maxkapur/param_tools
+
+    :param int n_points: number of points to sample
+    :param Callable[..., numpy.ndarray[float]] surface_function: function converting polar
+        coordinates into cartesian coordinates
+    :param int precision: size of grid used to estimate function surface
+    """
+
+    theta, phi, cum_S_t, cum_S_u = _surface_resampling(
+        surface_function, theta_min, theta_max, phi_min, phi_max, precision
+    )
+    # resample along the cumulative surface to uniformize point distribution
+    # equivalent to a multinomial sampling
+    sampled_t = np.random.rand(n_points) * cum_S_t[-1]
+    sampled_u = np.random.rand(n_points) * cum_S_u[-1]
+    sampled_t = interp1d(cum_S_t, theta[0, :])(sampled_t)
+    sampled_u = interp1d(cum_S_u, phi[:, 0])(sampled_u)
+
+    return surface_function(sampled_t, sampled_u)
+
+
+def uniform_surface_wireframe(
+    n_points_1,
+    n_points_2,
+    surface_function,
+    theta_min=0,
+    theta_max=2 * np.pi,
+    phi_min=0,
+    phi_max=np.pi,
+    precision=25,
+):
+    """
+    Uniform-like meshgrid of size (n_point_1, n_points_2) of polar coordinates based on surface
+    estimation.
+    This meshgrid is useful on elliptic surfaces (e.g. sphere).
+    Algorithm based on https://github.com/maxkapur/param_tools
+
+    :param Callable[..., numpy.ndarray[float]] surface_function: function converting polar
+        coordinates into cartesian coordinates
+    :param int precision: size of grid used to estimate function surface
+    """
+
+    theta, phi, cum_S_t, cum_S_u = _surface_resampling(
+        surface_function, theta_min, theta_max, phi_min, phi_max, precision
+    )
+    sampled_t = np.linspace(0, cum_S_t[-1], n_points_1)
+    sampled_u = np.linspace(0, cum_S_u[-1], n_points_2)
+    sampled_t = interp1d(cum_S_t, theta[0, :])(sampled_t)
+    sampled_u = interp1d(cum_S_u, phi[:, 0])(sampled_u)
+    sampled_t, sampled_u = np.meshgrid(sampled_t, sampled_u)
+    return surface_function(sampled_t, sampled_u)
+
+
+def _get_prod_angle_vector(hv, z_versor=np.array([0, 0, 1])):
+    """
+    Calculate the cross product and the arc cosines angle between two vectors.
+
+    :param numpy.ndarray hv: vector to rotate
+    :param numpy.ndarray z_versor: reference vector
+    :return: cross product and arc cosines angle
+    :rtype: Tuple[numpy.ndarray, numpy.ndarray]
+    """
+
+    return np.cross(z_versor, hv), np.arccos(np.dot(hv, z_versor))
+
+
+def _get_rotation_vector(hv, z_versor=np.array([0, 0, 1]), positive_angle=True):
+    """
+    Calculate the rotation vector between two vectors.
+
+    :param numpy.ndarray hv: vector to rotate
+    :param numpy.ndarray z_versor: reference vector
+    :param bool positive_angle: if False, the angle is inverted
+    :return: rotation vector
+    :rtype: scipy.spatial.transform.Rotation
+    """
+
+    perp, angle = _get_prod_angle_vector(hv, z_versor)
+    angle = angle if positive_angle else -angle
+    rot = R.from_rotvec(perp * angle)
+    return rot
+
+
+def _rotate_by_coord(x, y, z, hv, origin, test_hv=False):
+    perp, angle = _get_prod_angle_vector(hv / np.linalg.norm(hv))
+
+    x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
+    if test_hv and hv[2] < 0:
+        z = -z
+    return translate_3d_mesh_by_vec(x, y, z, origin)
+
+
+def _get_extrema_after_rot(extrema, origin, top_center):
+    height = np.linalg.norm(top_center - origin)
+    rot = _get_rotation_vector((top_center - origin) / height)
+
+    for i, pt in enumerate(extrema):
+        extrema[i] = rot.apply(pt)
+
+    return np.min(extrema, axis=0) + origin, np.max(extrema, axis=0) + origin
 
 
 def inside_mbox(
-    points: numpy.ndarray[float],
-    mbb_min: numpy.ndarray[float],
-    mbb_max: numpy.ndarray[float],
+    points: np.ndarray[float],
+    mbb_min: np.ndarray[float],
+    mbb_max: np.ndarray[float],
 ):
     """
     Check if the points given in input are inside the minimal bounding box.
@@ -66,7 +281,7 @@ class GeometricShape(abc.ABC):
         """
         pass
 
-    def check_mbox(self, points: numpy.ndarray[float]):
+    def check_mbox(self, points: np.ndarray[float]):
         """
         Check if the points given in input are inside the minimal bounding box.
 
@@ -87,7 +302,7 @@ class GeometricShape(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def translate(self, t_vector: numpy.ndarray[float]):  # pragma: no cover
+    def translate(self, t_vector: np.ndarray[float]):  # pragma: no cover
         """
         Translate the geometric shape by the vector t_vector.
 
@@ -96,7 +311,7 @@ class GeometricShape(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def rotate(self, r_versor: numpy.ndarray[float], angle: float):  # pragma: no cover
+    def rotate(self, r_versor: np.ndarray[float], angle: float):  # pragma: no cover
         """
         Rotate all the shapes around r_versor, which is a versor passing through the origin,
         by the specified angle.
@@ -120,8 +335,8 @@ class GeometricShape(abc.ABC):
 
     @abc.abstractmethod
     def check_inside(
-        self, points: numpy.ndarray[float]
-    ) -> numpy.ndarray[bool]:  # pragma: no cover
+        self, points: np.ndarray[float]
+    ) -> np.ndarray[bool]:  # pragma: no cover
         """
         Check if the points given in input are inside the geometric shape.
 
@@ -202,16 +417,14 @@ class ShapesComposition:
         :return: A new ShapesComposition object containing only the shapes labelled as specified.
         :rtype: ShapesComposition
         """
-        result = ShapesComposition(
-            dict(voxel_size=self._voxel_size, labels=[], shapes=[])
-        )
+        result = ShapesComposition(dict(voxel_size=self.voxel_size, labels=[], shapes=[]))
         selected_id = np.where(np.isin(labels, self._labels))[0]
         result._shapes = [self._shapes[i].__copy__() for i in selected_id]
         result._labels = [self._labels[i].copy() for i in selected_id]
         result.mbb_min, result.mbb_max = result.find_mbb()
         return result
 
-    def translate(self, t_vec: numpy.ndarray[float]):
+    def translate(self, t_vec: np.ndarray[float]):
         """
         Translate all the shapes in the collection by the vector t_vec. It also automatically
         translate the minimal bounding box.
@@ -249,7 +462,7 @@ class ShapesComposition:
         """
         return self._mbb_max
 
-    def find_mbb(self) -> Tuple[numpy.ndarray[float], numpy.ndarray[float]]:
+    def find_mbb(self) -> Tuple[np.ndarray[float], np.ndarray[float]]:
         """
         Compute the minimal bounding box containing the collection of shapes.
 
@@ -273,9 +486,9 @@ class ShapesComposition:
         :return: The number of points to generate.
         :rtype: numpy.ndarray[int]
         """
-        return [int(shape.get_volume() // self._voxel_size**3) for shape in self._shapes]
+        return [int(shape.get_volume() // self.voxel_size**3) for shape in self._shapes]
 
-    def generate_point_cloud(self) -> numpy.ndarray[float] | None:
+    def generate_point_cloud(self) -> np.ndarray[float] | None:
         """
         Generate a point cloud. The number of points to generate is determined automatically using
         the voxel size.
@@ -325,7 +538,7 @@ class ShapesComposition:
             return x, y, z
         return None
 
-    def inside_mbox(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
+    def inside_mbox(self, points: np.ndarray[float]) -> np.ndarray[bool]:
         """
         Check if the points given in input are inside the minimal bounding box of the collection.
 
@@ -336,7 +549,7 @@ class ShapesComposition:
         """
         return inside_mbox(points, self._mbb_min, self._mbb_max)
 
-    def inside_shapes(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool] | None:
+    def inside_shapes(self, points: np.ndarray[float]) -> np.ndarray[bool] | None:
         """
         Check if the points given in input are inside at least in one of the shapes of the
         collection.
@@ -426,7 +639,7 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
         self.mbb_min += t_vector
         self.mbb_max += t_vector
 
-    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
+    def rotate(self, r_versor: np.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         self.v0 = rot.apply(self.v0)
         self.v1 = rot.apply(self.v1)
@@ -459,7 +672,7 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
         cloud = cloud + self.origin
         return cloud
 
-    def check_inside(self, points: numpy.ndarray[float]):
+    def check_inside(self, points: np.ndarray[float]):
         # Check if the quadratic form associated to the ellipse is less than 1 at a point
         diff = points - self.origin
         vmat = np.array([self.v0, self.v1, self.v2])
@@ -504,11 +717,7 @@ class Cone(GeometricShape, classmap_entry="cone"):
 
         # Find the rotation angle and axis
         hv = self.origin - self.apex
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
+        rot = _get_rotation_vector(hv / np.linalg.norm(hv))
 
         # Rotated vectors of the box
         v1 = rot.apply(u)
@@ -531,7 +740,7 @@ class Cone(GeometricShape, classmap_entry="cone"):
         self.mbb_min += t_vector
         self.mbb_max += t_vector
 
-    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
+    def rotate(self, r_versor: np.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         self.apex = rot.apply(self.apex)
 
@@ -550,10 +759,7 @@ class Cone(GeometricShape, classmap_entry="cone"):
         cloud[:, 2] = rand_a * np.linalg.norm(hv)
 
         # Rotate the cone: Find the axis of rotation and compute the angle
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
+        perp, angle = _get_prod_angle_vector(hv / np.linalg.norm(hv))
 
         if hv[2] < 0:
             cloud[:, 2] = -cloud[:, 2]
@@ -564,25 +770,21 @@ class Cone(GeometricShape, classmap_entry="cone"):
         cloud = cloud + self.apex
         return cloud
 
-    def check_inside(self, points: numpy.ndarray[float]):
+    def check_inside(self, points: np.ndarray[float]):
         # Find the vector w of the height.
         h_vector = self.origin - self.apex
         height = np.linalg.norm(h_vector)
-        hv = h_vector / height
-
+        h_vector /= height
         # Center the points
         pts = points - self.apex
 
         # Rotate back to xyz
-        zvers = np.array([0, 0, 1], dtype=np.float64)
-        perp = np.cross(zvers, hv)
-        angle = -np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
+        rot = _get_rotation_vector(h_vector)
         rot_pts = rot.apply(pts)
 
         # Find the angle between the points and the apex
         apex_angles = np.arccos(
-            np.dot((rot_pts / np.linalg.norm(rot_pts, axis=1)[..., np.newaxis]), hv)
+            np.dot((rot_pts / np.linalg.norm(rot_pts, axis=1)[..., np.newaxis]), h_vector)
         )
         # Compute the cone angle
         cone_angle = np.arctan(self.radius / height)
@@ -612,16 +814,7 @@ class Cone(GeometricShape, classmap_entry="cone"):
         z = r * height / self.radius
 
         # Rotate the cone
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, -1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-
-        x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
-        if hv[2] < 0:
-            z = -z
-        x, y, z = translate_3d_mesh_by_vec(x, y, z, self.apex)
-        return x, y, z
+        return _rotate_by_coord(x, y, z, hv, self.apex, test_hv=True)
 
 
 @config.node
@@ -656,31 +849,21 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
         ]
 
         # Rotate the cylinder
-        hv = (self.top_center - self.origin) / height
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
 
-        for i, pt in enumerate(extrema):
-            extrema[i] = rot.apply(pt)
-
-        maxima = np.max(extrema, axis=0) + self.origin
-        minima = np.min(extrema, axis=0) + self.origin
-        return minima, maxima
+        return _get_extrema_after_rot(extrema, self.origin, self.top_center)
 
     def get_volume(self):
         h = np.linalg.norm(self.top_center - self.origin)
         b = np.pi * self.radius * self.radius
         return b * h
 
-    def translate(self, t_vector: numpy.ndarray[float]):
+    def translate(self, t_vector: np.ndarray[float]):
         self.origin += t_vector
         self.top_center += t_vector
         self.mbb_min += t_vector
         self.mbb_max += t_vector
 
-    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
+    def rotate(self, r_versor: np.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         # rotation according to bottom center
         self.top_center = rot.apply(self.top_center)
@@ -700,26 +883,20 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
 
         # Rotate the cylinder
         hv = (self.top_center - self.origin) / height
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
+        rot = _get_rotation_vector(hv / np.linalg.norm(hv))
         cloud = rot.apply(cloud)
         cloud = cloud + self.origin
         return cloud
 
-    def check_inside(self, points: numpy.ndarray[float]):
+    def check_inside(self, points: np.ndarray[float]):
         # Translate back to origin
         pts = points - self.origin
 
         # Rotate back to xyz
         height = np.linalg.norm(self.top_center - self.origin)
-        hv = (self.top_center - self.origin) / height
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = -np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
+        rot = _get_rotation_vector(
+            (self.top_center - self.origin) / height, positive_angle=False
+        )
         rot_pts = rot.apply(pts)
         # Check for intersections
         inside_points = (
@@ -749,15 +926,7 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
 
         # Rotate the cylinder
         hv = (self.top_center - self.origin) / height
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-
-        x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
-        x, y, z = translate_3d_mesh_by_vec(x, y, z, self.origin)
-
-        return x, y, z
+        return _rotate_by_coord(x, y, z, hv, self.origin)
 
 
 @config.node
@@ -782,12 +951,12 @@ class Sphere(GeometricShape, classmap_entry="sphere"):
     def get_volume(self):
         return np.pi * 4.0 / 3.0 * np.power(self.radius, 3)
 
-    def translate(self, t_vector: numpy.ndarray[float]):
+    def translate(self, t_vector: np.ndarray[float]):
         self.origin += t_vector
         self.mbb_min += t_vector
         self.mbb_max += t_vector
 
-    def rotate(self, r_versor: numpy.ndarray[float], angle: float):  # pragma: no cover
+    def rotate(self, r_versor: np.ndarray[float], angle: float):  # pragma: no cover
         # It's a sphere, it's invariant under rotation!
         pass
 
@@ -817,7 +986,7 @@ class Sphere(GeometricShape, classmap_entry="sphere"):
 
         return cloud
 
-    def check_inside(self, points: numpy.ndarray[float]):
+    def check_inside(self, points: np.ndarray[float]):
         # Translate the points, bringing the origin to the center of the sphere,
         # then check the inequality defining the sphere
         pts_centered = points - self.origin
@@ -852,7 +1021,6 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
     """Length of the other side of the base rectangle."""
 
     def find_mbb(self):
-        height = np.linalg.norm(self.top_center - self.origin)
         # Extrema of the cuboid centered at the origin
         extrema = [
             np.array([-self.side_length_1 / 2.0, -self.side_length_2 / 2.0, 0.0]),
@@ -890,30 +1058,19 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
         ]
 
         # Rotate the cuboid
-        hv = (self.top_center - self.origin) / height
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
-
-        for i, pt in enumerate(extrema):
-            extrema[i] = rot.apply(pt)
-
-        maxima = np.max(extrema, axis=0) + self.origin
-        minima = np.min(extrema, axis=0) + self.origin
-        return minima, maxima
+        return _get_extrema_after_rot(extrema, self.origin, self.top_center)
 
     def get_volume(self):
         h = np.linalg.norm(self.top_center - self.origin)
         return h * self.side_length_1 * self.side_length_2
 
-    def translate(self, t_vector: numpy.ndarray[float]):
+    def translate(self, t_vector: np.ndarray[float]):
         self.origin += t_vector
         self.top_center += t_vector
         self.mbb_min += t_vector
         self.mbb_max += t_vector
 
-    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
+    def rotate(self, r_versor: np.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         self.top_center = rot.apply(self.top_center)
 
@@ -930,28 +1087,22 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
         rand[:, 2] = rand[:, 2] * height
 
         # Rotate the cuboid
-        hv = (self.top_center - self.origin) / height
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
+        rot = _get_rotation_vector((self.top_center - self.origin) / height)
         cloud = rot.apply(rand)
 
         # Translate the cuboid
         cloud = cloud + self.origin
         return cloud
 
-    def check_inside(self, points: numpy.ndarray[float]):
+    def check_inside(self, points: np.ndarray[float]):
         # Translate back to origin
         pts = points - self.origin
 
         # Rotate back to xyz
         height = np.linalg.norm(self.top_center - self.origin)
-        hv = (self.top_center - self.origin) / height
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = -np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
+        rot = _get_rotation_vector(
+            (self.top_center - self.origin) / height, positive_angle=False
+        )
         rot_pts = rot.apply(pts)
 
         # Check for intersections
@@ -997,15 +1148,7 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
 
         # Rotate the cuboid
         hv = (self.top_center - self.origin) / c
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-
-        x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
-        x, y, z = translate_3d_mesh_by_vec(x, y, z, self.origin)
-
-        return x, y, z
+        return _rotate_by_coord(x, y, z, hv, self.origin)
 
 
 @config.node
@@ -1050,12 +1193,12 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
         vol = np.dot(self.side_vector_3, np.cross(self.side_vector_1, self.side_vector_2))
         return vol
 
-    def translate(self, t_vector: numpy.ndarray[float]):
+    def translate(self, t_vector: np.ndarray[float]):
         self.origin += t_vector
         self.mbb_min += t_vector
         self.mbb_max += t_vector
 
-    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
+    def rotate(self, r_versor: np.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         # self.center = rot.apply(self.center)
         self.side_vector_1 = rot.apply(self.side_vector_1)
@@ -1075,17 +1218,13 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
         cloud += self.origin
         return cloud
 
-    def check_inside(self, points: numpy.ndarray[float]):
+    def check_inside(self, points: np.ndarray[float]):
         # Translate back to origin
         pts = points - self.origin
 
         # Rotate back to xyz
         height = np.linalg.norm(self.side_vector_3)
-        hv = self.side_vector_3 / height
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = -np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)
+        rot = _get_rotation_vector(hv=self.side_vector_3 / height, positive_angle=True)
         rot_pts = rot.apply(pts)
 
         # Compute the Fourier components wrt to the vectors identifying the parallelepiped
