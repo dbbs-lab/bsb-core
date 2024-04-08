@@ -3,10 +3,10 @@ import numpy as np
 from ... import config
 from ...config import types
 from .. import ConnectionStrategy
-from .cloud_cloud_intersection import CloudHemitype
+from .shape_shape_intersection import ShapeHemitype
 
 
-def _create_cloud_conn_arrays(branches, ids, coord):
+def _create_geometric_conn_arrays(branches, ids, coord):
     morpho_points = 0
     for b in branches:
         morpho_points += len(b.points)
@@ -25,14 +25,14 @@ def _create_cloud_conn_arrays(branches, ids, coord):
 
 
 @config.node
-class CloudToMorphologyIntersection(ConnectionStrategy):
-    presynaptic = config.attr(type=CloudHemitype, required=True)
+class ShapeToMorphologyIntersection(ConnectionStrategy):
+    presynaptic = config.attr(type=ShapeHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
         lpost, upost = self.postsynaptic._get_rect_ext(tuple(chunk.dimensions))
         pre_chunks = self.presynaptic.get_all_chunks()
-        tree = self.presynaptic._get_cloud_boxtree(
+        tree = self.presynaptic._get_shape_boxtree(
             pre_chunks,
         )
         post_mbb = [
@@ -55,7 +55,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]
         post_pos = post_ps.load_positions()
 
-        pre_cloud = self.presynaptic.shapes_composition.__copy__()
+        pre_shapes = self.presynaptic.shapes_composition.__copy__()
 
         to_connect_pre = np.empty([0, 3], dtype=int)
         to_connect_post = np.empty([0, 3], dtype=int)
@@ -68,17 +68,17 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
             branches = morpho.get_branches()
 
             # Build ids array from the morphology
-            post_points_ids, post_morpho_coord = _create_cloud_conn_arrays(
+            post_points_ids, post_morpho_coord = _create_geometric_conn_arrays(
                 branches, post_id, post_coord
             )
 
             for pre_id, pre_coord in enumerate(pre_pos):
-                pre_cloud.translate(pre_coord)
-                mbb_check = pre_cloud.inside_mbox(post_morpho_coord)
+                pre_shapes.translate(pre_coord)
+                mbb_check = pre_shapes.inside_mbox(post_morpho_coord)
 
                 if np.any(mbb_check):
-                    inside_pts = pre_cloud.inside_shapes(post_morpho_coord[mbb_check])
-                    # Find the morpho points inside the cloud
+                    inside_pts = pre_shapes.inside_shapes(post_morpho_coord[mbb_check])
+                    # Find the morpho points inside the postsyn geometric shapes
                     if np.any(inside_pts):
                         local_selection = (post_points_ids[mbb_check])[inside_pts]
                         if self.affinity < 1.0 and len(local_selection) > 0:
@@ -97,5 +97,5 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                             pre_tmp = np.full([selected_count, 3], -1, dtype=int)
                             pre_tmp[:, 0] = pre_id
                             to_connect_pre = np.vstack([to_connect_pre, pre_tmp])
-                pre_cloud.translate(-pre_coord)
+                pre_shapes.translate(-pre_coord)
         self.connect_cells(pre_ps, post_ps, to_connect_pre, to_connect_post)

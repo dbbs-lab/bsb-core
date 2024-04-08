@@ -5,4 +5,4 @@
    defining
    component
    connection-strategies
-   point-cloud
+   geometric

@@ -383,7 +383,7 @@ class ShapesComposition:
     """List of lists of labels associated to each geometric shape."""
     voxel_size = config.attr(type=float, required=False, default=1.0)
     """Dimension of the side of a voxel, used to determine how many points must be generated
-    in a point cloud."""
+    to represent the geometric shape."""
 
     def __init__(self, **kwargs):
         # The two corners individuating the minimal bounding box.
@@ -560,12 +560,12 @@ class ShapesComposition:
         :rtype: numpy.ndarray[bool]
         """
         if len(self._shapes) != 0:
-            cloud = np.full(len(points), 0, dtype=bool)
+            is_inside = np.full(len(points), 0, dtype=bool)
             for shape in self._shapes:
                 tmp = shape.check_mbox(points)
                 if np.any(tmp):
-                    cloud = cloud | shape.check_inside(points)
-            return cloud
+                    is_inside = is_inside | shape.check_inside(points)
+            return is_inside
         else:
             return None
 
@@ -663,14 +663,14 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
         )
 
     def generate_point_cloud(self, npoints: int):
-        cloud = uniform_surface_sampling(npoints, self.surface_point)
-        cloud = cloud.T * np.random.rand(npoints, 3)  # sample within the shape
+        sampling = uniform_surface_sampling(npoints, self.surface_point)
+        sampling = sampling.T * np.random.rand(npoints, 3)  # sample within the shape
 
         # Rotate the ellipse
         rmat = np.array([self.v0, self.v1, self.v2]).T
-        cloud = cloud.dot(rmat)
-        cloud = cloud + self.origin
-        return cloud
+        sampling = sampling.dot(rmat)
+        sampling = sampling + self.origin
+        return sampling
 
     def check_inside(self, points: np.ndarray[float]):
         # Check if the quadratic form associated to the ellipse is less than 1 at a point

@@ -10,13 +10,13 @@ from bsb_test import (
 
 from bsb import Configuration, DatasetNotFoundError, Scaffold
 from bsb.connectivity import (
-    CloudToCloudIntersection,
-    CloudToMorphologyIntersection,
-    MorphologyToCloudIntersection,
+    MorphologyToShapeIntersection,
+    ShapeToMorphologyIntersection,
+    ShapeToShapeIntersection,
 )
 
 
-class TestPointCloudConnectivity(
+class TestShapeConnectivity(
     RandomStorageFixture,
     FixedPosConfigFixture,
     NetworkFixture,
@@ -64,7 +64,7 @@ class TestPointCloudConnectivity(
         self.network = Scaffold(self.cfg, self.storage)
         self.network.compile(skip_connectivity=True)
 
-    def test_cloud_to_cloud(self):
+    def test_shape_to_shape(self):
         voxel_size = 25
         config_sphere = dict(type="sphere", radius=40.0, origin=[0, 0, 0])
         ball_shape = {
@@ -72,8 +72,8 @@ class TestPointCloudConnectivity(
             "shapes": [config_sphere],
             "labels": [["sphere"]],
         }
-        # All the points of the point cloud are inside the geometric shape
-        self.network.connectivity["cloud_to_cloud_1"] = CloudToCloudIntersection(
+        # All the points of the presyn shape are inside the postsyn shape
+        self.network.connectivity["shape_to_shape_1"] = ShapeToShapeIntersection(
             presynaptic=dict(
                 cell_types=["test_cell_pc_1"],
                 shapes_composition=ball_shape,
@@ -87,8 +87,8 @@ class TestPointCloudConnectivity(
             affinity=0.1,
         )
 
-        # There are no intersections between the point clouds
-        self.network.connectivity["cloud_to_cloud_2"] = CloudToCloudIntersection(
+        # There are no intersections between the presyn and postsyn shapes
+        self.network.connectivity["shape_to_shape_2"] = ShapeToShapeIntersection(
             presynaptic=dict(
                 cell_types=["test_cell_pc_1"],
                 shapes_composition=ball_shape,
@@ -104,7 +104,7 @@ class TestPointCloudConnectivity(
 
         self.network.compile(skip_placement=True, append=True)
 
-        cs = self.network.get_connectivity_set("cloud_to_cloud_1")
+        cs = self.network.get_connectivity_set("shape_to_shape_1")
         con = cs.load_connections().all()[0]
         intersection_points = len(con)
         self.assertGreater(
@@ -115,9 +115,9 @@ class TestPointCloudConnectivity(
 
         with self.assertRaises(DatasetNotFoundError):
             # No connectivity set expected because no overlap of the populations' chunks.
-            self.network.get_connectivity_set("cloud_to_cloud_2")
+            self.network.get_connectivity_set("shape_to_shape_2")
 
-    def test_cloud_to_morpho(self):
+    def test_shape_to_morpho(self):
         voxel_size = 25
         config_sphere = dict(type="sphere", radius=40.0, origin=[0, 0, 0])
         ball_shape = {
@@ -126,8 +126,8 @@ class TestPointCloudConnectivity(
             "labels": [["sphere"]],
         }
 
-        # We know a priori that there are intersections between the point cloud and the morphology
-        self.network.connectivity["cloud_to_morpho_1"] = CloudToMorphologyIntersection(
+        # We know a priori that there are intersections between the presyn shape and the morphology
+        self.network.connectivity["shape_to_morpho_1"] = ShapeToMorphologyIntersection(
             presynaptic=dict(
                 cell_types=["test_cell_pc_2"],
                 shapes_composition=ball_shape,
@@ -137,8 +137,8 @@ class TestPointCloudConnectivity(
             affinity=0.1,
         )
 
-        # There are no intersections between the point clouds
-        self.network.connectivity["cloud_to_morpho_2"] = CloudToMorphologyIntersection(
+        # There are no intersections between the presyn shape and the morpho
+        self.network.connectivity["shape_to_morpho_2"] = ShapeToMorphologyIntersection(
             presynaptic=dict(
                 cell_types=["test_cell_pc_1"],
                 shapes_composition=ball_shape,
@@ -150,19 +150,19 @@ class TestPointCloudConnectivity(
 
         self.network.compile(skip_placement=True, append=True)
 
-        cs = self.network.get_connectivity_set("cloud_to_morpho_1")
+        cs = self.network.get_connectivity_set("shape_to_morpho_1")
         con = cs.load_connections().all()[0]
         intersection_points = len(con)
         self.assertGreater(
             intersection_points, 0, "expected at least one intersection point"
         )
 
-        cs = self.network.get_connectivity_set("cloud_to_morpho_2")
+        cs = self.network.get_connectivity_set("shape_to_morpho_2")
         con = cs.load_connections().all()[0]
         intersection_points = len(con)
         self.assertClose(0, intersection_points, "expected no intersection points")
 
-    def test_morpho_to_cloud(self):
+    def test_morpho_to_shape(self):
         voxel_size = 25
         config_sphere = dict(type="sphere", radius=40.0, origin=[0, 0, 0])
         ball_shape = {
@@ -171,8 +171,8 @@ class TestPointCloudConnectivity(
             "labels": [["sphere"]],
         }
 
-        # We know a priori that there are intersections between the point cloud and the morphology
-        self.network.connectivity["cloud_to_morpho_1"] = MorphologyToCloudIntersection(
+        # We know a priori that there are intersections between the presyn shape and the morphology
+        self.network.connectivity["shape_to_morpho_1"] = MorphologyToShapeIntersection(
             postsynaptic=dict(
                 cell_types=["test_cell_pc_2"],
                 shapes_composition=ball_shape,
@@ -182,8 +182,8 @@ class TestPointCloudConnectivity(
             affinity=0.1,
         )
 
-        # There are no intersections between the point clouds
-        self.network.connectivity["cloud_to_morpho_2"] = MorphologyToCloudIntersection(
+        # There are no intersections between the presyn shape and the morphology.
+        self.network.connectivity["shape_to_morpho_2"] = MorphologyToShapeIntersection(
             postsynaptic=dict(
                 cell_types=["test_cell_pc_1"],
                 shapes_composition=ball_shape,
@@ -195,14 +195,14 @@ class TestPointCloudConnectivity(
 
         self.network.compile(skip_placement=True, append=True)
 
-        cs = self.network.get_connectivity_set("cloud_to_morpho_1")
+        cs = self.network.get_connectivity_set("shape_to_morpho_1")
         con = cs.load_connections().all()[0]
         intersection_points = len(con)
         self.assertGreater(
             intersection_points, 0, "expected at least one intersection point"
         )
 
-        cs = self.network.get_connectivity_set("cloud_to_morpho_2")
+        cs = self.network.get_connectivity_set("shape_to_morpho_2")
         con = cs.load_connections().all()[0]
         intersection_points = len(con)
         self.assertClose(0, intersection_points, "expected no intersection points")

@@ -8,7 +8,7 @@ Subpackages
    :maxdepth: 2
 
    bsb.connectivity.detailed
-   bsb.connectivity.point_cloud
+   bsb.connectivity.geometric
 
 Submodules
 ----------

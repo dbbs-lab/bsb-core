@@ -1,24 +1,25 @@
-.. _point_cloud:
+.. _geometric:
 
-###################################
-Point cloud connectivity strategies
-###################################
+#######################################
+Geometric shape connectivity strategies
+#######################################
 
 To reconstruct with great details the connections between 2 neurons, one needs to provide the
 morphologies of these neurons. However, this data might be lacking or incomplete.
 Moreover, the reconstruction of a detailed connectivity is computationally expensive as the program
 have to find all apposition of the neurons arborizations.
 
-To resolve these two issues, neurons can be represented as point clouds (see B1 in :ref:`Bibliography`).
-Their morphology is here approximated by a collection of geometric shapes representing the
-pre/postsynaptic neurites.
+To resolve these two issues, neurons' morphology is here represented by a collection of geometric
+shapes representing the pre/postsynaptic neurites. The neurites apposition can be probabilistically
+approximated sampling point clouds from the shapes and checking the shape bounding box
+(see B1 in :ref:`Bibliography`).
 
 Creating simplified morphologies
 ********************************
 
-The :class:`~bsb.connectivity.point_cloud.geometric_shapes.ShapesComposition` allows the simplified
+The :class:`~bsb.connectivity.geometric.geometric_shapes.ShapesComposition` allows the simplified
 representation of cell morphologies. This class leverages a list geometric shapes
-(:class:`~bsb.connectivity.point_cloud.geometric_shapes.GeometricShape`) to represent ``sections``
+(:class:`~bsb.connectivity.geometric.geometric_shapes.GeometricShape`) to represent ``sections``
 the cell morphology. Similarly to morphologies, labels should be associated to each of these
 ``sections``. These labels will be used as reference during connectivity.
 
@@ -30,27 +31,27 @@ The program generates as many points as the number of voxels in the volume of th
 Geometric shapes
 ----------------
 
-Pre-defined GeometricShape implemented can be found in the ``~bsb.connectivity.point_cloud`` package.
+Pre-defined GeometricShape implemented can be found in the ``~bsb.connectivity.geometric`` package.
 Each shape has its own set of parameters. We provide here an example of the configuration
 for a sphere:
 
-.. autoconfig:: bsb.connectivity.point_cloud.Sphere
+.. autoconfig:: bsb.connectivity.geometric.Sphere
    :no-imports:
    :max-depth: 1
 
 If needed, a user can define its own geometric shape, creating a new class inheriting from the base
-virtual class :class:`~bsb.connectivity.point_cloud.geometric_shapes.GeometricShape`.
+virtual class :class:`~bsb.connectivity.geometric.geometric_shapes.GeometricShape`.
 
 ShapesComposition
 -----------------
-To instantiate a :class:`~bsb.connectivity.point_cloud.geometric_shapes.ShapesComposition`, you need
+To instantiate a :class:`~bsb.connectivity.geometric.geometric_shapes.ShapesComposition`, you need
 to provide a list of ``shapes`` together with their ``labels``: a list of lists of strings.
 ``shapes`` and ``labels`` should have the same size. For each shape, multiple labels can be provided.
 You can additionally control the number of points sampled for connectivity with the parameter
 ``voxel_size``. This parameter corresponds to the side length of one voxel used to decompose the
 shape collection.
 
-.. autoconfig:: bsb.connectivity.point_cloud.ShapesComposition
+.. autoconfig:: bsb.connectivity.geometric.ShapesComposition
    :no-imports:
    :max-depth: 2
 
@@ -88,27 +89,27 @@ for the axon:
         ],
     }
 
-Point cloud connectivity
-************************
+Geometric shape connectivity
+****************************
 
-The configuration of the point cloud strategies are similar to the other connectivity strategies (
-see :class:`~bsb.connectivity.detailed.voxel_intersection.VoxelIntersection`).
+The configuration of the geometric shape strategies are similar to the other connectivity strategies
+(see :class:`~bsb.connectivity.detailed.voxel_intersection.VoxelIntersection`).
 
 The ``ShapesComposition`` configuration should be provided with the field ``shape_compositions`` in
 the pre- and/or postsynaptic field (dependant on the strategy chosen).
 
 The parameters ``morphology_labels`` here specifies which shapes of the ``shape_compositions`` in
-:class:`~bsb.connectivity.point_cloud.geometric_shapes.ShapesComposition` must be used
+:class:`~bsb.connectivity.geometric.geometric_shapes.ShapesComposition` must be used
 (corresponds to values stored in ``labels``).
 
 The ``affinity`` parameter controls the probability to form a connection.
 Three different connectivity strategies based on ``ShapesComposition`` are available.
 
-MorphologyToCloudIntersection
+MorphologyToShapeIntersection
 -----------------------------
 
-The class :class:`~bsb.connectivity.point_cloud.morphology_cloud_intersection.MorphologyToCloudIntersection`
-creates connections between the points of the morphology of the presynaptic cell and a point cloud
+The class :class:`~bsb.connectivity.geometric.morphology_shape_intersection.MorphologyToShapeIntersection`
+creates connections between the points of the morphology of the presynaptic cell and a geometric shape composition
 representing a postsynaptic cell, checking if the points of the morphology are inside the geometric
 shapes representing the postsynaptic cells.
 This connection strategy is suitable when we have a detailed morphology of the presynaptic cell, but
@@ -120,7 +121,7 @@ Configuration example:
 
   "stellate_to_purkinje":
   {
-    "strategy": "bsb.connectivity.MorphologyToCloudIntersection",
+    "strategy": "bsb.connectivity.MorphologyToShapeIntersection",
     "presynaptic": {
       "cell_types": ["stellate_cell"],
       "morphology_labels": ["axon"],
@@ -137,10 +138,13 @@ Configuration example:
     "affinity": 0.1
   }
 
-CloudToMorphologyIntersection
+ShapeToMorphologyIntersection
 -----------------------------
 
-The class :class:`~bsb.connectivity.point_cloud.cloud_morphology_intersection.CloudToMorphologyIntersection` creates connections between the point cloud representing the presynaptic cell the points of the morphology of a postsynaptic cell, checking if the points of the morphology are inside the geometric shapes representing the presynaptic cells.
+The class :class:`~bsb.connectivity.geometric.shape_morphology_intersection.ShapeToMorphologyIntersection`
+creates connections between the point cloud representing the presynaptic cell the points of the
+morphology of a postsynaptic cell, checking if the points of the morphology are inside the
+geometric shapes representing the presynaptic cells.
 This connection strategy is suitable when we have a detailed morphology of the postsynaptic cell,
 but not of the presynaptic cell.
 
@@ -150,7 +154,7 @@ Configuration example:
 
   "stellate_to_purkinje":
   {
-    "strategy": "bsb.connectivity.CloudToMorphologyIntersection",
+    "strategy": "bsb.connectivity.ShapeToMorphologyIntersection",
     "presynaptic": {
       "cell_types": ["stellate_cell"],
       "morphology_labels": ["axon"],
@@ -167,13 +171,13 @@ Configuration example:
     "affinity": 0.1
   }
 
-CloudToCloudIntersection
+ShapeToShapeIntersection
 ------------------------
 
-The class :class:`~bsb.connectivity.point_cloud.cloud_cloud_intersection.CloudToCloudIntersection`
-creates connections between the point cloud representing the presynaptic and postsynaptic cells.
+The class :class:`~bsb.connectivity.geometric.shape_shape_intersection.ShapeToShapeIntersection`
+creates connections between the geometric shape compositions representing the presynaptic and postsynaptic cells.
 This strategy forms a connections generating a number of points inside the presynaptic probability
-cloud and checking if they are inside the geometric shapes representing the postsynaptic cell.
+point cloud and checking if they are inside the geometric shapes representing the postsynaptic cell.
 One point per voxel is generated.
 This connection strategy is suitable when we do not have a detailed morphology of neither the
 presynaptic nor the postsynaptic cell.
@@ -184,7 +188,7 @@ Configuration example:
 
   "stellate_to_purkinje":
   {
-    "strategy": "bsb.connectivity.CloudToCloudIntersection",
+    "strategy": "bsb.connectivity.ShapeToShapeIntersection",
     "presynaptic": {
       "cell_types": ["stellate_cell"],
       "morphology_labels": ["axon"],

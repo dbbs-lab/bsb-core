@@ -9,7 +9,7 @@ from .geometric_shapes import ShapesComposition
 
 
 @config.node
-class CloudHemitype(Hemitype):
+class ShapeHemitype(Hemitype):
     """
     Class representing a population of cells to connect with a ConnectionStrategy.
     These cells' morphology is implemented as a ShapesComposition.
@@ -22,7 +22,7 @@ class CloudHemitype(Hemitype):
 
     def get_mbb(self, chunks, chunk_dimension):
         """
-        Get the list of minimal bounding box containing all cells in the CloudHemitype.
+        Get the list of minimal bounding box containing all cells in the `ShapeHemitype`.
 
         :param chunks: List of chunks containing the cell types
             (see bsb.connectivity.strategy.Hemitype.get_all_chunks)
@@ -45,21 +45,21 @@ class CloudHemitype(Hemitype):
             for idx_chunk in chunks
         ]
 
-    def _get_cloud_boxtree(self, chunks):
+    def _get_shape_boxtree(self, chunks):
         mbbs = self.get_mbb(chunks, chunks[0].dimensions)
         return BoxTree(mbbs)
 
 
 @config.node
-class CloudToCloudIntersection(ConnectionStrategy):
-    presynaptic = config.attr(type=CloudHemitype, required=True)
-    postsynaptic = config.attr(type=CloudHemitype, required=True)
+class ShapeToShapeIntersection(ConnectionStrategy):
+    presynaptic = config.attr(type=ShapeHemitype, required=True)
+    postsynaptic = config.attr(type=ShapeHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
         # Filter postsyn chunks that overlap the presyn chunk.
         post_chunks = self.postsynaptic.get_all_chunks()
-        tree = self.postsynaptic._get_cloud_boxtree(
+        tree = self.postsynaptic._get_shape_boxtree(
             post_chunks,
         )
         pre_mbb = self.presynaptic.get_mbb(
@@ -76,25 +76,25 @@ class CloudToCloudIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]
         post_pos = post_ps.load_positions()[:, [0, 2, 1]]
 
-        pre_cloud_cache = self.presynaptic.shapes_composition.__copy__()
-        post_cloud_cache = self.postsynaptic.shapes_composition.__copy__()
+        pre_shapes_cache = self.presynaptic.shapes_composition.__copy__()
+        post_shapes_cache = self.postsynaptic.shapes_composition.__copy__()
 
         to_connect_pre = np.empty([0, 3], dtype=int)
         to_connect_post = np.empty([0, 3], dtype=int)
 
         for pre_id, pre_coord in enumerate(pre_pos):
-            # Generate pre points cloud
-            pre_cloud_cache.translate(pre_coord)
-            pre_point_cloud = pre_cloud_cache.generate_point_cloud()
+            # Generate pre point cloud
+            pre_shapes_cache.translate(pre_coord)
+            pre_point_cloud = pre_shapes_cache.generate_point_cloud()
 
             # Find pre minimal bounding box of the morpho
             for post_id, post_coord in enumerate(post_pos):
-                post_cloud_cache.translate(post_coord)
+                post_shapes_cache.translate(post_coord)
 
                 # Compare pre and post mbbs
-                inside_mbbox = post_cloud_cache.inside_mbox(pre_point_cloud)
+                inside_mbbox = post_shapes_cache.inside_mbox(pre_point_cloud)
                 if np.any(inside_mbbox):
-                    inside_pts = post_cloud_cache.inside_shapes(pre_point_cloud)
+                    inside_pts = post_shapes_cache.inside_shapes(pre_point_cloud)
                     selected = pre_point_cloud[inside_pts]
                     if len(selected) > 0:
                         tmp_pre_selection = np.full([len(selected), 3], -1, dtype=int)
@@ -103,8 +103,8 @@ class CloudToCloudIntersection(ConnectionStrategy):
                         tmp_post_selection = np.full([len(selected), 3], -1, dtype=int)
                         tmp_post_selection[:, 0] = post_id
                         to_connect_post = np.vstack([to_connect_post, tmp_post_selection])
-                post_cloud_cache.translate(-post_coord)
-            pre_cloud_cache.translate(-pre_coord)
+                post_shapes_cache.translate(-post_coord)
+            pre_shapes_cache.translate(-pre_coord)
         to_connect_pre = to_connect_pre
         to_connect_post = to_connect_post
 
