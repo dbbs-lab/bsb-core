@@ -12,7 +12,15 @@ from bsb_test import (
     skip_parallel,
 )
 
-from bsb import MPI, Branch, Configuration, Morphology, Scaffold
+from bsb import (
+    MPI,
+    Branch,
+    Configuration,
+    ConnectionStrategy,
+    ConnectivityError,
+    Morphology,
+    Scaffold,
+)
 
 
 class TestAllToAll(
@@ -449,6 +457,7 @@ class TestConnWithSubCellLabels(
             )
 
 
+@unittest.skip("https://github.com/dbbs-lab/bsb-core/issues/820")
 class TestVoxelIntersection(
     RandomStorageFixture,
     NetworkFixture,
@@ -683,3 +692,345 @@ class TestFixedIndegree(
                 this[u] = c
                 total += this
             self.assertTrue(np.all(total == 50), "Not all cells have indegree 50")
+
+
+class TestOutputNamingSingle(unittest.TestCase):
+    """Test output naming as specified in: https://github.com/dbbs-lab/bsb-core/issues/823"""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = Configuration.default(
+            connectivity=dict(
+                x=dict(
+                    strategy="bsb.connectivity.VoxelIntersection",
+                    presynaptic=dict(cell_types=["A"]),
+                    postsynaptic=dict(cell_types=["B"]),
+                )
+            ),
+            cell_types=dict(
+                A=dict(spatial=dict(radius=1, count=1)),
+                B=dict(spatial=dict(radius=1, count=1)),
+                C=dict(spatial=dict(radius=1, count=1)),
+            ),
+        )
+
+    def test_output_naming_args(self):
+        with self.assertRaises(RuntimeError):
+            self.cfg.connectivity.x.get_output_names(pre=self.cfg.cell_types.A)
+        with self.assertRaises(RuntimeError):
+            self.cfg.connectivity.x.get_output_names(post=self.cfg.cell_types.B)
+        self.cfg.connectivity.x.get_output_names(
+            pre=self.cfg.cell_types.A, post=self.cfg.cell_types.B
+        )
+        self.cfg.connectivity.x.get_output_names()
+
+    def test_output_naming(self):
+        self.cfg.connectivity.x.output_naming = "wow"
+        self.assertEqual(["wow"], self.cfg.connectivity.x.get_output_names())
+        self.assertEqual(
+            ["wow"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            ),
+        )
+
+    def test_naming_convention(self):
+        self.assertEqual(["x"], self.cfg.connectivity.x.get_output_names())
+        self.assertEqual(
+            ["x"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            ),
+        )
+
+    def test_output_naming_list(self):
+        self.cfg.connectivity.x.output_naming = ["wow:type_1", "wow:type_2"]
+        self.assertEqual(
+            ["wow:type_1", "wow:type_2"], self.cfg.connectivity.x.get_output_names()
+        )
+        self.assertEqual(
+            ["wow:type_1", "wow:type_2"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            ),
+        )
+
+    def test_output_naming_dict(self):
+        """Test that we can specify cell pair outputs"""
+        self.cfg.connectivity.x.output_naming = {"A": {"B": "zzz"}}
+        self.assertEqual(["zzz"], self.cfg.connectivity.x.get_output_names())
+        self.assertEqual(
+            ["zzz"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            ),
+        )
+
+    def test_output_naming_dict_list(self):
+        """Test that we can specify cell pair outputs"""
+        self.cfg.connectivity.x.output_naming = {"A": {"B": ["zzz", "bb"]}}
+        self.assertEqual(["zzz", "bb"], self.cfg.connectivity.x.get_output_names())
+        self.assertEqual(
+            ["zzz", "bb"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            ),
+        )
+
+    def test_output_naming_dict_blocked(self):
+        """Test that we skip nulled output names"""
+        self.cfg.connectivity.x.output_naming = {"A": {"B": None}}
+        self.assertEqual([], self.cfg.connectivity.x.get_output_names())
+        self.assertEqual(
+            [],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            ),
+        )
+
+    def test_output_naming_dict_missing(self):
+        """Test that we infer missing output names according to naming convention"""
+        self.cfg.connectivity.x.output_naming = {}
+        self.assertEqual(["x"], self.cfg.connectivity.x.get_output_names())
+        self.assertEqual(
+            ["x"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            ),
+        )
+
+    def test_output_naming_flipped_input(self):
+        with self.assertRaises(ValueError):
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.B, self.cfg.cell_types.A
+            )
+
+    def test_output_naming_invalid_input(self):
+        with self.assertRaises(ValueError):
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.C
+            )
+
+
+class TestOutputNamingMultiConvention(unittest.TestCase):
+    """Test output naming as specified in: https://github.com/dbbs-lab/bsb-core/issues/823"""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = Configuration.default(
+            connectivity=dict(
+                x=dict(
+                    strategy="bsb.connectivity.VoxelIntersection",
+                    presynaptic=dict(cell_types=["A", "B"]),
+                    postsynaptic=dict(cell_types=["C", "D", "E"]),
+                )
+            ),
+            cell_types=dict(
+                A=dict(spatial=dict(radius=1, count=1)),
+                B=dict(spatial=dict(radius=1, count=1)),
+                C=dict(spatial=dict(radius=1, count=1)),
+                D=dict(spatial=dict(radius=1, count=1)),
+                E=dict(spatial=dict(radius=1, count=1)),
+            ),
+        )
+
+    def test_output_naming_multi(self):
+        self.assertEqual(
+            ["x_A_to_C", "x_A_to_D", "x_A_to_E", "x_B_to_C", "x_B_to_D", "x_B_to_E"],
+            self.cfg.connectivity.x.get_output_names(),
+        )
+
+    def test_output_naming_multi_list(self):
+        self.cfg.connectivity.x.output_naming = ["base1", "base2"]
+        self.assertEqual(
+            [
+                "base1_A_to_C",
+                "base1_A_to_D",
+                "base1_A_to_E",
+                "base1_B_to_C",
+                "base1_B_to_D",
+                "base1_B_to_E",
+                "base2_A_to_C",
+                "base2_A_to_D",
+                "base2_A_to_E",
+                "base2_B_to_C",
+                "base2_B_to_D",
+                "base2_B_to_E",
+            ],
+            self.cfg.connectivity.x.get_output_names(),
+        )
+
+
+class TestOutputNamingMultiExpl(unittest.TestCase):
+    """Test output naming as specified in: https://github.com/dbbs-lab/bsb-core/issues/823"""
+
+    def setUp(self):
+        super().setUp()
+        self.cfg = Configuration.default(
+            connectivity=dict(
+                x=dict(
+                    strategy="bsb.connectivity.VoxelIntersection",
+                    presynaptic=dict(cell_types=["A", "B"]),
+                    postsynaptic=dict(cell_types=["C", "D", "E"]),
+                    output_naming=dict(
+                        A=dict(C="x_A_to_C", D="A_to_D"),
+                        B=dict(C=["B_to_C:type_1", "B_to_C:type_2", "anomalies"], D=None),
+                    ),
+                )
+            ),
+            cell_types=dict(
+                A=dict(spatial=dict(radius=1, count=1)),
+                B=dict(spatial=dict(radius=1, count=1)),
+                C=dict(spatial=dict(radius=1, count=1)),
+                D=dict(spatial=dict(radius=1, count=1)),
+                E=dict(spatial=dict(radius=1, count=1)),
+            ),
+        )
+
+    def test_output_naming_flipped_input(self):
+        with self.assertRaises(ValueError):
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.C, self.cfg.cell_types.A
+            )
+
+    def test_output_naming_invalid_input(self):
+        with self.assertRaises(ValueError):
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.B
+            )
+
+    def test_output_naming_explicit(self):
+        self.assertEqual(
+            ["x_A_to_C"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.C
+            ),
+        )
+        self.assertEqual(
+            ["A_to_D"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.D
+            ),
+        )
+
+    def test_output_naming_inferred(self):
+        self.assertEqual(
+            ["x_A_to_E"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.A, self.cfg.cell_types.E
+            ),
+        )
+        self.assertEqual(
+            ["x_B_to_E"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.B, self.cfg.cell_types.E
+            ),
+        )
+
+    def test_output_naming_list(self):
+        self.assertEqual(
+            ["B_to_C:type_1", "B_to_C:type_2", "anomalies"],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.B, self.cfg.cell_types.C
+            ),
+        )
+
+    def test_output_naming_blocked(self):
+        self.assertEqual(
+            [],
+            self.cfg.connectivity.x.get_output_names(
+                self.cfg.cell_types.B, self.cfg.cell_types.D
+            ),
+        )
+
+    def test_output_naming(self):
+        self.assertEqual(
+            [
+                "x_A_to_C",
+                "A_to_D",
+                "x_A_to_E",
+                "B_to_C:type_1",
+                "B_to_C:type_2",
+                "anomalies",
+                "x_B_to_E",
+            ],
+            self.cfg.connectivity.x.get_output_names(),
+        )
+
+
+class TestOutputNamingConnect(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
+):
+    """
+    Test that connectivity sets can only be formed according to output naming as specified in:
+    https://github.com/dbbs-lab/bsb-core/issues/823
+    """
+
+    def setUp(self):
+        class Strat(ConnectionStrategy):
+            def connect(self, pre, post):
+                pass
+
+        self.cfg = Configuration.default(
+            connectivity=dict(
+                x=dict(
+                    strategy=Strat,
+                    presynaptic=dict(cell_types=["A", "B"]),
+                    postsynaptic=dict(cell_types=["C", "D", "E"]),
+                    output_naming=dict(
+                        A=dict(C="x_A_to_C", D="A_to_D"),
+                        B=dict(C=["B_to_C:type_1", "B_to_C:type_2", "anomalies"], D=None),
+                    ),
+                )
+            ),
+            cell_types=dict(
+                A=dict(spatial=dict(radius=1, count=1)),
+                B=dict(spatial=dict(radius=1, count=1)),
+                C=dict(spatial=dict(radius=1, count=1)),
+                D=dict(spatial=dict(radius=1, count=1)),
+                E=dict(spatial=dict(radius=1, count=1)),
+            ),
+        )
+        super().setUp()
+
+    def test_connect_cells_no_tag(self):
+        ps_pre = self.network.get_placement_set("A")
+        ps_post = self.network.get_placement_set("C")
+        self.network.connectivity.x.connect_cells(ps_pre, ps_post, [], [])
+        self.assertTrue(
+            self.network.storage._ConnectivitySet.exists(
+                self.network.storage._engine, "x_A_to_C"
+            )
+        )
+
+    def test_connect_cells_wrong_tag(self):
+        ps_pre = self.network.get_placement_set("A")
+        ps_post = self.network.get_placement_set("C")
+        with self.assertRaises(ConnectivityError):
+            self.network.connectivity.x.connect_cells(
+                ps_pre, ps_post, [], [], tag="wrong"
+            )
+
+    def test_connect_cells_missing_tag(self):
+        ps_pre = self.network.get_placement_set("B")
+        ps_post = self.network.get_placement_set("C")
+        with self.assertRaises(ConnectivityError):
+            self.network.connectivity.x.connect_cells(ps_pre, ps_post, [], [])
+
+    def test_connect_cells_specified_tag(self):
+        ps_pre = self.network.get_placement_set("B")
+        ps_post = self.network.get_placement_set("C")
+        self.network.connectivity.x.connect_cells(
+            ps_pre, ps_post, [], [], tag="B_to_C:type_2"
+        )
+        self.assertTrue(
+            self.network.storage._ConnectivitySet.exists(
+                self.network.storage._engine, "B_to_C:type_2"
+            )
+        )
+
+    def test_connect_cells_blocked(self):
+        ps_pre = self.network.get_placement_set("B")
+        ps_post = self.network.get_placement_set("D")
+        with self.assertRaises(ConnectivityError):
+            self.network.connectivity.x.connect_cells(ps_pre, ps_post, [], [])

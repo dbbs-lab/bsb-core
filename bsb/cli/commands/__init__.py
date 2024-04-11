@@ -151,4 +151,4 @@ def load_root_command():
     return RootCommand()
 
 
-__all__ = ["BaseCommand", "BaseParser", "BsbCommand", "RootCommand", "load_root_command"]
+__all__ = ["BaseCommand", "BsbCommand", "RootCommand", "load_root_command"]

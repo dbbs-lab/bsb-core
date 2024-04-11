@@ -114,17 +114,17 @@ class TestSerialAndParallelScheduler(
 
     @timeout(1)
     def test_create_pool(self):
-        pool = self.network.create_job_pool(quiet=True)
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            pool.execute()
 
     @timeout(1)
     def test_single_job(self):
         """Test the execution of a single lambda function"""
-        pool = self.network.create_job_pool(quiet=True)
-        job = pool.queue(lambda scaffold, x, y: x * y, (5, 0.1))
-        self.assertEqual(job.status, JobStatus.PENDING)
+        with self.network.create_job_pool(quiet=True) as pool:
+            job = pool.queue(lambda scaffold, x, y: x * y, (5, 0.1))
+            self.assertEqual(job.status, JobStatus.PENDING)
 
-        results = pool.execute(return_results=True)
+            results = pool.execute(return_results=True)
         if pool.is_main():
             self.assertEqual(0.5, results[job])
             self.assertEqual(job.status, JobStatus.SUCCESS)
@@ -134,10 +134,10 @@ class TestSerialAndParallelScheduler(
         """
         Test if a division by zero error is propagated back
         """
-        pool = self.network.create_job_pool(quiet=True)
-        job = pool.queue(lambda scaffold, x, y: x / y, (5, 0))
-        with self.assertRaises(WorkflowError):
-            pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            job = pool.queue(lambda scaffold, x, y: x / y, (5, 0))
+            with self.assertRaises(WorkflowError):
+                pool.execute()
         if pool.is_main():
             self.assertIn("division by zero", str(job._error))
             self.assertEqual(job.status, JobStatus.FAILED)
@@ -145,13 +145,13 @@ class TestSerialAndParallelScheduler(
     @timeout(1)
     def test_multiple_jobs(self):
         """Test the execution of a set of lambda function"""
-        pool = self.network.create_job_pool(quiet=True)
-        job1 = pool.queue(lambda scaffold, x, y: x * y, (5, 0.1))
-        job2 = pool.queue(lambda scaffold, x, y: x * y, (6, 0.1))
-        job3 = pool.queue(lambda scaffold, x, y: x * y, (7, 0.1))
-        job4 = pool.queue(lambda scaffold, x, y: x * y, (8, 0.1))
+        with self.network.create_job_pool(quiet=True) as pool:
+            job1 = pool.queue(lambda scaffold, x, y: x * y, (5, 0.1))
+            job2 = pool.queue(lambda scaffold, x, y: x * y, (6, 0.1))
+            job3 = pool.queue(lambda scaffold, x, y: x * y, (7, 0.1))
+            job4 = pool.queue(lambda scaffold, x, y: x * y, (8, 0.1))
 
-        results = pool.execute(return_results=True)
+            results = pool.execute(return_results=True)
 
         if pool.is_main():
             self.assertAlmostEqual(0.5, results[job1])
@@ -159,16 +159,32 @@ class TestSerialAndParallelScheduler(
             self.assertAlmostEqual(0.7, results[job3])
             self.assertAlmostEqual(0.8, results[job4])
 
+    @timeout(3)
+    def test_schedule(self):
+        with self.network.create_job_pool(quiet=True) as pool:
+
+            def scheduler(node):
+                pool.queue(sleep_y, (5, 0.1))
+                pool.queue(sleep_y, (5, 0.1))
+
+            pool.schedule([1, 1], scheduler)
+
+            results = pool.execute(return_results=True)
+        if pool.is_main():
+            self.assertEqual(
+                [5, 5, 5, 5], [*results.values()], "expected 4 scheduled jobs"
+            )
+
     @timeout(1)
     def test_cancel_job(self):
         """
         Cancel a job
         """
-        pool = self.network.create_job_pool(quiet=True)
-        t = time.time()
-        job: "Job" = pool.queue(sleep_y, (5, 2))
-        job.cancel("Test")
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            t = time.time()
+            job: "Job" = pool.queue(sleep_y, (5, 2))
+            job.cancel("Test")
+            pool.execute()
         # Confirm the cancellation error
         self.assertEqual(JobCancelledError, type(job.error))
         self.assertEqual("Test", str(job.error))
@@ -180,9 +196,9 @@ class TestSerialAndParallelScheduler(
         """
         Attempt to cancel a job after running. Should yield a 'could not cancel' warning.
         """
-        pool = self.network.create_job_pool(quiet=True)
-        job = pool.queue(sleep_y, (5, 0.5))
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            job = pool.queue(sleep_y, (5, 0.5))
+            pool.execute()
         if pool.is_main():
             with self.assertWarns(Warning) as w:
                 job.cancel("Testing")
@@ -192,8 +208,8 @@ class TestSerialAndParallelScheduler(
     def test_job_result_before_run(self):
         """Test result exception before the pool has ran"""
 
-        pool = self.network.create_job_pool(quiet=True)
-        job = pool.queue(sleep_y, (5, 0.5))
+        with self.network.create_job_pool(quiet=True) as pool:
+            job = pool.queue(sleep_y, (5, 0.5))
         with self.assertRaisesRegex(JobPoolError, "not available"):
             job.result
 
@@ -201,9 +217,9 @@ class TestSerialAndParallelScheduler(
     def test_job_result_after_run(self):
         """Test result exception after the pool has ran"""
 
-        pool = self.network.create_job_pool(quiet=True)
-        job = pool.queue(sleep_y, (5, 0.5))
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            job = pool.queue(sleep_y, (5, 0.5))
+            pool.execute()
         with self.assertRaisesRegex(JobPoolError, "not available"):
             job.result
 
@@ -219,11 +235,11 @@ class TestSerialAndParallelScheduler(
             ),
         )
 
-        pool = self.network.create_job_pool(quiet=True)
-        pool.queue_placement(
-            self.network.placement.test_strat, Chunk((0, 0, 0), (200, 200, 200))
-        )
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            pool.queue_placement(
+                self.network.placement.test_strat, Chunk((0, 0, 0), (200, 200, 200))
+            )
+            pool.execute()
 
         ps = self.network.get_placement_set("dud_cell")
         self.assertClose([[0, 0, 0]], ps.load_positions())
@@ -240,22 +256,22 @@ class TestParallelScheduler(
     @timeout(3)
     def test_double_pool(self):
         """Test whether we can open multiple pools sequentially"""
-        pool = self.network.create_job_pool(quiet=True)
-        job = pool.queue(sleep_y, (5, 0.1))
-        results = pool.execute(return_results=True)
+        with self.network.create_job_pool(quiet=True) as pool:
+            job = pool.queue(sleep_y, (5, 0.1))
+            results = pool.execute(return_results=True)
         if pool.is_main():
             self.assertEqual(5, results[job])
-        pool = self.network.create_job_pool(quiet=True)
-        job = pool.queue(sleep_y, (4, 0.1))
-        results = pool.execute(return_results=True)
+        with self.network.create_job_pool(quiet=True) as pool:
+            job = pool.queue(sleep_y, (4, 0.1))
+            results = pool.execute(return_results=True)
         if pool.is_main():
             self.assertEqual(4, results[job])
 
     @timeout(3)
     def test_submitting_closed(self):
         """Test that you can't submit a job after the pool has executed already"""
-        pool = self.network.create_job_pool(quiet=True)
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            pool.execute()
         with self.assertRaises(JobPoolError):
             pool.queue(sleep_y, (4, 0.1))
 
@@ -267,16 +283,16 @@ class TestParallelScheduler(
 
         def try_cancel(progress: PoolProgress):
             if (
-                progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
-                and progress.status == PoolStatus.RUNNING
+                progress.reason == PoolProgressReason.JOB_STATUS_CHANGE
+                and progress.status == JobStatus.RUNNING
             ):
                 with self.assertWarnsRegex(Warning, "Could not cancel"):
                     progress.jobs[0].cancel("Test")
 
-        pool = self.network.create_job_pool(quiet=True)
-        pool.add_listener(try_cancel, 1)
-        pool.queue(sleep_y, (5, 0.1))
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            pool.add_listener(try_cancel, 1)
+            pool.queue(sleep_y, (5, 0.1))
+            pool.execute()
 
     @timeout(3)
     def test_cancel_queued_job(self):
@@ -285,15 +301,15 @@ class TestParallelScheduler(
         def job_killer(progress: PoolProgress):
             if (
                 progress.reason == PoolProgressReason.POOL_STATUS_CHANGE
-                and progress.status == PoolStatus.RUNNING
+                and progress.status == PoolStatus.EXECUTING
             ):
                 progress.jobs[-1].cancel("Testing")
 
-        pool = self.network.create_job_pool(quiet=True)
-        pool.add_listener(job_killer)
-        jobs = [pool.queue(sleep_y, (1, 0.001)) for _ in range(200)]
-        jobs.append(pool.queue(sleep_y, (1, 0.1)))
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            pool.add_listener(job_killer)
+            jobs = [pool.queue(sleep_y, (1, 0.001)) for _ in range(200)]
+            jobs.append(pool.queue(sleep_y, (1, 0.1)))
+            pool.execute()
 
         if pool.is_main():
             self.assertEqual(jobs[-1].status, JobStatus.CANCELLED)
@@ -304,23 +320,29 @@ class TestParallelScheduler(
         """
         Test that when the pool starts the jobs without dependencies are queued, and those with dependencies are not.
         """
-        outcome = None
+        outcome = True
 
-        # Add a spy listener that checks that the job with dependencies isn't queued yet
-        def spy_initial_pool_queue(progress):
+        # Add a spy listener that checks that the job with dependencies isn't queued or ran
+        # while its dependency isn't finished yet.
+        def spy_initial_pool_queue(progress: PoolProgress):
             nonlocal outcome
-            if outcome is None:
-                outcome = (
-                    JobStatus.QUEUED == progress.jobs[0].status
-                    and not JobStatus.QUEUED == progress.jobs[1].status
-                )
+            if (
+                progress.jobs[0].status == JobStatus.PENDING
+                or progress.jobs[0].status == JobStatus.QUEUED
+                or progress.jobs[0].status == JobStatus.RUNNING
+            ):
+                if (
+                    progress.jobs[1].status == JobStatus.RUNNING
+                    or progress.jobs[1].status == JobStatus.QUEUED
+                ):
+                    outcome = False
 
-        pool = self.network.create_job_pool(quiet=True)
-        pool.add_listener(spy_initial_pool_queue)
-        job_without_dep = pool.queue(sleep_y, (4, 0.2))
-        job_with_dep = pool.queue(sleep_y, (5, 0.08), deps=[job_without_dep])
+        with self.network.create_job_pool(quiet=True) as pool:
+            pool.add_listener(spy_initial_pool_queue)
+            job_without_dep = pool.queue(sleep_y, (4, 0.2))
+            job_with_dep = pool.queue(sleep_y, (5, 0.08), deps=[job_without_dep])
 
-        results = pool.execute(return_results=True)
+            results = pool.execute(return_results=True)
 
         if pool.is_main():
             self.assertTrue(outcome, "A job with unfinished dependencies was scheduled.")
@@ -330,15 +352,15 @@ class TestParallelScheduler(
     @timeout(3)
     def test_dependency_failure(self):
         """Test that when a dependency fails, the dependents are cancelled"""
-        pool = self.network.create_job_pool(fail_fast=False, quiet=True)
-        job = pool.queue(sleep_fail, (4, 0.2))
-        job2 = pool.queue(sleep_y, (5, 0.1), deps=[job])
-        job3 = pool.queue(sleep_y, (4, 0.1))
+        with self.network.create_job_pool(fail_fast=False, quiet=True) as pool:
+            job = pool.queue(sleep_fail, (4, 0.2))
+            job2 = pool.queue(sleep_y, (5, 0.1), deps=[job])
+            job3 = pool.queue(sleep_y, (4, 0.1))
 
-        try:
-            pool.execute()
-        except WorkflowError:
-            pass
+            try:
+                pool.execute()
+            except WorkflowError:
+                pass
 
         if not MPI.get_rank():
             self.assertEqual(str(job2.error), "Job killed for dependency failure")
@@ -348,14 +370,14 @@ class TestParallelScheduler(
 
     def test_fail_fast(self):
         """Test that when a single job fails, main raises the error and further execution is aborted."""
-        pool = self.network.create_job_pool(fail_fast=True, quiet=True)
-        job = pool.queue(sleep_fail, (4, 0.01))
-        job3 = pool.queue(sleep_y, (4, 0.01))
-        job4 = pool.queue(sleep_y, (4, 0.01))
-        job5 = pool.queue(sleep_y, (4, 0.01))
+        with self.network.create_job_pool(fail_fast=True, quiet=True) as pool:
+            job = pool.queue(sleep_fail, (4, 0.01))
+            job3 = pool.queue(sleep_y, (4, 0.01))
+            job4 = pool.queue(sleep_y, (4, 0.01))
+            job5 = pool.queue(sleep_y, (4, 0.01))
 
-        with self.assertRaises(WorkflowError) as workflow_errors:
-            pool.execute()
+            with self.assertRaises(WorkflowError) as workflow_errors:
+                pool.execute()
         if pool.is_main():
             self.assertIn(
                 ZeroDivisionError,
@@ -372,10 +394,10 @@ class TestParallelScheduler(
                 nonlocal i
                 i += 1
 
-        pool = self.network.create_job_pool(quiet=True)
-        pool.add_listener(spy_lt, 0.1)
-        pool.queue(sleep_y, (5, 0.35))
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            pool.add_listener(spy_lt, 0.1)
+            pool.queue(sleep_y, (5, 0.35))
+            pool.execute()
         if pool.is_main():
             self.assertEqual(i, 3, "Should have 3 timeout pings")
             self.assertEqual(0.1, pool._max_wait, "_max_wait not properly set.")
@@ -395,12 +417,12 @@ class TestSerialScheduler(
             def place(_, chunk, indicators):
                 return 1
 
-        pool = self.network.create_job_pool(quiet=True)
-        pstrat = self.network.placement.add(
-            "test", SerialPStrat(strategy="", cell_types=[], partitions=[])
-        )
-        pstrat.queue(pool, None)
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            pstrat = self.network.placement.add(
+                "test", SerialPStrat(strategy="", cell_types=[], partitions=[])
+            )
+            pstrat.queue(pool, None)
+            pool.execute()
 
     def test_notparallel_cs_job(self):
         @config.node
@@ -408,17 +430,17 @@ class TestSerialScheduler(
             def connect(_, pre, post):
                 return 1
 
-        pool = self.network.create_job_pool(quiet=True)
-        cstrat = self.network.connectivity.add(
-            "test",
-            SerialCStrat(
-                strategy="",
-                presynaptic={"cell_types": []},
-                postsynaptic={"cell_types": []},
-            ),
-        )
-        cstrat.queue(pool)
-        pool.execute()
+        with self.network.create_job_pool(quiet=True) as pool:
+            cstrat = self.network.connectivity.add(
+                "test",
+                SerialCStrat(
+                    strategy="",
+                    presynaptic={"cell_types": []},
+                    postsynaptic={"cell_types": []},
+                ),
+            )
+            cstrat.queue(pool)
+            pool.execute()
 
 
 class TestSubmissionContext(
@@ -450,25 +472,28 @@ class TestSubmissionContext(
         super().setUp()
 
     def test_ps_node_submission(self):
-        pool = self.network.create_job_pool()
-        if pool.is_main():
-            self.network.placement.test.queue(pool, [100, 100, 100])
-            self.assertEqual(1, len(pool.jobs))
-            self.assertEqual("{root}.placement.test", pool.jobs[0].name)
+        with self.network.create_job_pool() as pool:
+            if pool.is_main():
+                self.network.placement.test.queue(pool, [100, 100, 100])
+                self.assertEqual(1, len(pool.jobs))
+                self.assertEqual("{root}.placement.test", pool.jobs[0].name)
 
     @timeout(3)
     def test_cs_node_submission(self):
         self.network.run_placement()
-        pool = self.network.create_job_pool()
-        if pool.is_main():
-            self.network.connectivity.test.queue(pool)
-            self.assertEqual(1, len(pool.jobs))
-            self.assertEqual("{root}.connectivity.test", pool.jobs[0].name)
+        with self.network.create_job_pool() as pool:
+            if pool.is_main():
+                self.network.connectivity.test.queue(pool)
+                self.assertEqual(1, len(pool.jobs))
+                self.assertEqual("{root}.connectivity.test", pool.jobs[0].name)
 
     @timeout(3)
-    def test_no_node_submission(self):
-        pool = self.network.create_job_pool()
-        if pool.is_main():
-            job = pool.queue(sleep_y, (4, 0.2), submitter={"number": "One"})
-            self.assertIn("function sleep_y", job.name)
-            self.assertEqual("One", job.context["number"])
+    def test_no_submitter_submission(self):
+        """
+        Test that in the absence of submitter information the function name is used.
+        """
+        with self.network.create_job_pool() as pool:
+            if pool.is_main():
+                job = pool.queue(sleep_y, (4, 0.2), number=1)
+                self.assertIn("function sleep_y", job.name)
+                self.assertEqual(1, job.context["number"])

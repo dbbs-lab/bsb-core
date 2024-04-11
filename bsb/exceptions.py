@@ -44,6 +44,8 @@ _t(
         ),
         JobPoolError=_e(
             JobCancelledError=_e(),
+            JobPoolContextError=_e(),
+            JobSchedulingError=_e(),
         ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
@@ -54,21 +56,7 @@ _t(
             InvalidReferenceError=_e("value"),
         ),
         NodeNotFoundError=_e("query"),
-        AdapterError=_e(
-            NeuronError=_e(
-                DeviceConnectionError=_e(),
-                TransmitterError=_e(),
-            ),
-            NestError=_e(
-                NestKernelError=_e(
-                    NestModuleError=_e(),
-                ),
-                NestModelError=_e(),
-                NestConnectError=_e(),
-            ),
-            ParallelIntegrityError=_e("rank"),
-            ArborError=_e(),
-        ),
+        AdapterError=_e(),
         ConnectivityError=_e(
             ExternalSourceError=_e(
                 MissingSourceError=_e(),
@@ -119,12 +107,7 @@ _t(
         ),
         DataNotProvidedError=_e(),
         PluginError=_e("plugin"),
-        ParserError=_e(
-            JsonParseError=_e(
-                JsonReferenceError=_e(),
-                JsonImportError=_e(),
-            ),
-        ),
+        ParserError=_e(),
         ClassError=_e(),
     ),
 )
@@ -157,10 +140,6 @@ class ConnectivityWarning(ScaffoldWarning):
     pass
 
 
-class QuiverFieldWarning(ScaffoldWarning):
-    pass
-
-
 class PackageRequirementWarning(ScaffoldWarning):
     pass
 
@@ -168,7 +147,6 @@ class PackageRequirementWarning(ScaffoldWarning):
 __all__ = [
     "AdapterError",
     "AllenApiError",
-    "ArborError",
     "AttributeMissingError",
     "BootError",
     "CLIError",
@@ -195,7 +173,6 @@ __all__ = [
     "DatasetExistsError",
     "DatasetNotFoundError",
     "DependencyError",
-    "DeviceConnectionError",
     "DistributionCastError",
     "DistributorError",
     "DryrunError",
@@ -214,10 +191,9 @@ __all__ = [
     "IntersectionDataNotFoundError",
     "InvalidReferenceError",
     "JobCancelledError",
+    "JobPoolContextError",
     "JobPoolError",
-    "JsonImportError",
-    "JsonParseError",
-    "JsonReferenceError",
+    "JobSchedulingError",
     "LayoutError",
     "MissingActiveConfigError",
     "MissingMorphologyError",
@@ -226,12 +202,6 @@ __all__ = [
     "MorphologyError",
     "MorphologyRepositoryError",
     "MorphologyWarning",
-    "NestConnectError",
-    "NestError",
-    "NestKernelError",
-    "NestModelError",
-    "NestModuleError",
-    "NeuronError",
     "NoReferenceAttributeSignal",
     "NodeNotFoundError",
     "NoneReferenceError",
@@ -239,14 +209,12 @@ __all__ = [
     "PackageRequirementWarning",
     "PackingError",
     "PackingWarning",
-    "ParallelIntegrityError",
     "ParameterError",
     "ParserError",
     "PlacementError",
     "PlacementRelationError",
     "PlacementWarning",
     "PluginError",
-    "QuiverFieldWarning",
     "ReadOnlyOptionError",
     "RedoError",
     "ReificationError",
@@ -258,7 +226,6 @@ __all__ = [
     "SourceQualityError",
     "StorageError",
     "TopologyError",
-    "TransmitterError",
     "TreeError",
     "TypeHandlingError",
     "UnfitClassCastError",

@@ -34,7 +34,7 @@ config.cell_types.add(
 )
 config.placement.add(
     "all_placement",
-    strategy="bsb.placement.ParticlePlacement",
+    strategy="bsb.placement.RandomPlacement",
     cell_types=["base_type", "top_type"],
     partitions=["base_layer"],
 )

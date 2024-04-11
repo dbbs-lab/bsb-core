@@ -480,6 +480,10 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 
 class MorphologyOperationCallable(OperationCallable):
+    """
+    Hello
+    """
+
     def __call__(self, obj: "Morphology", **kwargs: typing.Any) -> "Morphology":
         pass
 
@@ -582,7 +586,9 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         def create_morphology(scaffold, i):
             scaffold.configuration.morphologies[i].load_object()
 
-        pool.queue(create_morphology, (self._config_index,))
+        pool.queue(
+            create_morphology, (self._config_index,), submitter=self, uri=self.file.uri
+        )
 
 
 @config.node
@@ -611,8 +617,25 @@ class MorphologyPipelineNode(FilePipelineMixin):
             )
 
         for k in range(len(self.files)):
-            # The lambda serves to bind the closure arguments
-            pool.queue(job, (self._config_index, k))
+            pool.queue(
+                job,
+                (self._config_index, k),
+                submitter=self,
+                node=k,
+                uri=self.files[k].file.uri,
+            )
 
 
-__all__ = ["UriScheme", "UrlScheme", "FileScheme", "NeuroMorphoScheme"]
+__all__ = [
+    "CodeDependencyNode",
+    "FileDependency",
+    "FileDependencyNode",
+    "FileScheme",
+    "MorphologyDependencyNode",
+    "MorphologyOperation",
+    "NeuroMorphoScheme",
+    "NrrdDependencyNode",
+    "Operation",
+    "UriScheme",
+    "UrlScheme",
+]

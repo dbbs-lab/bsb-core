@@ -43,13 +43,21 @@ import concurrent.futures
 import logging
 import pickle
 import tempfile
+import threading
 import typing
 import warnings
+from contextlib import ExitStack
 from enum import Enum, auto
 
 from exceptiongroup import ExceptionGroup
 
-from ..exceptions import JobCancelledError, JobPoolError
+from .._util import obj_str_insert
+from ..exceptions import (
+    JobCancelledError,
+    JobPoolContextError,
+    JobPoolError,
+    JobSchedulingError,
+)
 from . import MPI
 from ._util import ErrorModule, MockModule
 
@@ -85,18 +93,44 @@ class JobStatus(Enum):
 
 
 class PoolStatus(Enum):
-    # Pool Starting
-    STARTING = "Starting"
-    # Pool Running
-    RUNNING = "Running"
-    # Pool Ending
-    ENDING = "Ending"
+    # Pool has been initialized and jobs can be scheduled.
+    SCHEDULING = "scheduling"
+    # Pool started execution.
+    EXECUTING = "executing"
+    # Pool is closing down.
+    CLOSING = "closing"
 
 
 class PoolProgressReason(Enum):
     POOL_STATUS_CHANGE = auto()
+    JOB_ADDED = auto()
     JOB_STATUS_CHANGE = auto()
     MAX_TIMEOUT_PING = auto()
+
+
+class Workflow:
+    def __init__(self, phases: list[str]):
+        self._phases = phases
+        self._phase = 0
+
+    @property
+    def phases(self):
+        return [*self._phases]
+
+    @property
+    def finished(self):
+        return self._phase >= len(self._phases)
+
+    @property
+    def phase(self):
+        if self.finished:
+            return "finished"
+        else:
+            return self._phases[self._phase]
+
+    def next_phase(self):
+        self._phase += 1
+        return self.phase
 
 
 class PoolProgress:
@@ -113,12 +147,26 @@ class PoolProgress:
         return self._reason
 
     @property
+    def workflow(self):
+        return self._pool.workflow
+
+    @property
     def jobs(self):
         return self._pool.jobs
 
     @property
     def status(self):
         return self._pool.status
+
+
+class PoolJobAddedProgress(PoolProgress):
+    def __init__(self, pool: "JobPool", job: "Job"):
+        super().__init__(pool, PoolProgressReason.JOB_ADDED)
+        self._job = job
+
+    @property
+    def job(self):
+        return self._job
 
 
 class PoolJobUpdateProgress(PoolProgress):
@@ -130,6 +178,14 @@ class PoolJobUpdateProgress(PoolProgress):
     @property
     def job(self):
         return self._job
+
+    @property
+    def old_status(self):
+        return self._old_status
+
+    @property
+    def status(self):
+        return self._job.status
 
 
 class PoolStatusProgress(PoolProgress):
@@ -186,10 +242,18 @@ class SubmissionContext:
         return name
 
     @property
+    def submitter(self):
+        return self._submitter
+
+    @property
     def chunks(self):
-        from ..storage import chunklist
+        from ..storage._chunks import chunklist
 
         return chunklist(self._chunks) if self._chunks is not None else None
+
+    @property
+    def context(self):
+        return {**self._context}
 
     def __getattr__(self, key):
         if key in self._context:
@@ -214,19 +278,35 @@ class Job(abc.ABC):
         self._completion_cbs = []
         self._status = JobStatus.PENDING
         self._future: typing.Optional[concurrent.futures.Future] = None
+        self._thread: typing.Optional[threading.Thread] = None
         self._res_file = None
         self._error = None
 
         for j in self._deps:
             j.on_completion(self._dep_completed)
 
+    @obj_str_insert
+    def __str__(self):
+        return self.description
+
     @property
     def name(self):
         return self._submit_ctx.name
 
     @property
+    def description(self):
+        descr = self.name
+        if self.context:
+            descr += " (" + ", ".join(f"{k}={v}" for k, v in self.context.items()) + ")"
+        return descr
+
+    @property
+    def submitter(self):
+        return self._submit_ctx.submitter
+
+    @property
     def context(self):
-        return self._submit_ctx._context
+        return self._submit_ctx.context
 
     @property
     def status(self):
@@ -261,6 +341,29 @@ class Job(abc.ABC):
         Job handler
         """
         pass
+
+    def run(self, timeout=None):
+        """
+        Execute the job on the current process, in a thread, and return whether the job is still running.
+        """
+        if self._thread is None:
+
+            def target():
+                try:
+                    # Execute the static handler
+                    result = self.execute(self._pool.owner, self._args, self._kwargs)
+                except Exception as e:
+                    self._future.set_exception(e)
+                else:
+                    self._future.set_result(result)
+
+            self._thread = threading.Thread(target=target, daemon=True)
+            self._thread.start()
+        self._thread.join(timeout=timeout)
+        if not self._thread.is_alive():
+            self._completed()
+            return False
+        return True
 
     def on_completion(self, cb):
         self._completion_cbs.append(cb)
@@ -366,7 +469,7 @@ class ConnectivityJob(Job):
     """
 
     def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
-        from ..storage import chunklist
+        from ..storage._chunks import chunklist
 
         args = (strategy.name, pre_roi, post_roi)
         context = SubmissionContext(
@@ -383,18 +486,18 @@ class ConnectivityJob(Job):
 
 
 class FunctionJob(Job):
-    def __init__(self, pool, f, args, kwargs, deps=None, submitter={}):
-        self._f = f
-        new_args = [f]
-        new_args.extend(args)
-        context = SubmissionContext(f, chunks=new_args, **submitter)
-        super().__init__(pool, context, new_args, kwargs, deps=deps)
+    def __init__(self, pool, f, args, kwargs, deps=None, **context):
+        # Pack the function into the args
+        args = (f, args)
+        # If no submitter was given, set the function as submitter
+        context.setdefault("submitter", f)
+        super().__init__(pool, SubmissionContext(**context), args, kwargs, deps=deps)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
-        f = args[0]
-        result = f(job_owner, *args[1:], **kwargs)
-        return result
+        # Unpack the function from the args
+        f, args = args
+        return f(job_owner, *args, **kwargs)
 
 
 class JobPool:
@@ -403,32 +506,65 @@ class JobPool:
     _pool_owners = {}
     _tmp_folders = {}
 
-    def __init__(self, scaffold, fail_fast=False):
+    def __init__(self, scaffold, fail_fast=False, workflow: "Workflow" = None):
+        self._schedulers: list[concurrent.futures.Future] = []
+        self.id: int = None
+        self._scaffold = scaffold
         self._unhandled_errors = []
         self._running_futures: list[concurrent.futures.Future] = []
-        self._pool: typing.Optional["MPIExecutor"] = None
+        self._mpipool: typing.Optional["MPIExecutor"] = None
         self._job_queue: list[Job] = []
-        self.id = JobPool._next_pool_id
         self._listeners = []
         self._max_wait = 60
-        self._status = PoolStatus.STARTING
+        self._status: PoolStatus = None
         self._progress_notifications: list["PoolProgress"] = []
         self._workers_raise_unhandled = False
         self._fail_fast = fail_fast
+        self._workflow = workflow
+
+    def __enter__(self):
+        self._context = ExitStack()
+        tmp_dirname = self._context.enter_context(tempfile.TemporaryDirectory())
+
+        self.id = JobPool._next_pool_id
         JobPool._next_pool_id += 1
-        JobPool._pool_owners[self.id] = scaffold
+        JobPool._pool_owners[self.id] = self._scaffold
         JobPool._pools[self.id] = self
+        JobPool._tmp_folders[self.id] = tmp_dirname
+        del self._scaffold
+
+        for listener in self._listeners:
+            try:
+                self._context.enter_context(listener)
+            except (TypeError, AttributeError):
+                # Listener is not a context manager
+                pass
+        self.change_status(PoolStatus.SCHEDULING)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._context.__exit__(exc_type, exc_val, exc_tb)
+        # Clean up pool/job references
+        self._job_queue = []
+        del JobPool._pools[self.id]
+        del JobPool._pool_owners[self.id]
+        del JobPool._tmp_folders[self.id]
+        self.id = None
 
     def add_listener(self, listener, max_wait=None):
         self._max_wait = min(self._max_wait, max_wait or float("+inf"))
         self._listeners.append(listener)
 
     @property
+    def workflow(self):
+        return self._workflow
+
+    @property
     def status(self):
         return self._status
 
     @property
-    def jobs(self):
+    def jobs(self) -> list[Job]:
         return [*self._job_queue]
 
     @property
@@ -450,25 +586,76 @@ class JobPool:
     def is_main(self):
         return MPI.get_rank() == 0
 
+    def get_submissions_of(self, submitter):
+        return [job for job in self._job_queue if job.submitter is submitter]
+
     def _put(self, job):
         """
         Puts a job onto our internal queue.
         """
-        if self._pool and not self._pool.open:
+        if self._mpipool and not self._mpipool.open:
             raise JobPoolError("No job pool available for job submission.")
         else:
+            self.add_notification(PoolJobAddedProgress(self, job))
             self._job_queue.append(job)
+            if self._mpipool:
+                # This job was scheduled after the MPIPool was opened, so immediately
+                # put it on the MPIPool's queue.
+                job._enqueue(self)
 
     def _submit(self, fn, *args, **kwargs):
-        if not self._pool or not self._pool.open:
+        if not self._mpipool or not self._mpipool.open:
             raise JobPoolError("No job pool available for job submission.")
         else:
-            future = self._pool.submit(fn, *args, **kwargs)
+            future = self._mpipool.submit(fn, *args, **kwargs)
             self._running_futures.append(future)
             return future
 
-    def queue(self, f, args=None, kwargs=None, deps=None, submitter={}):
-        job = FunctionJob(self, f, args or [], kwargs or {}, deps, submitter=submitter)
+    def _schedule(self, future: concurrent.futures.Future, nodes, scheduler):
+        _failed_nodes = []
+        if not future.set_running_or_notify_cancel():
+            return
+        try:
+            for node in nodes:
+                failed_deps = [
+                    n for n in getattr(node, "depends_on", []) if n in _failed_nodes
+                ]
+                if failed_deps:
+                    _failed_nodes.append(node)
+                    ctx = SubmissionContext(
+                        node,
+                        error=JobSchedulingError(
+                            f"Depends on {failed_deps}, whom failed."
+                        ),
+                    )
+                    self._unhandled_errors.append(ctx)
+                    continue
+                try:
+                    scheduler(node)
+                except Exception as e:
+                    _failed_nodes.append(node)
+                    ctx = SubmissionContext(node, error=e)
+                    self._unhandled_errors.append(ctx)
+        finally:
+            future.set_result(None)
+
+    def schedule(self, nodes, scheduler=None):
+        if scheduler is None:
+
+            def scheduler(node):
+                node.queue(self)
+
+        future = concurrent.futures.Future()
+        self._schedulers.append(future)
+        thread = threading.Thread(target=self._schedule, args=(future, nodes, scheduler))
+        thread.start()
+
+    @property
+    def scheduling(self):
+        return any(not f.done() for f in self._schedulers)
+
+    def queue(self, f, args=None, kwargs=None, deps=None, **context):
+        job = FunctionJob(self, f, args or [], kwargs or {}, deps, **context)
         self._put(job)
         return job
 
@@ -491,25 +678,20 @@ class JobPool:
         have dependencies that need to complete first.
         """
 
-        self._unhandled_errors = []
-        try:
-            with tempfile.TemporaryDirectory() as tmp_dirname:
-                JobPool._tmp_folders[self.id] = tmp_dirname
-                if self.parallel:
-                    self._execute_parallel()
-                else:
-                    self._execute_serial()
+        if self.id is None:
+            raise JobPoolContextError("Job pools must use a context manager.")
 
-                if return_results:
-                    return {
-                        job: job.result
-                        for job in self._job_queue
-                        if job.status == JobStatus.SUCCESS
-                    }
-        finally:
-            # Clean up pool/job references
-            self._job_queue = []
-            del JobPool._pools[self.id]
+        if self.parallel:
+            self._execute_parallel()
+        else:
+            self._execute_serial()
+
+        if return_results:
+            return {
+                job: job.result
+                for job in self._job_queue
+                if job.status == JobStatus.SUCCESS
+            }
 
     def _execute_parallel(self):
         import bsb.options
@@ -518,11 +700,11 @@ class JobPool:
         if bsb.options.debug_pool:
             _MPIPool.enable_serde_logging()
         # Create the MPI pool
-        self._pool = _MPIPool.MPIExecutor(
+        self._mpipool = _MPIPool.MPIExecutor(
             loglevel=logging.DEBUG if bsb.options.debug_pool else logging.CRITICAL
         )
 
-        if self._pool.is_worker():
+        if self._mpipool.is_worker():
             # The workers will return out of the pool constructor when they receive
             # the shutdown signal from the master, they return here skipping the
             # master logic.
@@ -537,26 +719,30 @@ class JobPool:
             return
 
         try:
-            # Tell each job in our queue that they have to put themselves in the pool
-            # queue; each job will store their own future and will use the futures of
-            # their previously enqueued dependencies to determine when they can put
-            # themselves on the pool queue.
+            # Tell the listeners execution is running
+            self.change_status(PoolStatus.EXECUTING)
+            # Kickstart the workers with the queued jobs
             for job in self._job_queue:
                 job._enqueue(self)
+            # Add the scheduling futures to the running futures, to await them.
+            self._running_futures.extend(self._schedulers)
 
-            # Tell the listeners execution is running
-            self.change_status(PoolStatus.RUNNING)
-
-            # As long as any of the jobs aren't done yet we repeat the wait action with a timeout
-            while any(
+            # Keep executing as long as any of the schedulers or jobs aren't done yet.
+            while self.scheduling or any(
                 job.status == JobStatus.PENDING or job.status == JobStatus.QUEUED
                 for job in self._job_queue
             ):
-                done, not_done = concurrent.futures.wait(
-                    self._running_futures,
-                    timeout=self._max_wait,
-                    return_when="FIRST_COMPLETED",
-                )
+                try:
+                    done, not_done = concurrent.futures.wait(
+                        self._running_futures,
+                        timeout=self._max_wait,
+                        return_when="FIRST_COMPLETED",
+                    )
+                except ValueError:
+                    # Sometimes a ValueError is raised here, perhaps because we modify
+                    # the list below?
+                    continue
+
                 # Complete any jobs that are done
                 for job in self._job_queue:
                     if job._future in done:
@@ -566,14 +752,12 @@ class JobPool:
                     self._running_futures.remove(future)
                 # If nothing finished, post a timeout notification.
                 if not len(done):
-                    self.add_notification(
-                        PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING)
-                    )
+                    self.ping()
                 # Notify all the listeners, and store/raise any unhandled errors
                 self.notify()
 
             # Notify listeners that execution is over
-            self.change_status(PoolStatus.ENDING)
+            self.change_status(PoolStatus.CLOSING)
             # Raise any unhandled errors
             self.raise_unhandled()
         except:
@@ -583,42 +767,41 @@ class JobPool:
             raise
         finally:
             # Shut down our internal pool
-            self._pool.shutdown(wait=False, cancel_futures=True)
+            self._mpipool.shutdown(wait=False, cancel_futures=True)
             # Broadcast whether the worker nodes should raise an unhandled error.
             MPI.bcast(self._workers_raise_unhandled)
 
     def _execute_serial(self):
+        # Wait for jobs to finish scheduling
+        while concurrent.futures.wait(
+            self._schedulers, timeout=self._max_wait, return_when="FIRST_COMPLETED"
+        )[1]:
+            self.ping()
+            self.notify()
         # Prepare jobs for local execution
         for job in self._job_queue:
             job._future = concurrent.futures.Future()
+            job._pool = self
             if job.status != JobStatus.CANCELLED and job.status != JobStatus.ABORTED:
                 job._status = JobStatus.QUEUED
             else:
                 job._future.cancel()
 
-        self.change_status(PoolStatus.RUNNING)
+        self.change_status(PoolStatus.EXECUTING)
         # Just run each job serially
         for job in self._job_queue:
-            f = job._future
-            if not f.set_running_or_notify_cancel():
+            if not job._future.set_running_or_notify_cancel():
                 continue
             job.change_status(JobStatus.RUNNING)
             self.notify()
-            try:
-                # Execute the static handler
-                result = job.execute(self.owner, job._args, job._kwargs)
-            except Exception as e:
-                f.set_exception(e)
-            else:
-                f.set_result(result)
-            finally:
-                f.done()
-            job._completed()
+            while job.run(timeout=self._max_wait):
+                self.ping()
+                self.notify()
             self.notify()
         # Raise any unhandled errors
         self.raise_unhandled()
 
-        self.change_status(PoolStatus.ENDING)
+        self.change_status(PoolStatus.CLOSING)
 
     def change_status(self, status: PoolStatus):
         old_status = self._status
@@ -628,6 +811,9 @@ class JobPool:
 
     def add_notification(self, notification: PoolProgress):
         self._progress_notifications.append(notification)
+
+    def ping(self):
+        self.add_notification(PoolProgress(self, PoolProgressReason.MAX_TIMEOUT_PING))
 
     def notify(self):
         for notification in self._progress_notifications:
@@ -648,8 +834,12 @@ class JobPool:
         # Raise and catch for nicer traceback
         for job in self._unhandled_errors:
             try:
-                raise JobErroredError(f"{job.name} job failed", job.error) from job.error
-            except JobErroredError as e:
+                if isinstance(job, SubmissionContext):
+                    raise JobSchedulingError(
+                        f"{job.name} failed to schedule its jobs."
+                    ) from job.context["error"]
+                raise JobErroredError(f"{job} failed", job.error) from job.error
+            except (JobErroredError, JobSchedulingError) as e:
                 errors.append(e)
         self._unhandled_errors = []
         raise WorkflowError(

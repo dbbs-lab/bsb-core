@@ -16,7 +16,7 @@ any components in it. The file will be called something like
 Network from config
 -------------------
 
-You can also first load or create a :class:`.config.Configuration` object, and create a
+You can also first load or create a :class:`~.config.Configuration` object, and create a
 network from it, by passing it to the :class:`~.core.Scaffold`:
 
 .. literalinclude:: /../examples/networks/create_from_cfg.py

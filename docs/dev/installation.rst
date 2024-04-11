@@ -19,6 +19,6 @@ Releases
 
 To release a new version::
 
-  bump2version pre
+  bump-my-version bump pre_n
   python -m build
   twine upload dist/* --skip-existing

@@ -58,13 +58,16 @@ class TestMorphologyDistributor(
 
     def test_empty_selection(self):
         with self.assertRaises(WorkflowError) as wfe:
-            self.network.compile(append=True)
+            self.network.compile()
 
         if not MPI.get_rank():
-            self.assertEqual(1, len(wfe.exception.exceptions))
-            err = wfe.exception.exceptions[0].error
-            self.assertEqual(DistributorError, type(err))
-            self.assertIn("NameSelector", str(err))
+            # Greater or equal for simultaneous parallel worker exceptions.
+            self.assertGreaterEqual(len(wfe.exception.exceptions), 1)
+            for i, exc in enumerate(wfe.exception.exceptions):
+                with self.subTest(errno=i):
+                    err = exc.error
+                    self.assertEqual(DistributorError, type(err))
+                    self.assertIn("NameSelector", str(err))
 
     def test_none_returns(self):
         self.network.morphologies.save("bs", Morphology.empty(), overwrite=True)

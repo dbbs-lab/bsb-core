@@ -7,11 +7,11 @@ Installation
 
   Use virtual environments!
 
-The scaffold framework can be installed using ``pip``:
+The BSB framework can be installed using ``pip``:
 
 .. code-block:: bash
 
-  pip install "bsb>=4.0.0b0"
+  pip install "bsb~=4.0"
 
 You can verify that the installation works with:
 
@@ -47,7 +47,7 @@ To then install the BSB with parallel MPI support:
 
 .. code-block:: bash
 
-  pip install "bsb[parallel]>=4.0.0b0"
+  pip install "bsb[parallel]~=4.0"
 
 Simulator backends
 ==================

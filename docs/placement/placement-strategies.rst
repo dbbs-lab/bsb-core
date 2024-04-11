@@ -13,7 +13,7 @@ bumps them around as repelling particles until there is no overlap between them.
 RandomPlacement
 *****************
 
-*Class*: :class:`bsb.placement.RandomPlacement <.placement.particle.RandomPlacement>`
+*Class*: :class:`bsb.placement.RandomPlacement <.placement.random.RandomPlacement>`
 
 This class place cells in random postition without caring about overlaps. Here is an example with 10 cells.
 

@@ -18,9 +18,12 @@ from bsb import (
     IndicatorError,
     PackingWarning,
     Partition,
+    PlacementError,
+    PlacementRelationError,
     PlacementStrategy,
     Scaffold,
     VoxelData,
+    Voxels,
     VoxelSet,
     WorkflowError,
 )
@@ -42,22 +45,76 @@ class PlacementDud(PlacementStrategy):
         pass
 
 
+class VoxTest(Voxels, classmap_entry="vox_test"):
+    loc_data = np.random.rand(8, 8, 8)
+
+    def get_voxelset(self):
+        return VoxelSet(
+            np.transpose(np.nonzero(self.loc_data)),
+            np.array([100, 100, 100], dtype=int),
+            data=self.loc_data.flatten(),
+            data_keys=["vox_density"],
+        )
+
+
 def single_layer_placement(network, offset=None):
     # fixme: https://github.com/dbbs-lab/bsb-core/issues/812
     network.topology.children.append(part := Partition(name="dud_layer", thickness=120))
     network.network.origin = offset if offset is not None else [0.0, 0.0, 0.0]
     network.resize()
-    dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
-    network.cell_types["dud"] = dud_cell
+    dud_cell = CellType(name="cell_w_count", spatial={"count": 40, "radius": 2})
+    dud_cell2 = CellType(
+        name="cell_rel_count",
+        spatial={"relative_to": "cell_w_count", "count_ratio": 0.5, "radius": 3.4},
+    )
+    dud_cell7 = CellType(name="cell_no_ind", spatial={"radius": 1.0})
+    network.cell_types["cell_w_count"] = dud_cell
+    network.cell_types["cell_rel_count"] = dud_cell2
+    network.cell_types["cell_no_ind"] = dud_cell7
     dud = PlacementDud(
         name="dud",
         strategy="PlacementDud",
         partitions=[part],
-        cell_types=[dud_cell],
-        overrides={"dud": {}},
+        cell_types=[dud_cell, dud_cell2, dud_cell7],
+        overrides={"cell_w_count": {}},
     )
     network.placement["dud"] = dud
     return dud
+
+
+def single_vox_placement(network, voxels):
+    network.topology.children.append(voxels)
+    network.network.origin = [0.0, 0.0, 0.0]
+    network.resize()
+    dud_cell = CellType(
+        name="cell_density_key",
+        spatial={"density_key": "vox_density", "radius": 5.6},
+    )
+    dud_cell2 = CellType(
+        name="cell_rel_dens_key",
+        spatial={"relative_to": "cell_density_key", "density_ratio": 2.0, "radius": 5.6},
+    )
+    dud_cell3 = CellType(
+        name="cell_rel_dens_no_ratio",
+        spatial={"relative_to": "cell_density_key", "radius": 5.6},
+    )
+    dud_cell4 = CellType(
+        name="cell_w_dens",
+        spatial={"density": 0.1, "radius": 5.6},
+    )
+    network.cell_types["cell_density_key"] = dud_cell
+    network.cell_types["cell_rel_dens_key"] = dud_cell2
+    network.cell_types["cell_rel_dens_no_ratio"] = dud_cell3
+    network.cell_types["cell_w_dens"] = dud_cell4
+    dud2 = PlacementDud(
+        name="dud2",
+        strategy="PlacementDud",
+        partitions=[voxels],
+        cell_types=[dud_cell2, dud_cell, dud_cell3, dud_cell4],
+        overrides={"cell_rel_dens_key": {}, "cell_density_key": {}},
+    )
+    network.placement["dud2"] = dud2
+    return dud2
 
 
 def _chunk(x, y, z):
@@ -70,27 +127,39 @@ class TestIndicators(
     def setUp(self):
         self.cfg = Configuration.default()
         super().setUp()
+        self.voxels = VoxTest()
         self.placement = single_layer_placement(self.network)
+        self.placement2 = single_vox_placement(self.network, self.voxels)
 
     def test_cascade(self):
         indicators = self.placement.get_indicators()
-        dud_ind = indicators["dud"]
+        dud_ind = indicators["cell_w_count"]
+        dud2_ind = indicators["cell_rel_count"]
         self.assertEqual(2, dud_ind.indication("radius"))
         self.assertEqual(40, dud_ind.indication("count"))
         self.assertEqual(2, dud_ind.get_radius())
-        self.placement.overrides.dud.radius = 4
+        self.placement.overrides.cell_w_count.radius = 4
         self.assertEqual(4, dud_ind.indication("radius"))
-        self.placement.overrides.dud.radius = None
+        self.placement.overrides.cell_w_count.radius = None
         self.placement.cell_types[0].spatial.radius = None
         self.assertEqual(None, dud_ind.indication("radius"))
         self.assertRaises(IndicatorError, dud_ind.get_radius)
+        self.assertTrue(dud2_ind.indication("relative_to") in self.placement.cell_types)
+        self.assertEqual(dud2_ind.indication("count_ratio"), 0.5)
+        indicators = self.placement2.get_indicators()
+        dud3_ind = indicators["cell_rel_dens_key"]
+        self.assertEqual(dud3_ind.indication("density_ratio"), 2.0)
 
-    def test_guess(self):
+    def test_guess_count(self):
         indicators = self.placement.get_indicators()
-        dud_ind = indicators["dud"]
+        dud_ind = indicators["cell_w_count"]
+        dud2_ind = indicators["cell_rel_count"]
+        ratio_dud2 = 0.5
         self.assertEqual(40, dud_ind.guess())
-        self.placement.overrides.dud.count = 400
+        self.assertEqual(40 * ratio_dud2, dud2_ind.guess())
+        self.placement.overrides.cell_w_count.count = 400
         self.assertEqual(400, dud_ind.guess())
+        self.assertEqual(400 * ratio_dud2, dud2_ind.guess())
         bottom_ratio = 1 / 1.2
         bottom = 400 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
@@ -107,13 +176,58 @@ class TestIndicators(
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
+        with self.assertRaises(IndicatorError):
+            indicators["cell_no_ind"].guess()
 
-    def test_negative_guess(self):
+    def test_guess_vox_density(self):
+        indicators = self.placement2.get_indicators()
+        dud3_ind = indicators["cell_rel_dens_key"]
+        dud4_ind = indicators["cell_density_key"]
+        ratio_dud3 = 2.0
+        with self.assertRaises(Exception):
+            # No voxel set provided
+            dud4_ind.guess()
+
+        predicted_count = (self.voxels.loc_data * 100**3).flatten()
+        guess4 = dud4_ind.guess(voxels=self.voxels.get_voxelset())
+        guess3 = dud3_ind.guess(voxels=self.voxels.get_voxelset())
+        self.assertTrue(np.all(np.absolute(predicted_count - guess4) <= 1))
+
+        self.assertTrue(
+            np.all(
+                np.absolute((predicted_count * ratio_dud3) - guess3)
+                <= np.ceil(ratio_dud3)
+            )
+        )
+        self.placement2.overrides.cell_rel_dens_key.relative_to = self.network.cell_types[
+            "cell_w_count"
+        ]
+        with self.assertRaises(PlacementRelationError):
+            # Cannot estimate relative to an estimate without density key
+            dud3_ind.guess()
+        with self.assertRaises(PlacementError):
+            # Cannot estimate relative to without a ratio
+            indicators["cell_rel_dens_no_ratio"].guess()
+
+        self.assertEqual(
+            0.1 * self.voxels.loc_data.size * 100**3, indicators["cell_w_dens"].guess()
+        )
+        self.placement2.overrides.cell_rel_dens_key.relative_to = self.network.cell_types[
+            "cell_w_dens"
+        ]
+        self.assertEqual(0.2 * self.voxels.loc_data.size * 100**3, dud3_ind.guess())
+
+        self.placement2.overrides.cell_density_key.density_key = "bla"
+        with self.assertRaises(RuntimeError):
+            # voxel density key not found
+            dud4_ind.guess(voxels=self.voxels.get_voxelset())
+
+    def test_negative_guess_count(self):
         self.placement = single_layer_placement(
             self.network, offset=np.array([-300.0, -300.0, -300.0])
         )
         indicators = self.placement.get_indicators()
-        dud_ind = indicators["dud"]
+        dud_ind = indicators["cell_w_count"]
         bottom_ratio = 1 / 1.2
         bottom = 40 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
@@ -205,7 +319,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
             partitions=dict(test_part=dict(type="test")),
             placement=dict(
                 voxel_density=dict(
-                    strategy="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.RandomPlacement",
                     partitions=["test_part"],
                     cell_types=["test_cell"],
                 )
@@ -247,7 +361,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
                     cell_types=["test_cell2"],
                 ),
                 ch4_c25=dict(
-                    strategy="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.RandomPlacement",
                     partitions=["first_layer"],
                     cell_types=["test_cell"],
                 ),

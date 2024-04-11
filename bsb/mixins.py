@@ -1,44 +1,38 @@
 import abc as _abc
 import itertools
+import typing
 from graphlib import TopologicalSorter
 
 from . import _util as _gutil
-from .reporting import report
-from .storage import Chunk
+from .reporting import warn
+from .storage._chunks import Chunk
+
+if typing.TYPE_CHECKING:
+    from .services import JobPool
 
 
-def _queue_placement(self, pool, chunk_size):
-    # Reset jobs that we own
-    self._queued_jobs = []
+def _queue_placement(self, pool: "JobPool", chunk_size):
     # Get the queued jobs of all the strategies we depend on.
-    deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
+    deps = set(
+        itertools.chain(*(pool.get_submissions_of(strat) for strat in self.get_deps()))
+    )
     # todo: perhaps pass the volume or partition boundaries as chunk size
-    job = pool.queue_placement(self, Chunk([0, 0, 0], None), deps=deps)
-    self._queued_jobs.append(job)
-    report(f"Queued serial job for {self.name}", level=2)
+    pool.queue_placement(self, Chunk([0, 0, 0], None), deps=deps)
 
 
 def _all_chunks(iter_):
     return _gutil.unique(
-        itertools.chain.from_iterable(
-            ct.get_placement_set().get_all_chunks() for ct in iter_
-        )
+        _gutil.ichain(ct.get_placement_set().get_all_chunks() for ct in iter_)
     )
 
 
-def _queue_connectivity(self, pool):
-    # Reset jobs that we own
-    self._queued_jobs = []
+def _queue_connectivity(self, pool: "JobPool"):
     # Get the queued jobs of all the strategies we depend on.
-    deps = set(
-        itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_deps())
-    )
+    deps = set(_gutil.ichain(pool.get_submissions_of(strat) for strat in self.get_deps()))
     # Schedule all chunks in 1 job
     pre_chunks = _all_chunks(self.presynaptic.cell_types)
     post_chunks = _all_chunks(self.postsynaptic.cell_types)
     job = pool.queue_connectivity(self, pre_chunks, post_chunks, deps=deps)
-    self._queued_jobs.append(job)
-    report(f"Queued serial job for {self.name}", level=2)
 
 
 def _raise_na(*args, **kwargs):
@@ -115,18 +109,14 @@ class InvertedRoI:
     """
 
     def queue(self, pool):
-        # Reset jobs that we own
-        self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
         deps = set(
-            itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_deps())
+            _gutil.ichain(pool.get_submissions_of(strat) for strat in self.get_deps())
         )
         post_types = self.postsynaptic.cell_types
         # Iterate over each chunk that is populated by our postsynaptic cell types.
         to_chunks = set(
-            itertools.chain.from_iterable(
-                ct.get_placement_set().get_all_chunks() for ct in post_types
-            )
+            _gutil.ichain(ct.get_placement_set().get_all_chunks() for ct in post_types)
         )
         rois = {
             chunk: roi
@@ -140,9 +130,7 @@ class InvertedRoI:
                 f"in '{self.name}'."
             )
         for chunk, roi in rois.items():
-            job = pool.queue_connectivity(self, roi, [chunk], deps=deps)
-            self._queued_jobs.append(job)
-        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
+            pool.queue_connectivity(self, roi, [chunk], deps=deps)
 
 
 __all__ = ["HasDependencies", "InvertedRoI", "NotParallel"]

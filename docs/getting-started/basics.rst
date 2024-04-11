@@ -1,9 +1,6 @@
-==================================
-Creating networks and reading data
-==================================
-
-Greetings traveller, it seems you've created a network. Here are some examples to help
-you on your way.
+======================
+Managing network files
+======================
 
 .. include:: /examples/networks/create.rst
 

@@ -7,7 +7,7 @@ from ... import config
 from ...config import types
 from ...exceptions import ConnectivityWarning
 from ...reporting import warn
-from ...storage import Chunk
+from ...storage._chunks import Chunk
 
 
 class Intersectional:

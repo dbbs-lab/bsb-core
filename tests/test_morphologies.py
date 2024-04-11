@@ -1235,10 +1235,10 @@ class TestMorphologyPipelineNode(
             ]
         )
         scaffold = Scaffold(cfg, self.storage)
-        pool = scaffold.create_job_pool(quiet=True)
-        cfg.morphologies[0].queue(pool)
-        self.assertEqual(1, len(pool.jobs))
-        pool.execute()
+        with scaffold.create_job_pool(quiet=True) as pool:
+            cfg.morphologies[0].queue(pool)
+            self.assertEqual(1, len(pool.jobs))
+            pool.execute()
         m_mio = scaffold.morphologies.load("test_mio")
         self.assertEqual(12, len(m_mio), "Expected 12 points in morpho")
         self.assertClose(0, m_mio.points[:, 2], "Rotation step skipped")
@@ -1267,10 +1267,10 @@ class TestMorphologyPipelineNode(
             ]
         )
         scaffold = Scaffold(cfg, self.storage)
-        pool = scaffold.create_job_pool(quiet=True)
-        cfg.morphologies[0].queue(pool)
-        self.assertEqual(2, len(pool.jobs))
-        pool.execute()
+        with scaffold.create_job_pool(quiet=True) as pool:
+            cfg.morphologies[0].queue(pool)
+            self.assertEqual(2, len(pool.jobs))
+            pool.execute()
         m_mio = scaffold.morphologies.load("test_mio")
         m_bsb = scaffold.morphologies.load("test_bsb")
         # The MorphIO parser by default skips the boundary between soma and other tags
