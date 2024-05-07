@@ -42,7 +42,7 @@ class TestParsersBasics(unittest.TestCase):
         self.assertEqual(
             "just like that",
             tree["nest me hard"]["oh yea"],
-            "Incorrectly parsed nested JSON",
+            "Incorrectly parsed nested File",
         )
         self.assertEqual(
             "<parsed file config '[1, 2, 3, 'waddup']' at '/list'>", str(tree["list"])
@@ -76,7 +76,7 @@ class TestFileRef(unittest.TestCase):
         self.assertEqual(tree["refs"]["whats the"], tree["refs"]["omitted_doc"])
         content["get"]["a"] = "secret"
         with self.assertRaises(FileReferenceError, msg="Should raise 'ref not a dict'"):
-            tree, meta = get_configuration_parser("json").parse(content)
+            tree, meta = self.parser.parse(content)
 
     def test_far_references(self):
         content = {
