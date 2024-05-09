@@ -776,18 +776,17 @@ def none():
     return type_handler
 
 
-class PackageRequirement(TypeHandler):
+class PackageRequirement(object_):
     def __call__(self, value):
         from packaging.requirements import Requirement
 
-        return Requirement(value)
+        requirement = Requirement(value)
+        requirement._cfg_inv = value
+        return requirement
 
     @property
     def __name__(self):
         return "package requirement"
-
-    def __inv__(self, value):
-        return str(value)
 
     def __hint__(self):
         return "numpy==1.24.0"

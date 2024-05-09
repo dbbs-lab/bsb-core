@@ -1649,7 +1649,7 @@ class TestNodeComposition(unittest.TestCase):
         assert type(self.tested.attrC == config.ConfigurationAttribute)
 
 
-class TestPackageRequirements(unittest.TestCase):
+class TestPackageRequirements(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def test_basic_version(self):
         self.assertIsNone(get_missing_requirement_reason("bsb-core==" + bsb.__version__))
 
@@ -1669,3 +1669,10 @@ class TestPackageRequirements(unittest.TestCase):
         self.assertIsNotNone(get_missing_requirement_reason("bsb-core-soup==4.0"))
         with self.assertWarns(PackageRequirementWarning):
             Configuration.default(packages=["bsb-core-soup==4.0"])
+
+    def test_installed_package(self):
+        self.assertIsNone(get_missing_requirement_reason(f"bsb-core~={bsb.__version__}"))
+        # Should produce no warnings
+        cfg = Configuration.default(packages=[f"bsb-core~={bsb.__version__}"])
+        # Checking that the config with package requirements can be saved in storage
+        self.network = Scaffold(cfg, self.storage)
