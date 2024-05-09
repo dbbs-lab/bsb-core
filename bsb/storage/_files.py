@@ -418,6 +418,9 @@ class CodeDependencyNode(FileDependencyNode):
         if module is not None:
             self.module = module
 
+    def __inv__(self):
+        return self.module
+
     def load_object(self):
         import importlib.util
         import sys
