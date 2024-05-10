@@ -95,7 +95,7 @@ def assert_samelen(*args):
     """
     len_ = None
     assert all(
-        (len_ := len(arg) if len_ is None else len(arg)) == len_ for arg in args
+        ((len_ := len(arg)) if len_ is None else len(arg)) == len_ for arg in args
     ), "Input arguments should be of same length."
 
 
