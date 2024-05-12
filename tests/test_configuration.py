@@ -28,6 +28,7 @@ from bsb import (
     UnfitClassCastError,
     UnresolvedClassCastError,
     config,
+    from_storage,
 )
 from bsb._package_spec import get_missing_requirement_reason
 from bsb.config import Configuration, _attrs, compose_nodes, types
@@ -1676,3 +1677,8 @@ class TestPackageRequirements(RandomStorageFixture, unittest.TestCase, engine_na
         cfg = Configuration.default(packages=[f"bsb-core~={bsb.__version__}"])
         # Checking that the config with package requirements can be saved in storage
         self.network = Scaffold(cfg, self.storage)
+        # Checking if the config
+        network2 = from_storage(self.storage.root)
+        self.assertEqual(
+            self.network.configuration.packages, network2.configuration.packages
+        )

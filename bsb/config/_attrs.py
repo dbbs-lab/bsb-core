@@ -674,7 +674,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         _cfglist = cfglist()
         _cfglist._config_parent = _parent
         _cfglist._config_attr = self
-        _cfglist._elem_type = self.type
+        _cfglist._elem_type = self.child_type
         if isinstance(value, builtins.dict):
             raise CastError(f"Dictionary `{value}` given where list is expected.")
         _cfglist.extend(value or builtins.list())
@@ -683,7 +683,14 @@ class ConfigurationListAttribute(ConfigurationAttribute):
                 f"Couldn't cast {value} into a {self.size}-element list,"
                 + f" obtained {len(_cfglist)} elements"
             )
+        # Expose children __inv__ function if it exists
+        if hasattr(self.child_type, "__inv__"):
+            setattr(ConfigurationListAttribute.fill, "__inv__", self.child_type.__inv__)
         return _cfglist
+
+    def _set_type(self, type, key=None):
+        self.child_type = super()._set_type(type, key=False)
+        return self.fill
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
@@ -692,8 +699,8 @@ class ConfigurationListAttribute(ConfigurationAttribute):
     def get_hint(self):
         if self.hint is not MISSING:
             return self.hint
-        if hasattr(self.type, "__hint__"):
-            return [self.type.__hint__(), self.type.__hint__()]
+        if hasattr(self.child_type, "__hint__"):
+            return [self.child_type.__hint__(), self.child_type.__hint__()]
         return MISSING
 
 
@@ -828,9 +835,16 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         _cfgdict._config_parent = _parent
         _cfgdict._config_key = _key
         _cfgdict._config_attr = self
-        _cfgdict._elem_type = self.type
+        _cfgdict._elem_type = self.child_type
         _cfgdict.update(value or builtins.dict())
+        # Expose children __inv__ function if it exists for tree_of
+        if hasattr(self.child_type, "__inv__"):
+            setattr(ConfigurationListAttribute.fill, "__inv__", self.child_type.__inv__)
         return _cfgdict
+
+    def _set_type(self, type, key=None):
+        self.child_type = super()._set_type(type, key=False)
+        return self.fill
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name).items()
@@ -839,10 +853,10 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
     def get_hint(self):
         if self.hint is not MISSING:
             return self.hint
-        if hasattr(self.type, "__hint__"):
+        if hasattr(self.child_type, "__hint__"):
             return {
-                "key1": self.type.__hint__(),
-                "key2": self.type.__hint__(),
+                "key1": self.child_type.__hint__(),
+                "key2": self.child_type.__hint__(),
             }
         return MISSING
 
