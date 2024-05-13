@@ -73,6 +73,11 @@ class TestFileRef(unittest.TestCase):
         self.assertEqual("key", tree["refs"]["whats the"]["secret"])
         self.assertEqual("is hard", tree["refs"]["whats the"]["nested secrets"]["vim"])
         self.assertEqual("convoluted", tree["refs"]["whats the"]["nested secrets"]["and"])
+        # Checking str keys order.
+        self.assertEqual(
+            str(tree["refs"]["whats the"]["nested secrets"]),
+            "<parsed file config '{'vim': 'is hard', 'and': 'convoluted'}' at '/refs/whats the/nested secrets'>",
+        )
         self.assertEqual(tree["refs"]["whats the"], tree["refs"]["omitted_doc"])
         content["get"]["a"] = "secret"
         with self.assertRaises(FileReferenceError, msg="Should raise 'ref not a dict'"):

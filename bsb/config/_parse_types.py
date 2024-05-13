@@ -14,9 +14,11 @@ class parsed_node:
         return "/" + "/".join(str(part) for part in self._location_parts([]))
 
     def _location_parts(self, carry):
-        if self._parent is not None:
-            self._parent._location_parts(carry)
-            carry.append(self._key)
+        parent = self
+        while (parent := parent._parent) is not None:
+            if parent._parent is not None:
+                carry.insert(0, parent._key)
+        carry.append(self._key)
         return carry
 
     def __str__(self):
