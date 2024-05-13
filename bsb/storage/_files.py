@@ -419,7 +419,10 @@ class CodeDependencyNode(FileDependencyNode):
             self.module = module
 
     def __inv__(self):
-        return self.module
+        res = {"module": self.module}
+        if self.attr is not None:
+            res["attr"] = self.attr
+        return res
 
     def load_object(self):
         import importlib.util
@@ -432,7 +435,7 @@ class CodeDependencyNode(FileDependencyNode):
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[self.module] = module
                 spec.loader.exec_module(module)
-                return module if self.attr is None else module[self.attr]
+                return module if self.attr is None else getattr(module, self.attr)
         finally:
             tmp = list(reversed(sys.path))
             tmp.remove(_os.getcwd())

@@ -1,5 +1,6 @@
 import inspect
 import json
+import os
 import sys
 import unittest
 
@@ -10,12 +11,14 @@ from bsb_test import (
     get_test_config,
     list_test_configs,
 )
+from bsb_test.configs import get_test_config_module
 
 import bsb
 from bsb import (
     CastError,
     CfgReferenceError,
     ClassMapMissingError,
+    CodeDependencyNode,
     ConfigurationError,
     ConfigurationWarning,
     DynamicClassInheritanceError,
@@ -1253,6 +1256,28 @@ class TestTypes(unittest.TestCase):
         TestClass(a="1", c="3")
         with self.assertRaises(RequirementError):
             TestClass(a="1", b="6", c="3")
+
+    def test_code_dependency_node(self):
+        @config.node
+        class Test:
+            c = config.attr(type=CodeDependencyNode)
+
+        module = get_test_config_module("double_neuron")
+        script = str(module.__file__).split(".")[0]
+        # mimic module import to check invert replace
+        script = script.replace(os.sep, ".")
+        b = Test(
+            c=script,
+            _parent=TestRoot(),
+        )
+        # Test variable tree inside the file.
+        self.assertEqual(b.c.load_object().tree, module.tree)
+        self.assertEqual(b.__tree__(), {"c": {"module": script}})
+        b = Test(
+            c={"module": script, "attr": "tree"},
+            _parent=TestRoot(),
+        )
+        self.assertEqual(b.c.load_object(), module.tree)
 
 
 @config.dynamic(
