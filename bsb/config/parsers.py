@@ -8,7 +8,7 @@ from ._parse_types import file_imp, file_ref, parsed_dict, recurse_handlers
 
 class ConfigurationParser(abc.ABC):
     @abc.abstractmethod
-    def parse(self, content, path=None):
+    def parse(self, content, path=None):  # pragma: nocover
         """
         Parse configuration file content.
 
@@ -19,7 +19,7 @@ class ConfigurationParser(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def generate(self, tree, pretty=False):
+    def generate(self, tree, pretty=False):  # pragma: nocover
         """
         Generate a string representation of the configuration tree (dictionary).
 
@@ -44,7 +44,7 @@ class ReferenceParser(ConfigurationParser):
         return content
 
     @abc.abstractmethod
-    def from_str(self, content):
+    def from_str(self, content):  # pragma: nocover
         """
         Parse dictionary from string content.
 
@@ -55,7 +55,7 @@ class ReferenceParser(ConfigurationParser):
         pass
 
     @abc.abstractmethod
-    def load_content(self, stream):
+    def load_content(self, stream):  # pragma: nocover
         """
         Read content from file object and return parsed dictionary.
 
