@@ -1,0 +1,25 @@
+{
+  "this": {
+    "key": {
+      "was": "in another folder",
+      "can": {
+        "i": {
+          "be": "imported"
+        }
+      },
+      "with": {
+        "this": "string"
+      },
+      "in": {
+        "my": "dict",
+        "or": {
+          "will": "it",
+          "give": "an",
+          "error": {
+            "on": "import"
+          }
+        }
+      }
+    }
+  }
+}

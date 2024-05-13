@@ -107,7 +107,10 @@ _t(
         ),
         DataNotProvidedError=_e(),
         PluginError=_e("plugin"),
-        ParserError=_e(),
+        ParserError=_e(
+            FileImportError=_e(),
+            FileReferenceError=_e(),
+        ),
         ClassError=_e(),
     ),
 )
@@ -183,6 +186,8 @@ __all__ = [
     "EmptySelectionError",
     "EmptyVoxelSetError",
     "ExternalSourceError",
+    "FileImportError",
+    "FileReferenceError",
     "GatewayError",
     "IncompleteExternalMapError",
     "IncompleteMorphologyError",
