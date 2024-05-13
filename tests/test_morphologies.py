@@ -384,6 +384,20 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertClose(branch.radii, np.array([1, 2]))
         self.assertClose([0, 1], branch.labels)
 
+    def test_swap_axes(self):
+        points = np.arange(9).reshape(3, 3)
+        morpho = Morphology([Branch(points, np.array([0, 1, 2]))])
+        morpho.swap_axes(0, 0)  # no swap
+        self.assertAll(morpho.points == points)
+        morpho.swap_axes(0, 1)
+        self.assertAll(
+            morpho.points == np.vstack([points[:, 1], points[:, 0], points[:, 2]]).T
+        )
+        with self.assertRaises(ValueError):
+            morpho.swap_axes(3, 1)
+        with self.assertRaises(ValueError):
+            morpho.swap_axes(1, -1)
+
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
     def test_labels(self):

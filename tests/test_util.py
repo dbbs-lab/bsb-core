@@ -10,7 +10,7 @@ from bsb_test import (
 from scipy.spatial.transform import Rotation
 
 from bsb import FileDependency, NeuroMorphoScheme, Scaffold
-from bsb._util import rotation_matrix_from_vectors
+from bsb._util import assert_samelen, rotation_matrix_from_vectors
 
 
 class TestNetworkUtil(
@@ -93,3 +93,12 @@ class TestUriSchemes(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
                 file.get_meta()
         finally:
             NeuroMorphoScheme._nm_url = url
+
+
+class TestAssertSameLength(unittest.TestCase):
+    def test_same_length(self):
+        assert_samelen([1, 2, 3], [4, 5, 6])
+        with self.assertRaises(AssertionError):
+            assert_samelen([1, 2], [2])
+        assert_samelen([[1, 2]], [3])
+        assert_samelen([], [])
