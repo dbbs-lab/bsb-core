@@ -1263,7 +1263,8 @@ class TestTypes(unittest.TestCase):
             c = config.attr(type=CodeDependencyNode)
 
         module = get_test_config_module("double_neuron")
-        script = str(module.__file__).split(".")[0]
+        # take out the extension
+        script = str(module.__file__).rsplit(".", 1)[0]
         # mimic module import to check invert replace
         script = script.replace(os.sep, ".")
         b = Test(
