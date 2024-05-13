@@ -335,8 +335,8 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
         self.assertTrue(np.allclose([78, 15, 7, 26], counts, atol=1), "densities incorr")
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
-        self.assertGreater(len(ps), 126)  # rounded down values -1
-        self.assertLess(len(ps), 132)  # rouded up values + 1
+        self.assertGreater(len(ps), 125)  # rounded down values -1
+        self.assertLess(len(ps), 132)  # rounded up values + 1
 
     def _config_packing_fact(self):
         return Configuration.default(
