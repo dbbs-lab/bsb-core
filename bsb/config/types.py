@@ -789,7 +789,7 @@ class PackageRequirement(TypeHandler):
         return "package requirement"
 
     def __inv__(self, value):
-        return getattr(value, "_cfg_inv", str(value))
+        return getattr(value, "_cfg_inv", builtins.str(value))
 
     def __hint__(self):
         return "numpy==1.24.0"

@@ -476,7 +476,7 @@ class ConfigurationAttribute:
                 self.attr_name,
             ) from e
         self.flag_dirty(instance)
-        # The value was cast to its intented type and the new value can be set.
+        # The value was cast to its intended type and the new value can be set.
         self.fset(instance, value)
         root = _strict_root(instance)
         if _is_booted(root):
