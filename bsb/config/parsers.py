@@ -111,14 +111,15 @@ class ReferenceParser(ConfigurationParser):
     def _is_import(self, key):
         return key == "$import"
 
-    @staticmethod
-    def _get_ref_document(ref, base=None):
+    def _get_ref_document(self, ref, base=None):
         if "#" not in ref or ref.split("#")[0] == "":
             return None
         doc = ref.split("#")[0]
         if not os.path.isabs(doc):
             if not base:
-                base = os.getcwd()
+                # reference should be relative to the current configuration file
+                # to avoid recurrence issues.
+                base = os.path.dirname(self.path)
             elif not os.path.isdir(base):
                 base = os.path.dirname(base)
                 if not os.path.exists(base):
@@ -166,9 +167,13 @@ class ReferenceParser(ConfigurationParser):
             if file is None:
                 content = self.root
             else:
-                # We could open another ReferenceParser to easily recurse.
+                from . import _try_parsers
+
+                parser_classes = get_configuration_parser_classes()
+                ext = file.split(".")[-1]
                 with open(file, "r") as f:
-                    content = self.load_content(f)
+                    content = f.read()
+                    _, content, _ = _try_parsers(content, parser_classes, ext, path=file)
             try:
                 self.resolved_documents[file] = self._resolve_document(content, refs)
             except FileReferenceError as jre:
