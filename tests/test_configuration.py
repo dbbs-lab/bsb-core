@@ -1263,17 +1263,16 @@ class TestTypes(unittest.TestCase):
             c = config.attr(type=CodeDependencyNode)
 
         module = get_test_config_module("double_neuron")
-        # take out the extension
-        script = str(module.__file__).rsplit(".", 1)[0]
-        # mimic module import to check invert replace
-        script = script.replace(os.sep, ".")
+        script = str(module.__file__)
+        # Test with a module like string
         b = Test(
-            c=script,
+            c=module.__name__,
             _parent=TestRoot(),
         )
         # Test variable tree inside the file.
         self.assertEqual(b.c.load_object().tree, module.tree)
-        self.assertEqual(b.__tree__(), {"c": {"module": script}})
+        self.assertEqual(b.__tree__(), {"c": {"module": module.__name__}})
+        # test with a file
         b = Test(
             c={"module": script, "attr": "tree"},
             _parent=TestRoot(),
