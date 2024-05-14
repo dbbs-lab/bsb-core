@@ -1,6 +1,6 @@
 import inspect
 import json
-import os
+import os.path
 import sys
 import unittest
 
@@ -1275,6 +1275,12 @@ class TestTypes(unittest.TestCase):
         # test with a file
         b = Test(
             c={"module": script, "attr": "tree"},
+            _parent=TestRoot(),
+        )
+        self.assertEqual(b.c.load_object(), module.tree)
+        # Test with relative path
+        b = Test(
+            c={"module": os.path.relpath(script), "attr": "tree"},
             _parent=TestRoot(),
         )
         self.assertEqual(b.c.load_object(), module.tree)

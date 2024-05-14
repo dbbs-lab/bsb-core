@@ -411,6 +411,7 @@ class CodeDependencyNode(FileDependencyNode):
 
     @config.property
     def file(self):
+        import os
         import sys
 
         if getattr(self, "scaffold", None) is not None:
@@ -418,7 +419,7 @@ class CodeDependencyNode(FileDependencyNode):
         else:
             file_store = None
         if self.module not in sys.modules:
-            module_file = self.module
+            module_file = os.path.abspath(os.path.join(os.getcwd(), self.module))
             # Create a module like string
             # cut the extension
             self.module = str(self.module).rsplit(".", 1)[0]
