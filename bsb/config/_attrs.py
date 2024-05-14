@@ -3,6 +3,7 @@
 """
 
 import builtins
+from functools import wraps
 
 import errr
 
@@ -683,14 +684,19 @@ class ConfigurationListAttribute(ConfigurationAttribute):
                 f"Couldn't cast {value} into a {self.size}-element list,"
                 + f" obtained {len(_cfglist)} elements"
             )
-        # Expose children __inv__ function if it exists
-        if hasattr(self.child_type, "__inv__"):
-            setattr(ConfigurationListAttribute.fill, "__inv__", self.child_type.__inv__)
         return _cfglist
 
     def _set_type(self, type, key=None):
         self.child_type = super()._set_type(type, key=False)
-        return self.fill
+
+        @wraps(self.fill)
+        def wrapper(*args, **kwargs):
+            return self.fill(*args, **kwargs)
+
+        # Expose children __inv__ function if it exists
+        if hasattr(self.child_type, "__inv__"):
+            setattr(wrapper, "__inv__", self.child_type.__inv__)
+        return wrapper
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
@@ -837,14 +843,19 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         _cfgdict._config_attr = self
         _cfgdict._elem_type = self.child_type
         _cfgdict.update(value or builtins.dict())
-        # Expose children __inv__ function if it exists for tree_of
-        if hasattr(self.child_type, "__inv__"):
-            setattr(ConfigurationListAttribute.fill, "__inv__", self.child_type.__inv__)
         return _cfgdict
 
     def _set_type(self, type, key=None):
         self.child_type = super()._set_type(type, key=False)
-        return self.fill
+
+        @wraps(self.fill)
+        def wrapper(*args, **kwargs):
+            return self.fill(*args, **kwargs)
+
+        # Expose children __inv__ function if it exists
+        if hasattr(self.child_type, "__inv__"):
+            setattr(wrapper, "__inv__", self.child_type.__inv__)
+        return wrapper
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name).items()
