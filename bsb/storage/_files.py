@@ -435,6 +435,8 @@ class CodeDependencyNode(FileDependencyNode):
             self.module = module
 
     def __inv__(self):
+        if not isinstance(self, CodeDependencyNode):
+            return self
         res = {"module": getattr(self, "module")}
         if self.attr is not None:
             res["attr"] = self.attr
