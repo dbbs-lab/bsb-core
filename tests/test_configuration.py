@@ -1265,19 +1265,22 @@ class TestTypes(unittest.TestCase):
         module = get_test_config_module("double_neuron")
         script = str(module.__file__)
         # Test with a module like string
+        import_str = os.path.relpath(
+            os.path.join(os.path.dirname(__file__), "data/code_dependency")
+        ).replace(os.sep, ".")
         b = Test(
-            c=module.__name__,
+            c=import_str,
+            _parent=TestRoot(),
+        )
+        self.assertEqual(b.c.load_object().tree, module.tree)
+        # test with a file
+        b = Test(
+            c={"module": script},
             _parent=TestRoot(),
         )
         # Test variable tree inside the file.
         self.assertEqual(b.c.load_object().tree, module.tree)
-        self.assertEqual(b.__tree__(), {"c": {"module": module.__name__}})
-        # test with a file
-        b = Test(
-            c={"module": script, "attr": "tree"},
-            _parent=TestRoot(),
-        )
-        self.assertEqual(b.c.load_object(), module.tree)
+        self.assertEqual(b.__tree__(), {"c": {"module": script}})
         # Test with relative path
         b = Test(
             c={"module": os.path.relpath(script), "attr": "tree"},

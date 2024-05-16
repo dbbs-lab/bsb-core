@@ -412,21 +412,17 @@ class CodeDependencyNode(FileDependencyNode):
     @config.property
     def file(self):
         import os
-        import sys
 
         if getattr(self, "scaffold", None) is not None:
             file_store = self.scaffold.files
         else:
             file_store = None
-        if self.module not in sys.modules:
+        if os.path.isfile(self.module):
+            # Convert potential relative path to absolute path
             module_file = os.path.abspath(os.path.join(os.getcwd(), self.module))
-            # Create a module like string
-            # cut the extension
-            self.module = str(self.module).rsplit(".", 1)[0]
-            # replace "/" to "."
-            self.module = self.module.replace(_os.sep, ".")
         else:
-            module_file = sys.modules[self.module].__file__
+            # Module like string converted to a path string relative to current folder
+            module_file = "./" + self.module.replace(".", _os.sep) + ".py"
         return FileDependency(module_file, file_store=file_store)
 
     def __init__(self, module=None, **kwargs):
