@@ -36,6 +36,10 @@ def get_public_api_map():
                         if isinstance(el, ast.Constant)
                     ]
         for api in module_api:
+            if api in public_api_map:
+                raise RuntimeError(
+                    f"Duplicate api key: bsb.{module}.{api} and bsb.{public_api_map[api]}.{api}"
+                )
             public_api_map[api] = module
 
     return public_api_map
