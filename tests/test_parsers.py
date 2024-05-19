@@ -1,4 +1,5 @@
 import ast
+import functools
 import pathlib
 import unittest
 
@@ -65,6 +66,16 @@ class TestFileRef(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.parser = RefParserMock()
+
+        # Override get_configuration_parser to manually register RefParserMock
+        from bsb.config import parsers
+
+        @functools.cache
+        def mock_get_configuration_parser_classes():
+            return {"txt": RefParserMock}
+
+        # type_func = type(get_configuration_parser_classes)
+        parsers.get_configuration_parser_classes = mock_get_configuration_parser_classes
 
     def test_indoc_reference(self):
         content = ast.literal_eval(get_content("indoc_reference.txt"))
