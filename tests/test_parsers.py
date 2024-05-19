@@ -2,7 +2,7 @@ import ast
 import pathlib
 import unittest
 
-from bsb.config.parsers import ReferenceParser, get_configuration_parser
+from bsb.config.parsers import ConfigurationParser, get_configuration_parser
 from bsb.exceptions import ConfigurationWarning, FileReferenceError, PluginError
 
 
@@ -10,7 +10,7 @@ def get_content(file: str):
     return (pathlib.Path(__file__).parent / "data/configs" / file).read_text()
 
 
-class RefParserMock(ReferenceParser):
+class RefParserMock(ConfigurationParser):
     data_description = "txt"
     data_extensions = ("txt",)
 

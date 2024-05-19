@@ -30,12 +30,6 @@ class ConfigurationParser(abc.ABC):
         """
         pass
 
-
-class ReferenceParser(ConfigurationParser):
-    """
-    Parser plugin class to parse configuration files with references and imports.
-    """
-
     def parse_content(self, content):
         if isinstance(content, str):
             content = parsed_dict(self.from_str(content))
@@ -238,7 +232,6 @@ def get_configuration_parser(parser, **kwargs):
 
 __all__ = [
     "ConfigurationParser",
-    "ReferenceParser",
     "get_configuration_parser",
     "get_configuration_parser_classes",
 ]

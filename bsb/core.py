@@ -87,7 +87,7 @@ def _get_linked_config(storage=None):
         path = cfg._meta.get("path", None)
     if path and os.path.exists(path):
         with open(path, "r") as f:
-            cfg = bsb.config.parse_configuration_file(f)
+            cfg = bsb.config.parse_configuration_file(f, path=path)
             return cfg
     else:
         return None
