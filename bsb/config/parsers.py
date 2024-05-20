@@ -48,17 +48,6 @@ class ConfigurationParser(abc.ABC):
         """
         pass
 
-    @abc.abstractmethod
-    def load_content(self, stream):  # pragma: nocover
-        """
-        Read content from file object and return parsed dictionary.
-
-        :param stream: python file object
-        :return: parsed dictionary
-        :rtype: dict
-        """
-        pass
-
     def parse(self, content, path=None):
         # Parses the content. If path is set it's used as the root for the multi-document
         # features. During parsing the references (refs & imps) are stored. After parsing

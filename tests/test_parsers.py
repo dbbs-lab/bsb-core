@@ -18,8 +18,19 @@ class RefParserMock(ConfigurationParser):
     def from_str(self, content):
         return ast.literal_eval(content)
 
-    def load_content(self, stream):
-        return ast.literal_eval(stream.read())
+    def generate(self, tree, pretty=False):
+        # Should not be called.
+        pass
+
+
+class RefParserMock2(ConfigurationParser):
+    data_description = "bla"
+    data_extensions = ("bla",)
+
+    def from_str(self, content):
+        content = content.replace("<", "{")
+        content = content.replace(">", "}")
+        return ast.literal_eval(content)
 
     def generate(self, tree, pretty=False):
         # Should not be called.
@@ -72,7 +83,7 @@ class TestFileRef(unittest.TestCase):
 
         @functools.cache
         def mock_get_configuration_parser_classes():
-            return {"txt": RefParserMock}
+            return {"txt": RefParserMock, "bla": RefParserMock2}
 
         # type_func = type(get_configuration_parser_classes)
         parsers.get_configuration_parser_classes = mock_get_configuration_parser_classes
@@ -99,7 +110,7 @@ class TestFileRef(unittest.TestCase):
             "refs": {
                 "whats the": {"$ref": "basics.txt#/nest me hard"},
                 "and": {"$ref": "indoc_reference.txt#/refs/whats the"},
-                "far": {"$ref": "far/targetme.txt#/this/key"},
+                "far": {"$ref": "far/targetme.bla#/this/key"},
             },
             "target": {"for": "another"},
         }
