@@ -3,7 +3,11 @@ import functools
 import pathlib
 import unittest
 
-from bsb.config.parsers import ConfigurationParser, get_configuration_parser
+from bsb.config.parsers import (
+    ConfigurationParser,
+    ParsesReferences,
+    get_configuration_parser,
+)
 from bsb.exceptions import ConfigurationWarning, FileReferenceError, PluginError
 
 
@@ -11,26 +15,30 @@ def get_content(file: str):
     return (pathlib.Path(__file__).parent / "data/configs" / file).read_text()
 
 
-class RefParserMock(ConfigurationParser):
+class RefParserMock(ConfigurationParser, ParsesReferences):
     data_description = "txt"
     data_extensions = ("txt",)
 
-    def from_str(self, content):
-        return ast.literal_eval(content)
+    def parse(self, content, path=None):
+        if isinstance(content, str):
+            content = ast.literal_eval(content)
+        return content, {"meta": path}
 
     def generate(self, tree, pretty=False):
         # Should not be called.
         pass
 
 
-class RefParserMock2(ConfigurationParser):
+class RefParserMock2(ConfigurationParser, ParsesReferences):
     data_description = "bla"
     data_extensions = ("bla",)
 
-    def from_str(self, content):
-        content = content.replace("<", "{")
-        content = content.replace(">", "}")
-        return ast.literal_eval(content)
+    def parse(self, content, path=None):
+        if isinstance(content, str):
+            content = content.replace("<", "{")
+            content = content.replace(">", "}")
+            content = ast.literal_eval(content)
+        return content, {"meta": path}
 
     def generate(self, tree, pretty=False):
         # Should not be called.

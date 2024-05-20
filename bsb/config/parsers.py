@@ -30,42 +30,37 @@ class ConfigurationParser(abc.ABC):
         """
         pass
 
-    def parse_content(self, content):
-        if isinstance(content, str):
-            content = parsed_dict(self.from_str(content))
-        elif isinstance(content, dict):
-            content = parsed_dict(content)
-        return content
 
-    @abc.abstractmethod
-    def from_str(self, content):  # pragma: nocover
-        """
-        Parse dictionary from string content.
+class ParsesReferences:
+    """
+    Mixin to decorate parse function of ConfigurationParser.
+    Allows for imports and references inside configuration files.
+    """
 
-        :param str content: content to parse
-        :return: parsed dictionary
-        :rtype: dict
-        """
-        pass
+    def __init__(self):
+        def decorator(func):
+            def wrapper(content, path=None):
+                # wrapper function for parse
+                # During parsing the references (refs & imps) are stored.
+                # After parsing the other documents are recursively parsed
+                # After loading all required documents the references are resolved and all values
+                # copied over to their final destination.
+                content, meta = func(content, path)
+                content = parsed_dict(content)
+                self.root = content
+                self.path = path or os.getcwd()
+                self.is_doc = path and not os.path.isdir(path)
+                self.references = []
+                self.documents = {}
+                self._traverse(content, content.items())
+                self.resolved_documents = {}
+                self._resolve_documents()
+                self._resolve_references()
+                return content, meta
 
-    def parse(self, content, path=None):
-        # Parses the content. If path is set it's used as the root for the multi-document
-        # features. During parsing the references (refs & imps) are stored. After parsing
-        # the other documents are parsed by the standard file loader (so no recursion yet)
-        # After loading all required documents the references are resolved and all values
-        # copied over to their final destination.
-        content = self.parse_content(content)
-        self.root = content
-        self.path = path or os.getcwd()
-        self.is_doc = path and not os.path.isdir(path)
-        self.references = []
-        self.documents = {}
-        self._traverse(content, content.items())
-        self.resolved_documents = {}
-        self._resolve_documents()
-        self._resolve_references()
-        meta = {"path": path}
-        return content, meta
+            return wrapper
+
+        self.parse = decorator(self.parse)
 
     def _traverse(self, node, iter):
         # Iterates over all values in `iter` and checks for import keys, recursion or refs
@@ -221,6 +216,7 @@ def get_configuration_parser(parser, **kwargs):
 
 __all__ = [
     "ConfigurationParser",
+    "ParsesReferences",
     "get_configuration_parser",
     "get_configuration_parser_classes",
 ]
