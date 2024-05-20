@@ -1,5 +1,6 @@
 import inspect
 import json
+import os.path
 import sys
 import unittest
 
@@ -10,12 +11,14 @@ from bsb_test import (
     get_test_config,
     list_test_configs,
 )
+from bsb_test.configs import get_test_config_module
 
 import bsb
 from bsb import (
     CastError,
     CfgReferenceError,
     ClassMapMissingError,
+    CodeDependencyNode,
     ConfigurationError,
     ConfigurationWarning,
     DynamicClassInheritanceError,
@@ -28,6 +31,7 @@ from bsb import (
     UnfitClassCastError,
     UnresolvedClassCastError,
     config,
+    from_storage,
 )
 from bsb._package_spec import get_missing_requirement_reason
 from bsb.config import Configuration, _attrs, compose_nodes, types
@@ -1253,6 +1257,37 @@ class TestTypes(unittest.TestCase):
         with self.assertRaises(RequirementError):
             TestClass(a="1", b="6", c="3")
 
+    def test_code_dependency_node(self):
+        @config.node
+        class Test:
+            c = config.attr(type=CodeDependencyNode)
+
+        module = get_test_config_module("double_neuron")
+        script = str(module.__file__)
+        # Test with a module like string
+        import_str = os.path.relpath(
+            os.path.join(os.path.dirname(__file__), "data/code_dependency")
+        ).replace(os.sep, ".")
+        b = Test(
+            c=import_str,
+            _parent=TestRoot(),
+        )
+        self.assertEqual(b.c.load_object().tree, module.tree)
+        # test with a file
+        b = Test(
+            c={"module": script},
+            _parent=TestRoot(),
+        )
+        # Test variable tree inside the file.
+        self.assertEqual(b.c.load_object().tree, module.tree)
+        self.assertEqual(b.__tree__(), {"c": {"module": script}})
+        # Test with relative path
+        b = Test(
+            c={"module": os.path.relpath(script), "attr": "tree"},
+            _parent=TestRoot(),
+        )
+        self.assertEqual(b.c.load_object(), module.tree)
+
 
 @config.dynamic(
     type=types.in_classmap(),
@@ -1649,7 +1684,7 @@ class TestNodeComposition(unittest.TestCase):
         assert type(self.tested.attrC == config.ConfigurationAttribute)
 
 
-class TestPackageRequirements(unittest.TestCase):
+class TestPackageRequirements(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
     def test_basic_version(self):
         self.assertIsNone(get_missing_requirement_reason("bsb-core==" + bsb.__version__))
 
@@ -1669,3 +1704,15 @@ class TestPackageRequirements(unittest.TestCase):
         self.assertIsNotNone(get_missing_requirement_reason("bsb-core-soup==4.0"))
         with self.assertWarns(PackageRequirementWarning):
             Configuration.default(packages=["bsb-core-soup==4.0"])
+
+    def test_installed_package(self):
+        self.assertIsNone(get_missing_requirement_reason(f"bsb-core~={bsb.__version__}"))
+        # Should produce no warnings
+        cfg = Configuration.default(packages=[f"bsb-core~={bsb.__version__}"])
+        # Checking that the config with package requirements can be saved in storage
+        self.network = Scaffold(cfg, self.storage)
+        # Checking if the config
+        network2 = from_storage(self.storage.root)
+        self.assertEqual(
+            self.network.configuration.packages, network2.configuration.packages
+        )

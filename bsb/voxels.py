@@ -637,4 +637,4 @@ def _squash_zero(arr):
     return np.where(np.isclose(arr, 0), np.finfo(float).max, arr)
 
 
-__all__ = ["BoxTree", "VoxelData", "VoxelSet"]
+__all__ = ["VoxelData", "VoxelSet"]
