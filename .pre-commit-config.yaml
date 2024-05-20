@@ -8,3 +8,9 @@ repos:
     hooks:
       - id: isort
         name: isort (python)
+  - repo: local
+    hooks:
+      - id: api-test
+        name: api-test
+        entry: python3 .github/devops/generate_public_api.py
+        language: system
