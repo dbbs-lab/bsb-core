@@ -3,6 +3,7 @@
 """
 
 import builtins
+from functools import wraps
 
 import errr
 
@@ -476,7 +477,7 @@ class ConfigurationAttribute:
                 self.attr_name,
             ) from e
         self.flag_dirty(instance)
-        # The value was cast to its intented type and the new value can be set.
+        # The value was cast to its intended type and the new value can be set.
         self.fset(instance, value)
         root = _strict_root(instance)
         if _is_booted(root):
@@ -687,7 +688,15 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def _set_type(self, type, key=None):
         self.child_type = super()._set_type(type, key=False)
-        return self.fill
+
+        @wraps(self.fill)
+        def wrapper(*args, **kwargs):
+            return self.fill(*args, **kwargs)
+
+        # Expose children __inv__ function if it exists
+        if hasattr(self.child_type, "__inv__"):
+            setattr(wrapper, "__inv__", self.child_type.__inv__)
+        return wrapper
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
@@ -838,7 +847,15 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
     def _set_type(self, type, key=None):
         self.child_type = super()._set_type(type, key=False)
-        return self.fill
+
+        @wraps(self.fill)
+        def wrapper(*args, **kwargs):
+            return self.fill(*args, **kwargs)
+
+        # Expose children __inv__ function if it exists
+        if hasattr(self.child_type, "__inv__"):
+            setattr(wrapper, "__inv__", self.child_type.__inv__)
+        return wrapper
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name).items()

@@ -31,12 +31,6 @@ from ..exceptions import EmptyBranchError, MorphologyDataError, MorphologyError
 from ..voxels import VoxelSet
 
 
-def parse_morphology_file(file, **kwargs):
-    from .parsers import parse_morphology_file
-
-    return parse_morphology_file(file, **kwargs)
-
-
 class MorphologySet:
     """
     Associates a set of :class:`StoredMorphologies
@@ -1730,5 +1724,4 @@ __all__ = [
     "RotationSet",
     "SubTree",
     "branch_iter",
-    "parse_morphology_file",
 ]
