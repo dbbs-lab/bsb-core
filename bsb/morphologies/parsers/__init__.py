@@ -12,4 +12,4 @@ def parse_morphology_file(file: typing.Union[str, PathLike], parser="bsb", **kwa
     return MorphologyParser(parser=parser, **kwargs).parse(file)
 
 
-__all__ = ["parse_morphology_content"]
+__all__ = ["parse_morphology_content", parse_morphology_file]
