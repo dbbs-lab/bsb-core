@@ -1,7 +1,7 @@
 import ast
-import functools
 import pathlib
 import unittest
+from unittest.mock import patch
 
 from bsb.config.parsers import (
     ConfigurationParser,
@@ -86,16 +86,6 @@ class TestFileRef(unittest.TestCase):
     def setUpClass(cls):
         cls.parser = RefParserMock()
 
-        # Override get_configuration_parser to manually register RefParserMock
-        from bsb.config import parsers
-
-        @functools.cache
-        def mock_get_configuration_parser_classes():
-            return {"txt": RefParserMock, "bla": RefParserMock2}
-
-        # type_func = type(get_configuration_parser_classes)
-        parsers.get_configuration_parser_classes = mock_get_configuration_parser_classes
-
     def test_indoc_reference(self):
         content = ast.literal_eval(get_content("indoc_reference.txt"))
         tree, meta = self.parser.parse(content)
@@ -113,7 +103,10 @@ class TestFileRef(unittest.TestCase):
         with self.assertRaises(FileReferenceError, msg="Should raise 'ref not a dict'"):
             tree, meta = self.parser.parse(content)
 
-    def test_far_references(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_far_references(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
         content = {
             "refs": {
                 "whats the": {"$ref": "basics.txt#/nest me hard"},
