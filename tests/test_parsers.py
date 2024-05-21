@@ -142,7 +142,10 @@ class TestFileRef(unittest.TestCase):
         self.assertIn("for", tree["refs"]["whats the"])
         self.assertIn("another", tree["refs"]["whats the"]["for"])
 
-    def test_ref_str(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_ref_str(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
         tree, meta = self.parser.parse(
             get_content("doubleref.txt"),
             path=str(
