@@ -31,58 +31,32 @@ class ConfigurationParser(abc.ABC):
         pass
 
 
-class ReferenceParser(ConfigurationParser):
+class ParsesReferences:
     """
-    Parser plugin class to parse configuration files with references and imports.
+    Mixin to decorate parse function of ConfigurationParser.
+    Allows for imports and references inside configuration files.
     """
 
-    def parse_content(self, content):
-        if isinstance(content, str):
-            content = parsed_dict(self.from_str(content))
-        elif isinstance(content, dict):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        parse = cls.parse
+
+        def parse_with_references(self, content, path=None):
+            """Traverse the parsed tree and resolve any `$ref` and `$import`"""
+            content, meta = parse(self, content, path)
             content = parsed_dict(content)
-        return content
+            self.root = content
+            self.path = path or os.getcwd()
+            self.is_doc = path and not os.path.isdir(path)
+            self.references = []
+            self.documents = {}
+            self._traverse(content, content.items())
+            self.resolved_documents = {}
+            self._resolve_documents()
+            self._resolve_references()
+            return content, meta
 
-    @abc.abstractmethod
-    def from_str(self, content):  # pragma: nocover
-        """
-        Parse dictionary from string content.
-
-        :param str content: content to parse
-        :return: parsed dictionary
-        :rtype: dict
-        """
-        pass
-
-    @abc.abstractmethod
-    def load_content(self, stream):  # pragma: nocover
-        """
-        Read content from file object and return parsed dictionary.
-
-        :param stream: python file object
-        :return: parsed dictionary
-        :rtype: dict
-        """
-        pass
-
-    def parse(self, content, path=None):
-        # Parses the content. If path is set it's used as the root for the multi-document
-        # features. During parsing the references (refs & imps) are stored. After parsing
-        # the other documents are parsed by the standard file loader (so no recursion yet)
-        # After loading all required documents the references are resolved and all values
-        # copied over to their final destination.
-        content = self.parse_content(content)
-        self.root = content
-        self.path = path or os.getcwd()
-        self.is_doc = path and not os.path.isdir(path)
-        self.references = []
-        self.documents = {}
-        self._traverse(content, content.items())
-        self.resolved_documents = {}
-        self._resolve_documents()
-        self._resolve_references()
-        meta = {"path": path}
-        return content, meta
+        cls.parse = parse_with_references
 
     def _traverse(self, node, iter):
         # Iterates over all values in `iter` and checks for import keys, recursion or refs
@@ -111,14 +85,15 @@ class ReferenceParser(ConfigurationParser):
     def _is_import(self, key):
         return key == "$import"
 
-    @staticmethod
-    def _get_ref_document(ref, base=None):
+    def _get_ref_document(self, ref, base=None):
         if "#" not in ref or ref.split("#")[0] == "":
             return None
         doc = ref.split("#")[0]
         if not os.path.isabs(doc):
             if not base:
-                base = os.getcwd()
+                # reference should be relative to the current configuration file
+                # to avoid recurrence issues.
+                base = os.path.dirname(self.path)
             elif not os.path.isdir(base):
                 base = os.path.dirname(base)
                 if not os.path.exists(base):
@@ -166,9 +141,13 @@ class ReferenceParser(ConfigurationParser):
             if file is None:
                 content = self.root
             else:
-                # We could open another ReferenceParser to easily recurse.
+                from . import _try_parsers
+
+                parser_classes = get_configuration_parser_classes()
+                ext = file.split(".")[-1]
                 with open(file, "r") as f:
-                    content = self.load_content(f)
+                    content = f.read()
+                    _, content, _ = _try_parsers(content, parser_classes, ext, path=file)
             try:
                 self.resolved_documents[file] = self._resolve_document(content, refs)
             except FileReferenceError as jre:
@@ -233,7 +212,7 @@ def get_configuration_parser(parser, **kwargs):
 
 __all__ = [
     "ConfigurationParser",
-    "ReferenceParser",
+    "ParsesReferences",
     "get_configuration_parser",
     "get_configuration_parser_classes",
 ]

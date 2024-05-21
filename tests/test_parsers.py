@@ -1,8 +1,13 @@
 import ast
 import pathlib
 import unittest
+from unittest.mock import patch
 
-from bsb.config.parsers import ReferenceParser, get_configuration_parser
+from bsb.config.parsers import (
+    ConfigurationParser,
+    ParsesReferences,
+    get_configuration_parser,
+)
 from bsb.exceptions import ConfigurationWarning, FileReferenceError, PluginError
 
 
@@ -10,15 +15,30 @@ def get_content(file: str):
     return (pathlib.Path(__file__).parent / "data/configs" / file).read_text()
 
 
-class RefParserMock(ReferenceParser):
+class RefParserMock(ParsesReferences, ConfigurationParser):
     data_description = "txt"
     data_extensions = ("txt",)
 
-    def from_str(self, content):
-        return ast.literal_eval(content)
+    def parse(self, content, path=None):
+        if isinstance(content, str):
+            content = ast.literal_eval(content)
+        return content, {"meta": path}
 
-    def load_content(self, stream):
-        return ast.literal_eval(stream.read())
+    def generate(self, tree, pretty=False):
+        # Should not be called.
+        pass
+
+
+class RefParserMock2(ParsesReferences, ConfigurationParser):
+    data_description = "bla"
+    data_extensions = ("bla",)
+
+    def parse(self, content, path=None):
+        if isinstance(content, str):
+            content = content.replace("<", "{")
+            content = content.replace(">", "}")
+            content = ast.literal_eval(content)
+        return content, {"meta": path}
 
     def generate(self, tree, pretty=False):
         # Should not be called.
@@ -83,12 +103,15 @@ class TestFileRef(unittest.TestCase):
         with self.assertRaises(FileReferenceError, msg="Should raise 'ref not a dict'"):
             tree, meta = self.parser.parse(content)
 
-    def test_far_references(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_far_references(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
         content = {
             "refs": {
                 "whats the": {"$ref": "basics.txt#/nest me hard"},
                 "and": {"$ref": "indoc_reference.txt#/refs/whats the"},
-                "far": {"$ref": "far/targetme.txt#/this/key"},
+                "far": {"$ref": "far/targetme.bla#/this/key"},
             },
             "target": {"for": "another"},
         }
@@ -103,7 +126,10 @@ class TestFileRef(unittest.TestCase):
         self.assertIn("oh yea", tree["refs"]["whats the"])
         self.assertEqual("just like that", tree["refs"]["whats the"]["oh yea"])
 
-    def test_double_ref(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_double_ref(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
         tree, meta = self.parser.parse(
             get_content("doubleref.txt"),
             path=str(
@@ -116,7 +142,10 @@ class TestFileRef(unittest.TestCase):
         self.assertIn("for", tree["refs"]["whats the"])
         self.assertIn("another", tree["refs"]["whats the"]["for"])
 
-    def test_ref_str(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_ref_str(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
         tree, meta = self.parser.parse(
             get_content("doubleref.txt"),
             path=str(
@@ -130,7 +159,11 @@ class TestFileRef(unittest.TestCase):
             wstr.endswith("/bsb-core/tests/data/configs/indoc_reference.txt#/target'>")
         )
 
-    def test_wrong_ref(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_wrong_ref(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
+
         content = {"refs": {"whats the": {"$ref": "basics.txt#/oooooooooooooo"}}}
         with self.assertRaises(FileReferenceError, msg="ref should not exist"):
             self.parser.parse(
