@@ -37,30 +37,26 @@ class ParsesReferences:
     Allows for imports and references inside configuration files.
     """
 
-    def __init__(self):
-        def decorator(func):
-            def wrapper(content, path=None):
-                # wrapper function for parse
-                # During parsing the references (refs & imps) are stored.
-                # After parsing the other documents are recursively parsed
-                # After loading all required documents the references are resolved and all values
-                # copied over to their final destination.
-                content, meta = func(content, path)
-                content = parsed_dict(content)
-                self.root = content
-                self.path = path or os.getcwd()
-                self.is_doc = path and not os.path.isdir(path)
-                self.references = []
-                self.documents = {}
-                self._traverse(content, content.items())
-                self.resolved_documents = {}
-                self._resolve_documents()
-                self._resolve_references()
-                return content, meta
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        parse = cls.parse
 
-            return wrapper
+        def parse_with_references(self, content, path=None):
+            """Traverse the parsed tree and resolve any `$ref` and `$import`"""
+            content, meta = parse(self, content, path)
+            content = parsed_dict(content)
+            self.root = content
+            self.path = path or os.getcwd()
+            self.is_doc = path and not os.path.isdir(path)
+            self.references = []
+            self.documents = {}
+            self._traverse(content, content.items())
+            self.resolved_documents = {}
+            self._resolve_documents()
+            self._resolve_references()
+            return content, meta
 
-        self.parse = decorator(self.parse)
+        cls.parse = parse_with_references
 
     def _traverse(self, node, iter):
         # Iterates over all values in `iter` and checks for import keys, recursion or refs

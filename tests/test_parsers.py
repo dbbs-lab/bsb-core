@@ -15,7 +15,7 @@ def get_content(file: str):
     return (pathlib.Path(__file__).parent / "data/configs" / file).read_text()
 
 
-class RefParserMock(ConfigurationParser, ParsesReferences):
+class RefParserMock(ParsesReferences, ConfigurationParser):
     data_description = "txt"
     data_extensions = ("txt",)
 
@@ -29,7 +29,7 @@ class RefParserMock(ConfigurationParser, ParsesReferences):
         pass
 
 
-class RefParserMock2(ConfigurationParser, ParsesReferences):
+class RefParserMock2(ParsesReferences, ConfigurationParser):
     data_description = "bla"
     data_extensions = ("bla",)
 
