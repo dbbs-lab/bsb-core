@@ -153,7 +153,11 @@ class TestFileRef(unittest.TestCase):
             wstr.endswith("/bsb-core/tests/data/configs/indoc_reference.txt#/target'>")
         )
 
-    def test_wrong_ref(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_wrong_ref(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
+
         content = {"refs": {"whats the": {"$ref": "basics.txt#/oooooooooooooo"}}}
         with self.assertRaises(FileReferenceError, msg="ref should not exist"):
             self.parser.parse(
