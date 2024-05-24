@@ -400,23 +400,43 @@ class FileDependencyNode:
 
 @config.node
 class CodeDependencyNode(FileDependencyNode):
+    """
+    Allow the loading of external code during network loading.
+    """
+
     module: str = config.attr(type=str, required=types.shortform())
+    """Should be either the path to a python file or a import like string"""
     attr: str = config.attr(type=str)
+    """Attribute to extract from the loaded script"""
 
     @config.property
     def file(self):
+        import os
+
         if getattr(self, "scaffold", None) is not None:
             file_store = self.scaffold.files
         else:
             file_store = None
-        return FileDependency(
-            self.module.replace(".", _os.sep) + ".py", file_store=file_store
-        )
+        if os.path.isfile(self.module):
+            # Convert potential relative path to absolute path
+            module_file = os.path.abspath(os.path.join(os.getcwd(), self.module))
+        else:
+            # Module like string converted to a path string relative to current folder
+            module_file = "./" + self.module.replace(".", _os.sep) + ".py"
+        return FileDependency(module_file, file_store=file_store)
 
     def __init__(self, module=None, **kwargs):
         super().__init__(**kwargs)
         if module is not None:
             self.module = module
+
+    def __inv__(self):
+        if not isinstance(self, CodeDependencyNode):
+            return self
+        res = {"module": getattr(self, "module")}
+        if self.attr is not None:
+            res["attr"] = self.attr
+        return res
 
     def load_object(self):
         import importlib.util
@@ -429,7 +449,7 @@ class CodeDependencyNode(FileDependencyNode):
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[self.module] = module
                 spec.loader.exec_module(module)
-                return module if self.attr is None else module[self.attr]
+                return module if self.attr is None else getattr(module, self.attr)
         finally:
             tmp = list(reversed(sys.path))
             tmp.remove(_os.getcwd())

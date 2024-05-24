@@ -31,12 +31,6 @@ from ..exceptions import EmptyBranchError, MorphologyDataError, MorphologyError
 from ..voxels import VoxelSet
 
 
-def parse_morphology_file(file, **kwargs):
-    from .parsers import parse_morphology_file
-
-    return parse_morphology_file(file, **kwargs)
-
-
 class MorphologySet:
     """
     Associates a set of :class:`StoredMorphologies
@@ -303,7 +297,7 @@ def branch_iter(branch):
 
 class SubTree:
     """
-    Collection of branches, not necesarily all connected.
+    Collection of branches, not necessarily all connected.
     """
 
     def __init__(self, branches, sanitize=True):
@@ -943,6 +937,26 @@ class Morphology(SubTree):
                 branch_copy_map[branch] = nbranch
         # Construct and return the morphology
         return self.__class__(roots, meta=self.meta.copy())
+
+    def swap_axes(self, axis1: int, axis2: int):
+        """
+        Interchange two axes of a morphology points.
+
+        :param int axis1: index of the first axis to exchange
+        :param int axis2: index of the second axis to exchange
+        :return: the modified morphology
+        :rtype: bsb.morphologies.Morphology
+        """
+        if not 0 <= axis1 < 3 or not 0 <= axis2 < 3:
+            raise ValueError(
+                f"Axes values should be in [0, 1, 2], {axis1}, {axis2} given."
+            )
+        for b in self.branches:
+            old_column = np.copy(b.points[:, axis1])
+            b.points[:, axis1] = b.points[:, axis2]
+            b.points[:, axis2] = old_column
+
+        return self
 
     def simplify(self, *args, optimize=True, **kwargs):
         super().simplify_branches(*args, **kwargs)
@@ -1710,5 +1724,4 @@ __all__ = [
     "RotationSet",
     "SubTree",
     "branch_iter",
-    "parse_morphology_file",
 ]

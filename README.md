@@ -1,7 +1,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Documentation Status](https://readthedocs.org/projects/bsb/badge/?version=latest)](https://bsb.readthedocs.io/en/latest/?badge=latest)
-[![Build Status](https://travis-ci.com/dbbs-lab/bsb.svg?branch=master)](https://travis-ci.com/dbbs-lab/bsb)
-[![codecov](https://codecov.io/gh/dbbs-lab/bsb/branch/master/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb)
+[![Build Status](https://travis-ci.com/dbbs-lab/bsb-core.svg?branch=main)](https://travis-ci.com/dbbs-lab/bsb-core)
+[![codecov](https://codecov.io/gh/dbbs-lab/bsb-core/branch/main/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb-core)
 
 <h3>:closed_book: Read the documentation on https://bsb.readthedocs.io/en/latest</h3>
 
@@ -25,14 +25,14 @@ Any package in the BSB ecosystem can be installed from PyPI through `pip`. Most 
 will want to install the main [bsb](https://pypi.org/project/bsb/) framework:
 
 ```
-pip install "bsb~=4.0"
+pip install "bsb~=4.1"
 ```
 
 Advanced users looking to control install an unconventional combination of plugins might
 be better of installing just this package, and the desired plugins:
 
 ```
-pip install "bsb-core~=4.0"
+pip install "bsb-core~=4.1"
 ```
 
 Note that installing `bsb-core` does not come with any plugins installed and the usually

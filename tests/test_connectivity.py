@@ -680,7 +680,7 @@ class TestFixedIndegree(
         self.network.compile()
         for post_name in ("inhibitory", "extra"):
             post_ps = self.network.get_placement_set(post_name)
-            total = np.zeros(len(post_ps))
+            total = np.zeros(len(post_ps), dtype=int)
             for pre_name in ("excitatory", "extra"):
                 cs = self.network.get_connectivity_set(
                     f"multi_indegree_{pre_name}_to_{post_name}"
@@ -688,7 +688,7 @@ class TestFixedIndegree(
                 _, post_locs = cs.load_connections().all()
                 ps = self.network.get_placement_set("inhibitory")
                 u, c = np.unique(post_locs[:, 0], return_counts=True)
-                this = np.zeros(len(post_ps))
+                this = np.zeros(len(post_ps), dtype=int)
                 this[u] = c
                 total += this
             self.assertTrue(np.all(total == 50), "Not all cells have indegree 50")
