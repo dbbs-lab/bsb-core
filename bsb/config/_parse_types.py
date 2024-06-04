@@ -18,7 +18,7 @@ class parsed_node:
         while (parent := parent._parent) is not None:
             if parent._parent is not None:
                 carry.insert(0, parent._key)
-        carry.append(self._key)
+        carry.append(self._key if self._key is not None else "")
         return carry
 
     def __str__(self):
@@ -101,6 +101,7 @@ class file_ref:
         self.node = node
         self.doc = doc
         self.ref = ref
+        self.key_path = node.location()
 
     def resolve(self, parser, target):
         del self.node["$ref"]
@@ -140,11 +141,32 @@ class file_imp(file_ref):
                         )
                         continue
                 self.node[key] = imported
+                self._fix_references(self.node[key], parser)
             elif isinstance(target[key], list):
                 imported, iter = _prep_list(target[key], self.node)
                 imported._key = key
                 imported._parent = self.node
                 self.node[key] = imported
+                self._fix_references(self.node[key], parser)
                 _traverse_wrap(imported, iter)
             else:
                 self.node[key] = target[key]
+
+    def _fix_references(self, node, parser):
+        # fix parser's references after the import.
+        if hasattr(parser, "references"):
+            for ref in parser.references:
+                node_loc = node.location()
+                if node_loc in ref.key_path:
+                    # need to update the reference
+                    # we descend the tree from the node until we reach the ref
+                    # It should be here because of the merge.
+                    loc_node = node
+                    while node_loc != ref.key_path:
+                        key = ref.key_path.split(node_loc)[-1].split("/")[-1]
+                        if key not in loc_node:
+                            raise ParserError(f"Reference {ref.key_path} not found in {node_loc}. "
+                                              f"Should have been merged.")
+                        loc_node = node[key]
+                        node_loc += "/" + key
+                    ref.node = loc_node
