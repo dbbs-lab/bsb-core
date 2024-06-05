@@ -230,3 +230,22 @@ class TestFileImport(unittest.TestCase):
             "Imported keys should follow on original keys",
         )
         self.assertEqual(10, tree["imp"]["importable"])
+
+    def test_outdoc_import_merge(self):
+        file = "outdoc_import_merge.txt"
+        tree, meta = self.parser.parse(
+            get_content(file), path=pathlib.Path(__file__).parent / "data/configs" / file
+        )
+
+        expected = {
+            "with": {},
+            "importable": {
+                "dicts": {
+                    "that": "are",
+                    "even": {"nested": "eh"},
+                    "with": ["new", "list"],
+                },
+                "diff": "added",
+            },
+        }
+        self.assertTrue(expected == tree["imp"])
