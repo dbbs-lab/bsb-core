@@ -55,6 +55,9 @@ class ShapeToShapeIntersection(ConnectionStrategy):
     presynaptic = config.attr(type=ShapeHemitype, required=True)
     postsynaptic = config.attr(type=ShapeHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
+    """Ratio of apositions to keep over the total number of contact points"""
+    pruning_ratio = config.attr(type=types.fraction(), required=True, hint=0.1)
+    """Ratio of conections to keep over the total number of apositions"""
 
     def get_region_of_interest(self, chunk):
         # Filter postsyn chunks that overlap the presyn chunk.
@@ -96,6 +99,19 @@ class ShapeToShapeIntersection(ConnectionStrategy):
                 if np.any(inside_mbbox):
                     inside_pts = post_shapes_cache.inside_shapes(pre_point_cloud)
                     selected = pre_point_cloud[inside_pts]
+
+                    def sizemod(q, aff):
+                        ln = len(q)
+                        return int(
+                            np.floor(ln * aff) + (np.random.rand() < ((ln * aff) % 1))
+                        )
+
+                    selected = selected[
+                        np.random.randint(
+                            len(selected), size=sizemod(selected, self.affinity)
+                        ),
+                        :,
+                    ]
                     if len(selected) > 0:
                         tmp_pre_selection = np.full([len(selected), 3], -1, dtype=int)
                         tmp_pre_selection[:, 0] = pre_id
@@ -108,10 +124,10 @@ class ShapeToShapeIntersection(ConnectionStrategy):
         to_connect_pre = to_connect_pre
         to_connect_post = to_connect_post
 
-        if self.affinity < 1 and len(to_connect_pre) > 0:
+        if self.pruning_ratio < 1 and len(to_connect_pre) > 0:
             ids_to_select = np.random.choice(
                 len(to_connect_pre),
-                int(np.floor(self.affinity * len(to_connect_pre))),
+                int(np.floor(self.pruning_ratio * len(to_connect_pre))),
                 replace=False,
             )
             to_connect_pre = to_connect_pre[ids_to_select]

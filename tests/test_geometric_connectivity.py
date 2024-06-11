@@ -84,7 +84,8 @@ class TestShapeConnectivity(
                 shapes_composition=ball_shape,
                 morphology_labels=["soma"],
             ),
-            affinity=0.1,
+            affinity=0.9,
+            pruning_ratio=0.1,
         )
 
         # There are no intersections between the presyn and postsyn shapes
@@ -99,7 +100,8 @@ class TestShapeConnectivity(
                 shapes_composition=ball_shape,
                 morphology_labels=["soma"],
             ),
-            affinity=0.1,
+            affinity=0.9,
+            pruning_ratio=0.1,
         )
 
         self.network.compile(skip_placement=True, append=True)

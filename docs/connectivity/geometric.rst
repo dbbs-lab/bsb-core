@@ -207,7 +207,8 @@ Configuration example:
         "labels": [["soma", "dendrites", "sc_targets", "axon"]],
       }]
     },
-    "affinity": 0.1
+    "affinity": 0.1,
+    "pruning_ratio": 0.7,
   }
 
 .. _Bibliography:

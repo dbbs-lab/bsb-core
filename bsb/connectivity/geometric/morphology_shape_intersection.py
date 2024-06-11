@@ -11,6 +11,7 @@ from .shape_shape_intersection import ShapeHemitype
 class MorphologyToShapeIntersection(ConnectionStrategy):
     postsynaptic = config.attr(type=ShapeHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
+    """Ratio of connections to keep over the total number of apositions"""
 
     def get_region_of_interest(self, chunk):
         lpre, upre = self.presynaptic._get_rect_ext(tuple(chunk.dimensions))
