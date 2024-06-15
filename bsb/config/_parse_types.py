@@ -18,7 +18,7 @@ class parsed_node:
         while (parent := parent._parent) is not None:
             if parent._parent is not None:
                 carry.insert(0, parent._key)
-        carry.append(self._key if self._key is not None else "")
+        carry.append(self._key or "")
         return carry
 
     def __str__(self):
