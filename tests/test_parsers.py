@@ -231,7 +231,11 @@ class TestFileImport(unittest.TestCase):
         )
         self.assertEqual(10, tree["imp"]["importable"])
 
-    def test_outdoc_import_merge(self):
+    @patch("bsb.config.parsers.get_configuration_parser_classes")
+    def test_outdoc_import_merge(self, get_content_mock):
+        # Override get_configuration_parser to manually register RefParserMock
+        get_content_mock.return_value = {"txt": RefParserMock, "bla": RefParserMock2}
+
         file = "outdoc_import_merge.txt"
         tree, meta = self.parser.parse(
             get_content(file), path=pathlib.Path(__file__).parent / "data/configs" / file
