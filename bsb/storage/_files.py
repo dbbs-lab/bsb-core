@@ -13,6 +13,7 @@ import typing as _tp
 import urllib.parse as _up
 import urllib.request as _ur
 
+import certifi as _cert
 import nrrd as _nrrd
 import requests as _rq
 
@@ -229,7 +230,7 @@ class UrlScheme(UriScheme):
 
     def find(self, file: FileDependency):
         with self.create_session() as session:
-            response = session.head(self.resolve_uri(file))
+            response = session.head(self.resolve_uri(file), verify=_cert.where())
         return response.status_code == 200
 
     def should_update(self, file: FileDependency, stored_file):
@@ -251,12 +252,12 @@ class UrlScheme(UriScheme):
 
     def get_content(self, file: FileDependency):
         with self.create_session() as session:
-            response = session.get(self.resolve_uri(file))
+            response = session.get(self.resolve_uri(file), verify=_cert.where())
         return (response.content, response.encoding)
 
     def get_meta(self, file: FileDependency):
         with self.create_session() as session:
-            response = session.head(self.resolve_uri(file))
+            response = session.head(self.resolve_uri(file), verify=_cert.where())
         return {"headers": dict(response.headers)}
 
     def get_local_path(self, file: FileDependency):
@@ -265,7 +266,9 @@ class UrlScheme(UriScheme):
     @_cl.contextmanager
     def provide_stream(self, file):
         with self.create_session() as session:
-            response = session.get(self.resolve_uri(file), stream=True)
+            response = session.get(
+                self.resolve_uri(file), stream=True, verify=_cert.where()
+            )
         response.raw.decode_content = True
         response.raw.auto_close = False
         yield (response.raw, response.encoding)
@@ -294,11 +297,11 @@ class NeuroMorphoScheme(UrlScheme):
         name = file.uri[idx : (idx + len(name))]
         with self.create_session() as session:
             try:
-                res = session.get(self._nm_url + self._meta + name)
+                res = session.get(self._nm_url + self._meta + name, verify=_cert.where())
             except Exception as e:
                 return {"archive": "none", "neuron_name": "none"}
             if res.status_code == 404:
-                res = session.get(self._nm_url)
+                res = session.get(self._nm_url, verify=_cert.where())
                 if res.status_code != 200 or "Service Interruption Notice" in res.text:
                     warn(f"NeuroMorpho.org is down, can't retrieve morphology '{name}'.")
                     return {"archive": "none", "neuron_name": "none"}
