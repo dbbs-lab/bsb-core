@@ -412,7 +412,7 @@ class Job(abc.ABC):
                 self._enqueue(self._pool)
 
     def _enqueue(self, pool):
-        if not self._deps and self._status is not JobStatus.CANCELLED:
+        if not self._deps and self._status is JobStatus.PENDING:
             # Go ahead and submit ourselves to the pool, no dependencies to wait for
             # The dispatcher is run on the remote worker and unpacks the data required
             # to execute the job contents.
