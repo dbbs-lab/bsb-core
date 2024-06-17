@@ -1,3 +1,8 @@
+# 4.1.1
+* Fix reference of file_ref during configuration parsing when importing nodes.
+* Use a more strict rule for Jobs enqueuing.
+* Use certifi to fix ssl certificate issues.
+
 # 4.1.0
 * Added `ParsesReferences` mixin from bsb-json to allow reference and import in configuration files.
   This includes also a recursive parsing of the configuration files.
