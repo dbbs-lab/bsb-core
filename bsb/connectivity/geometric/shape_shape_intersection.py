@@ -76,8 +76,8 @@ class ShapeToShapeIntersection(ConnectionStrategy):
                 self._connect_type(pre_ps.cell_type, pre_ps, post_ps.cell_type, post_ps)
 
     def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
-        pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]
-        post_pos = post_ps.load_positions()[:, [0, 2, 1]]
+        pre_pos = pre_ps.load_positions()
+        post_pos = post_ps.load_positions()
 
         pre_shapes_cache = self.presynaptic.shapes_composition.__copy__()
         post_shapes_cache = self.postsynaptic.shapes_composition.__copy__()
@@ -90,39 +90,62 @@ class ShapeToShapeIntersection(ConnectionStrategy):
             pre_shapes_cache.translate(pre_coord)
             pre_point_cloud = pre_shapes_cache.generate_point_cloud()
 
-            # Find pre minimal bounding box of the morpho
+            def find_mbb(coords):
+                maxima = np.max(coords, axis=0)
+                minima = np.min(coords, axis=0)
+                return minima, maxima
+
+            def BoxesOverlap(box1min, box1max, box2min, box2max):
+                return np.all((box1max >= box2min) & (box2max >= box1min))
+
+            pre_mbb_min = pre_shapes_cache.get_mbb_min()
+            pre_mbb_max = pre_shapes_cache.get_mbb_max()
+
+            points_per_cloud = int(len(pre_point_cloud) * self.affinity)
+            tmp_pre_selection = np.full(
+                [len(post_pos) * int(points_per_cloud), 3], -1, dtype=int
+            )
+            tmp_post_selection = np.full(
+                [len(post_pos) * int(points_per_cloud), 3], -1, dtype=int
+            )
+            ptr = 0
             for post_id, post_coord in enumerate(post_pos):
                 post_shapes_cache.translate(post_coord)
+                post_mbb_min = post_shapes_cache.get_mbb_min()
+                post_mbb_max = post_shapes_cache.get_mbb_max()
+                boxes_overlap = BoxesOverlap(
+                    post_mbb_min, post_mbb_max, pre_mbb_min, pre_mbb_max
+                )
+                if boxes_overlap:
+                    # Compare pre and post mbbs
+                    inside_mbbox = post_shapes_cache.inside_mbox(pre_point_cloud)
+                    if np.any(inside_mbbox):
+                        inside_pts = post_shapes_cache.inside_shapes(pre_point_cloud)
+                        selected = pre_point_cloud[inside_pts]
 
-                # Compare pre and post mbbs
-                inside_mbbox = post_shapes_cache.inside_mbox(pre_point_cloud)
-                if np.any(inside_mbbox):
-                    inside_pts = post_shapes_cache.inside_shapes(pre_point_cloud)
-                    selected = pre_point_cloud[inside_pts]
+                        def sizemod(q, aff):
+                            ln = len(q)
+                            return int(
+                                np.floor(ln * aff) + (np.random.rand() < ((ln * aff) % 1))
+                            )
 
-                    def sizemod(q, aff):
-                        ln = len(q)
-                        return int(
-                            np.floor(ln * aff) + (np.random.rand() < ((ln * aff) % 1))
-                        )
-
-                    selected = selected[
-                        np.random.randint(
-                            len(selected), size=sizemod(selected, self.affinity)
-                        ),
-                        :,
-                    ]
-                    if len(selected) > 0:
-                        tmp_pre_selection = np.full([len(selected), 3], -1, dtype=int)
-                        tmp_pre_selection[:, 0] = pre_id
-                        to_connect_pre = np.vstack([to_connect_pre, tmp_pre_selection])
-                        tmp_post_selection = np.full([len(selected), 3], -1, dtype=int)
-                        tmp_post_selection[:, 0] = post_id
-                        to_connect_post = np.vstack([to_connect_post, tmp_post_selection])
+                        selected = selected[
+                            np.random.randint(
+                                len(selected), size=sizemod(selected, self.affinity)
+                            ),
+                            :,
+                        ]
+                        n_synapses = len(selected)
+                        if n_synapses > 0:
+                            tmp_pre_selection[ptr : ptr + n_synapses, 0] = pre_id
+                            tmp_post_selection[ptr : ptr + n_synapses, 0] = post_id
+                            ptr += n_synapses
                 post_shapes_cache.translate(-post_coord)
+            if ptr > 0:
+                to_connect_pre = np.vstack([to_connect_pre, tmp_pre_selection[:ptr]])
+                to_connect_post = np.vstack([to_connect_post, tmp_post_selection[:ptr]])
+
             pre_shapes_cache.translate(-pre_coord)
-        to_connect_pre = to_connect_pre
-        to_connect_post = to_connect_post
 
         if self.pruning_ratio < 1 and len(to_connect_pre) > 0:
             ids_to_select = np.random.choice(

@@ -136,7 +136,8 @@ class TestShapeConnectivity(
                 morphology_labels=["soma"],
             ),
             postsynaptic=dict(cell_types=["test_cell_morpho"]),
-            affinity=0.1,
+            affinity=0.5,
+            pruning_ratio=0.5,
         )
 
         # There are no intersections between the presyn shape and the morpho
@@ -147,7 +148,8 @@ class TestShapeConnectivity(
                 morphology_labels=["soma"],
             ),
             postsynaptic=dict(cell_types=["test_cell_morpho"]),
-            affinity=0.1,
+            affinity=0.5,
+            pruning_ratio=0.5,
         )
 
         self.network.compile(skip_placement=True, append=True)
@@ -181,7 +183,8 @@ class TestShapeConnectivity(
                 morphology_labels=["soma"],
             ),
             presynaptic=dict(cell_types=["test_cell_morpho"]),
-            affinity=0.1,
+            affinity=0.5,
+            pruning_ratio=0.5,
         )
 
         # There are no intersections between the presyn shape and the morphology.
@@ -192,7 +195,8 @@ class TestShapeConnectivity(
                 morphology_labels=["soma"],
             ),
             presynaptic=dict(cell_types=["test_cell_morpho"]),
-            affinity=0.1,
+            affinity=0.5,
+            pruning_ratio=0.5,
         )
 
         self.network.compile(skip_placement=True, append=True)

@@ -135,7 +135,8 @@ Configuration example:
         "labels": [["soma", "dendrites", "sc_targets", "axon"]],
       }]
     },
-    "affinity": 0.1
+    "affinity": 0.1,
+    "pruning_ratio": 0.5
   }
 
 ShapeToMorphologyIntersection
@@ -168,7 +169,8 @@ Configuration example:
       "cell_types": ["purkinje_cell"],
       "morphology_labels": ["sc_targets"]
     },
-    "affinity": 0.1
+    "affinity": 0.1,
+    "pruning_ratio": 0.5
   }
 
 ShapeToShapeIntersection

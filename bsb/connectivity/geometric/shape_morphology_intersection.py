@@ -18,7 +18,6 @@ def _create_geometric_conn_arrays(branches, ids, coord):
         points_ids[local_ptr : local_ptr + len(b.points), 1] = i
         points_ids[local_ptr : local_ptr + len(b.points), 2] = np.arange(len(b.points))
         tmp = b.points + coord
-        tmp[:, [1, 2]] = tmp[:, [2, 1]]
         morpho_coord[local_ptr : local_ptr + len(b.points), :] = tmp
         local_ptr += len(b.points)
     return points_ids, morpho_coord
@@ -28,7 +27,9 @@ def _create_geometric_conn_arrays(branches, ids, coord):
 class ShapeToMorphologyIntersection(ConnectionStrategy):
     presynaptic = config.attr(type=ShapeHemitype, required=True)
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
-    """Ratio of connections to keep over the total number of apositions"""
+    """Ratio of apositions to keep over the total number of contact points"""
+    pruning_ratio = config.attr(type=types.fraction(), required=True, hint=0.1)
+    """Ratio of conections to keep over the total number of apositions"""
 
     def get_region_of_interest(self, chunk):
         lpost, upost = self.postsynaptic._get_rect_ext(tuple(chunk.dimensions))
@@ -53,7 +54,7 @@ class ShapeToMorphologyIntersection(ConnectionStrategy):
                 self._connect_type(pre_ps.cell_type, pre_ps, post_ps.cell_type, post_ps)
 
     def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
-        pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]
+        pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
         pre_shapes = self.presynaptic.shapes_composition.__copy__()
@@ -99,4 +100,12 @@ class ShapeToMorphologyIntersection(ConnectionStrategy):
                             pre_tmp[:, 0] = pre_id
                             to_connect_pre = np.vstack([to_connect_pre, pre_tmp])
                 pre_shapes.translate(-pre_coord)
+        if self.pruning_ratio < 1 and len(to_connect_pre) > 0:
+            ids_to_select = np.random.choice(
+                len(to_connect_pre),
+                int(np.floor(self.pruning_ratio * len(to_connect_pre))),
+                replace=False,
+            )
+            to_connect_pre = to_connect_pre[ids_to_select]
+            to_connect_post = to_connect_post[ids_to_select]
         self.connect_cells(pre_ps, post_ps, to_connect_pre, to_connect_post)
