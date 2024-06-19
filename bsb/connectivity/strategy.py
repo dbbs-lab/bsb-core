@@ -1,6 +1,9 @@
 import abc
 import typing
+from functools import cache
 from itertools import chain
+
+import numpy as np
 
 from .. import config
 from .._util import ichain, obj_str_insert
@@ -44,6 +47,38 @@ class Hemitype:
     a much smaller, or empty, MorphologySet. It is useful for example when the task would
     take too much disk space or time otherwise.
     """
+
+    def get_all_chunks(self):
+        """
+        Get the list of all chunks where the cell types were placed
+
+        :return: List of Chunks
+        :rtype: List[bsb.storage._chunks.Chunk]
+        """
+        return [
+            c for ct in self.cell_types for c in ct.get_placement_set().get_all_chunks()
+        ]
+
+    @cache
+    def _get_rect_ext(self, chunk_size):
+        # Returns the lower and upper boundary Chunk of the box containing the cell type population,
+        # based on the cell type's morphology if it exists.
+        # This box is centered on the Chunk [0., 0., 0.].
+        # If no morphologies are associated to the cell types then the bounding box size is 0.
+        types = self.cell_types
+        loader = self.morpho_loader
+        ps_list = [ct.get_placement_set() for ct in types]
+        ms_list = [loader(ps) for ps in ps_list]
+        if not sum(map(len, ms_list)):
+            # No cells placed, return smallest possible RoI.
+            return [np.array([0, 0, 0]), np.array([0, 0, 0])]
+        metas = list(chain.from_iterable(ms.iter_meta(unique=True) for ms in ms_list))
+        # TODO: Combine morphology extension information with PS rotation information.
+        # Get the chunk coordinates of the boundaries of this chunk convoluted with the
+        # extension of the intersecting morphologies.
+        lbounds = np.min([m["ldc"] for m in metas], axis=0) // chunk_size
+        ubounds = np.max([m["mdc"] for m in metas], axis=0) // chunk_size
+        return lbounds, ubounds
 
 
 class HemitypeCollection:
@@ -158,6 +193,15 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
         cs.connect(pre_set, post_set, src_locs, dest_locs)
 
     def get_region_of_interest(self, chunk):
+        """
+        Returns the list of chunks containing the potential postsynaptic neurons, based on a
+        chunk containing the presynaptic neurons.
+
+        :param chunk: Presynaptic chunk
+        :type chunk: bsb.storage._chunks.Chunk
+        :returns: List of postsynaptic chunks
+        :rtype: List[bsb.storage._chunks.Chunk]
+        """
         pass
 
     def queue(self, pool: "JobPool"):

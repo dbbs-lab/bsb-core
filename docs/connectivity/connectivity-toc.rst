@@ -5,3 +5,4 @@
    defining
    component
    connection-strategies
+   geometric

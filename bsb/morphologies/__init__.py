@@ -531,8 +531,8 @@ class SubTree:
         """
         Point rotation
 
-        :param rot: Scipy rotation
-        :type: Union[scipy.spatial.transform.Rotation, List[float,float,float]]
+        :param rotation: Scipy rotation
+        :type rotation: Union[scipy.spatial.transform.Rotation, List[float,float,float]]
         :param center: rotation offset point.
         :type center: numpy.ndarray
         """
@@ -998,7 +998,7 @@ class Morphology(SubTree):
 
 
 def _copy_api(cls, wrap=lambda self: self):
-    # Wraps functions so they are called with `self` wrapped in `wrap`
+    # Wraps functions, so they are called with `self` wrapped in `wrap`
     def make_wrapper(f):
         @functools.wraps(f)
         def wrapper(self, *args, **kwargs):
@@ -1037,7 +1037,7 @@ class Branch:
         :param radii: Array of radii associated to each point
         :type radii: list | numpy.ndarray
         :param labels: Array of labels to associate to each point
-        :type labels: EncodedLabels | List[str] | set | numpy.ndarray
+        :type labels: List[str] | set | numpy.ndarray
         :param properties: dictionary of per-point data to store in the branch
         :type properties: dict
         :param children: list of child branches to attach to the branch
