@@ -27,7 +27,7 @@ from .storage._chunks import Chunk
 if typing.TYPE_CHECKING:
     from .cell_types import CellType
     from .config._config import NetworkNode as Network
-    from .postprocessing import AfterPlacementHook, AfterConnectivityHook
+    from .postprocessing import AfterConnectivityHook, AfterPlacementHook
     from .simulation.simulation import Simulation
     from .storage.interfaces import (
         ConnectivitySet,

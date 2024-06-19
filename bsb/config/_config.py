@@ -7,7 +7,7 @@ from .._util import merge_dicts
 from ..cell_types import CellType
 from ..connectivity import ConnectionStrategy
 from ..placement import PlacementStrategy
-from ..postprocessing import AfterPlacementHook, AfterConnectivityHook
+from ..postprocessing import AfterConnectivityHook, AfterPlacementHook
 from ..simulation.simulation import Simulation
 from ..storage._files import (
     CodeDependencyNode,
