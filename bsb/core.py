@@ -27,7 +27,7 @@ from .storage._chunks import Chunk
 if typing.TYPE_CHECKING:
     from .cell_types import CellType
     from .config._config import NetworkNode as Network
-    from .postprocessing import AfterPlacementHook
+    from .postprocessing import AfterConnectivityHook, AfterPlacementHook
     from .simulation.simulation import Simulation
     from .storage.interfaces import (
         ConnectivitySet,
@@ -113,7 +113,7 @@ class Scaffold:
     placement: typing.Dict[str, "PlacementStrategy"]
     after_placement: typing.Dict[str, "AfterPlacementHook"]
     connectivity: typing.Dict[str, "ConnectionStrategy"]
-    after_connectivity: typing.Dict[str, "AfterPlacementHook"]
+    after_connectivity: typing.Dict[str, "AfterConnectivityHook"]
     simulations: typing.Dict[str, "Simulation"]
 
     def __init__(self, config=None, storage=None, clear=False, comm=None):
