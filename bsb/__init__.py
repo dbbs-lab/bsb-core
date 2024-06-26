@@ -7,7 +7,7 @@ which are essential for `bsb-core` to function. First time users are recommended
 install the `bsb` package instead.
 """
 
-__version__ = "4.0.1"
+__version__ = "4.1.1"
 
 import functools
 import importlib
@@ -142,7 +142,7 @@ AttributeMissingError: typing.Type["bsb.exceptions.AttributeMissingError"]
 BaseCommand: typing.Type["bsb.cli.commands.BaseCommand"]
 BidirectionalContact: typing.Type["bsb.postprocessing.BidirectionalContact"]
 BootError: typing.Type["bsb.exceptions.BootError"]
-BoxTree: typing.Type["bsb.voxels.BoxTree"]
+BoxTree: typing.Type["bsb.trees.BoxTree"]
 BoxTreeInterface: typing.Type["bsb.trees.BoxTreeInterface"]
 Branch: typing.Type["bsb.morphologies.Branch"]
 BranchLocTargetting: typing.Type["bsb.simulation.targetting.BranchLocTargetting"]
@@ -216,6 +216,8 @@ ExplicitNoRotations: typing.Type["bsb.placement.distributor.ExplicitNoRotations"
 ExternalSourceError: typing.Type["bsb.exceptions.ExternalSourceError"]
 FileDependency: typing.Type["bsb.storage._files.FileDependency"]
 FileDependencyNode: typing.Type["bsb.storage._files.FileDependencyNode"]
+FileImportError: typing.Type["bsb.exceptions.FileImportError"]
+FileReferenceError: typing.Type["bsb.exceptions.FileReferenceError"]
 FileScheme: typing.Type["bsb.storage._files.FileScheme"]
 FileStore: typing.Type["bsb.storage.interfaces.FileStore"]
 FixedIndegree: typing.Type["bsb.connectivity.general.FixedIndegree"]
@@ -292,6 +294,7 @@ Parameter: typing.Type["bsb.simulation.parameter.Parameter"]
 ParameterError: typing.Type["bsb.exceptions.ParameterError"]
 ParameterValue: typing.Type["bsb.simulation.parameter.ParameterValue"]
 ParserError: typing.Type["bsb.exceptions.ParserError"]
+ParsesReferences: typing.Type["bsb.config.parsers.ParsesReferences"]
 Partition: typing.Type["bsb.topology.partition.Partition"]
 PlacementError: typing.Type["bsb.exceptions.PlacementError"]
 PlacementIndications: typing.Type["bsb.cell_types.PlacementIndications"]

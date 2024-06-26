@@ -13,6 +13,7 @@ import typing as _tp
 import urllib.parse as _up
 import urllib.request as _ur
 
+import certifi as _cert
 import nrrd as _nrrd
 import requests as _rq
 
@@ -229,7 +230,7 @@ class UrlScheme(UriScheme):
 
     def find(self, file: FileDependency):
         with self.create_session() as session:
-            response = session.head(self.resolve_uri(file))
+            response = session.head(self.resolve_uri(file), verify=_cert.where())
         return response.status_code == 200
 
     def should_update(self, file: FileDependency, stored_file):
@@ -251,12 +252,12 @@ class UrlScheme(UriScheme):
 
     def get_content(self, file: FileDependency):
         with self.create_session() as session:
-            response = session.get(self.resolve_uri(file))
+            response = session.get(self.resolve_uri(file), verify=_cert.where())
         return (response.content, response.encoding)
 
     def get_meta(self, file: FileDependency):
         with self.create_session() as session:
-            response = session.head(self.resolve_uri(file))
+            response = session.head(self.resolve_uri(file), verify=_cert.where())
         return {"headers": dict(response.headers)}
 
     def get_local_path(self, file: FileDependency):
@@ -265,7 +266,9 @@ class UrlScheme(UriScheme):
     @_cl.contextmanager
     def provide_stream(self, file):
         with self.create_session() as session:
-            response = session.get(self.resolve_uri(file), stream=True)
+            response = session.get(
+                self.resolve_uri(file), stream=True, verify=_cert.where()
+            )
         response.raw.decode_content = True
         response.raw.auto_close = False
         yield (response.raw, response.encoding)
@@ -294,11 +297,11 @@ class NeuroMorphoScheme(UrlScheme):
         name = file.uri[idx : (idx + len(name))]
         with self.create_session() as session:
             try:
-                res = session.get(self._nm_url + self._meta + name)
+                res = session.get(self._nm_url + self._meta + name, verify=_cert.where())
             except Exception as e:
                 return {"archive": "none", "neuron_name": "none"}
             if res.status_code == 404:
-                res = session.get(self._nm_url)
+                res = session.get(self._nm_url, verify=_cert.where())
                 if res.status_code != 200 or "Service Interruption Notice" in res.text:
                     warn(f"NeuroMorpho.org is down, can't retrieve morphology '{name}'.")
                     return {"archive": "none", "neuron_name": "none"}
@@ -400,23 +403,43 @@ class FileDependencyNode:
 
 @config.node
 class CodeDependencyNode(FileDependencyNode):
+    """
+    Allow the loading of external code during network loading.
+    """
+
     module: str = config.attr(type=str, required=types.shortform())
+    """Should be either the path to a python file or a import like string"""
     attr: str = config.attr(type=str)
+    """Attribute to extract from the loaded script"""
 
     @config.property
     def file(self):
+        import os
+
         if getattr(self, "scaffold", None) is not None:
             file_store = self.scaffold.files
         else:
             file_store = None
-        return FileDependency(
-            self.module.replace(".", _os.sep) + ".py", file_store=file_store
-        )
+        if os.path.isfile(self.module):
+            # Convert potential relative path to absolute path
+            module_file = os.path.abspath(os.path.join(os.getcwd(), self.module))
+        else:
+            # Module like string converted to a path string relative to current folder
+            module_file = "./" + self.module.replace(".", _os.sep) + ".py"
+        return FileDependency(module_file, file_store=file_store)
 
     def __init__(self, module=None, **kwargs):
         super().__init__(**kwargs)
         if module is not None:
             self.module = module
+
+    def __inv__(self):
+        if not isinstance(self, CodeDependencyNode):
+            return self
+        res = {"module": getattr(self, "module")}
+        if self.attr is not None:
+            res["attr"] = self.attr
+        return res
 
     def load_object(self):
         import importlib.util
@@ -429,7 +452,7 @@ class CodeDependencyNode(FileDependencyNode):
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[self.module] = module
                 spec.loader.exec_module(module)
-                return module if self.attr is None else module[self.attr]
+                return module if self.attr is None else getattr(module, self.attr)
         finally:
             tmp = list(reversed(sys.path))
             tmp.remove(_os.getcwd())

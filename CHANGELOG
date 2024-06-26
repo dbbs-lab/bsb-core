@@ -1,3 +1,19 @@
+# 4.1.1
+* Fix reference of file_ref during configuration parsing when importing nodes.
+* Use a more strict rule for Jobs enqueuing.
+* Use certifi to fix ssl certificate issues.
+
+# 4.1.0
+* Added `ParsesReferences` mixin from bsb-json to allow reference and import in configuration files.
+  This includes also a recursive parsing of the configuration files.
+* Added `swap_axes` function in morphologies
+* Added API test in pre-commit config and fix duplicate entries.
+* Fix `PackageRequirement`, `ConfigurationListAttribute`, and `ConfigurationDictAttribute`
+  inverse functions
+* Refactor `CodeDependencyNode` module attribute to be either a module like string or a path string
+* Fix of assert_same_len
+* Fix of test_particle_vd
+
 # 4.0.0 - Too much to list
 
 ## 40.0.0a32

@@ -740,6 +740,40 @@ def mut_excl(*mutuals, required=True, max=1, shortform=False):
     return requirement
 
 
+def same_size(*list_attrs, required=True):
+    """
+    Requirement handler for list attributes that should have the same size.
+
+    :param list_attrs: The keys of the list attributes.
+    :type list_attrs: str
+    :param required: Whether at least one of the keys is required
+    :type required: bool
+    :returns: Requirement function
+    :rtype: Callable
+    """
+    listed = ", ".join(f"`{m}`" for m in list_attrs[:-1])
+    if len(list_attrs) > 1:
+        listed += f" {{}} `{list_attrs[-1]}`"
+
+    def requirement(section):
+        common_size = -1
+        count = 0
+        for m in list_attrs:
+            if m in section:
+                v = builtins.list(section[m])
+                if len(v) != common_size and common_size >= 0:
+                    err_msg = f"The {listed} attributes should have the same size."
+                    raise RequirementError(err_msg)
+                common_size = len(v)
+                count += 1
+        if not count == len(list_attrs) and required:
+            err_msg = f"The {listed} attributes are required."
+            raise RequirementError(err_msg)
+        return False
+
+    return requirement
+
+
 def shortform():
     def requirement(section):
         return not section.is_shortform
@@ -755,7 +789,12 @@ class ndarray(TypeHandler):
     :rtype: Callable
     """
 
+    def __init__(self, dtype=None):
+        self.dtype = dtype
+
     def __call__(self, value):
+        if self.dtype is not None:
+            return np.array(value, copy=False, dtype=self.dtype)
         return np.array(value, copy=False)
 
     @property
@@ -780,14 +819,16 @@ class PackageRequirement(TypeHandler):
     def __call__(self, value):
         from packaging.requirements import Requirement
 
-        return Requirement(value)
+        requirement = Requirement(value)
+        requirement._cfg_inv = value
+        return requirement
 
     @property
     def __name__(self):
         return "package requirement"
 
     def __inv__(self, value):
-        return str(value)
+        return getattr(value, "_cfg_inv", builtins.str(value))
 
     def __hint__(self):
         return "numpy==1.24.0"

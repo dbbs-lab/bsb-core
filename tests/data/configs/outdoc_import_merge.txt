@@ -1,0 +1,14 @@
+{
+    "imp": {
+        "importable":{
+            "$import": {
+                "ref": "indoc_import.txt#/imp/importable",
+                "values": ["dicts"]
+            },
+        }
+    },
+    "$import": {
+        "ref": "indoc_import_merge.txt#/",
+        "values": ["imp"]
+    }
+}
