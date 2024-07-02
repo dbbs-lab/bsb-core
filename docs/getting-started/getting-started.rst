@@ -89,7 +89,7 @@ dimensions. See :doc:`/topology/intro` for more explanation on topology componen
 Cell types
 ----------
 
-The :class:`~.cell_types.CellType` is a definition of a cell population. During
+The :doc:`Cell Type </cells/intro>` is a definition of a cell population. During
 placement 3D positions, optionally rotations and morphologies or other properties will be
 created for them. In the simplest case you define a soma :guilabel:`radius` and
 :guilabel:`density` or fixed :guilabel:`count`:
@@ -119,12 +119,10 @@ Placement
     :lines: 19-24
 
 
-The ``placement`` blocks use the cell type indications to place cell types into
-partitions. You can use other :class:`PlacementStrategies
-<.placement.strategy.PlacementStrategy>` by setting the :guilabel:`strategy` attribute.
-The BSB offers some strategies out of the box, or you can implement your own. The
-:class:`~bsb.placement.random.RandomPlacement` places cells randomly in the assigned
-volume.
+The :doc:`placement </placement/intro>` blocks is charge to place cells in the partitions using the cell type indications.
+You can specify the strategy to use  by setting the :guilabel:`strategy` attribute.
+Here we use  the strategy :guilabel:`ParticlePlacement` that considers the cells as spheres and
+bumps them around as repelling particles until there is no overlap between them.
 
 Take another look at your network:
 
@@ -157,9 +155,8 @@ Connectivity
     :lines: 25-30
 
 
-The ``connectivity`` blocks specify connections between systems of cell types. They can
-create connections between single or multiple pre and postsynaptic cell types, and can
-produce one or many :class:`ConnectivitySets <.storage.interfaces.ConnectivitySet>`.
+The :doc:`connectivity </connectivity/defining>` blocks specify connections between systems of cell types. They can
+create connections between single or multiple cell types for both pre and post synaptic groups.
 
 Regenerate the network once more, now it will also contain your connections! With your
 cells and connections in place, you're ready to move to the :ref:`simulations` stage.

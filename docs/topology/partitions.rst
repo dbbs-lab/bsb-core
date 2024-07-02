@@ -2,6 +2,83 @@
 Partitions
 ##########
 
+Partitions contain shape descriptions used for the spatial layout of the network.
+These descriptions can be represented as layers, meshes and voxelsets.
+In BSB are implemented two different kind of partitions: :ref:`layer  <layer-partition>` and :ref:`voxel based <voxel-partition>`.
+
+.. _layer-partition:
+
+======
+Layers
+======
+
+:class:`Layer partition <.topology.partition.Layer>` is a parallelepiped shaped volume.
+The size of a layer is defined by the network except for the height, therefore it is needed to
+specify the thickness of the layer with the ``thickness`` attribute.
+
+.. tab-set-code::
+
+    .. code-block:: json
+
+      {
+        "partitions": {
+          "my_layer_partition": {
+            "type": "layer",
+            "thickness": 25
+          }
+        }
+      }
+
+Cortical Model Use Case
+-----------------------
+
+
+Layers can be organized in a pile in order to separate the structure of your network according to the depth.
+:ref:`Stack <stack-region>` region is used to pile up your layers, for a three layer system it will be:
+
+.. tab-set-code::
+
+    .. code-block:: json
+
+        {
+            "name": "Starting example",
+            "storage": {
+            "engine": "hdf5",
+            "root": "network.hdf5"
+            },
+            "network": {
+                "x": 400.0,
+                "y": 600.0,
+                "z": 300.0
+            },
+            "regions": {
+                "brain_region": {
+                    "type": "stack",
+                    "children": ["base_layer","middle_layer","top_layer"]
+                }
+            },
+            "partitions": {
+                "base_layer": {
+                    "type": "layer",
+                    "thickness": 100,
+                    "stack_index": 0
+                },
+                "middle_layer": {
+                    "type": "layer",
+                    "thickness": 100,
+                    "stack_index": 1
+                },
+                "top_layer": {
+                    "type": "layer",
+                    "thickness": 100,
+                    "stack_index": 2
+                }
+            }
+        }
+
+
+
+
 .. _voxel-partition:
 
 ======
