@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from bsb_test import get_data_path
 
-from bsb import Configuration, LayoutError, topology
+from bsb import AllenApiError, AllenStructure, Configuration, LayoutError, topology
 
 
 def single_layer():
@@ -68,6 +68,20 @@ class TestTopology(unittest.TestCase):
         )
 
 
+def skip_test_allen_api():
+    try:
+        AllenStructure._dl_structure_ontology()
+    except AllenApiError:
+        return True
+    except Exception:
+        pass
+    return False
+
+
+@unittest.skipIf(
+    skip_test_allen_api(),
+    "Allen API is down",
+)
 class TestAllenVoxels(unittest.TestCase):
     def test_val(self):
         cfg = Configuration.default(
