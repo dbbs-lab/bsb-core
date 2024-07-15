@@ -1,3 +1,11 @@
+# 4.2.0
+* Created geometric shape connection strategies
+* Added support for multiple shapes for each cell type
+* Written docs for geometric shapes
+* fix typing and casting of post connectivity hooks
+* fix readthedocs conflicts with furo package
+* Add test to check if Allen API is down and skip related tests
+
 # 4.1.1
 * Fix reference of file_ref during configuration parsing when importing nodes.
 * Use a more strict rule for Jobs enqueuing.
