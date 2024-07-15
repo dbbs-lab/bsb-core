@@ -14,6 +14,7 @@ import numpy as np
 from .. import config
 from ..config import types
 from ..exceptions import (
+    AllenApiError,
     ConfigurationError,
     LayoutError,
     NodeNotFoundError,
@@ -538,11 +539,18 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     @classmethod
     @functools.cache
     def _dl_structure_ontology(cls):
-        return json.loads(
-            _cached_file(
-                "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
-            ).get_content()[0]
-        )["msg"]
+        content = _cached_file(
+            "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
+        ).get_content()[0]
+        try:
+            return json.loads(content)["msg"]
+        except json.decoder.JSONDecodeError:
+            raise AllenApiError(
+                "Could not parse the Allen mouse brain region hierarchy, "
+                "most likely because the Allen API website is down. \n"
+                "Here is the content retrieved: \n"
+                f"{content}"
+            )
 
     @classmethod
     def get_structure_mask_condition(cls, find):
