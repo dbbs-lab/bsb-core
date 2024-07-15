@@ -9,16 +9,26 @@ jobs:
   build:
     name: Create Github Release
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check tag branch
+        uses: rickstaa/action-contains-tag@v1
+        id: contains_tag
+        with:
+          reference: "main"  # branch to match
+          tag: "${{ github.ref_name }}"
       - name: Create Release
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            tag: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+        shell: bash
         run: |
+          if [[ ${{ steps.contains_tag.outputs.retval }} == 'true' ]]; then
             gh release create "$tag" \
-              --repo="$GITHUB_REPOSITORY" \
-              --title="$tag" \
-              --generate-notes
+                  --repo="$GITHUB_REPOSITORY" \
+                  --title="$tag" \
+                  --generate-notes
+          fi
