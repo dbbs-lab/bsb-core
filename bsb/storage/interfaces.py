@@ -1118,19 +1118,11 @@ class ConnectivityIterator:
     def all(self):
         pre_blocks = []
         post_blocks = []
-        lens = []
         for _, pre_block, _, post_block in self.chunk_iter():
-            pre_blocks.append(pre_block)
-            post_blocks.append(post_block)
-            lens.append(len(pre_block))
-        pre_locs = np.empty((sum(lens), 3), dtype=int)
-        post_locs = np.empty((sum(lens), 3), dtype=int)
-        ptr = 0
-        for len_, pre_block, post_block in zip(lens, pre_blocks, post_blocks):
-            pre_locs[ptr : ptr + len_] = pre_block
-            post_locs[ptr : ptr + len_] = post_block
-            ptr += len_
-        return pre_locs, post_locs
+            if len(pre_block) > 0:
+                pre_blocks.extend(pre_block)
+                post_blocks.extend(post_block)
+        return np.asarray(pre_blocks), np.asarray(post_blocks)
 
     def _offset_block(self, direction: str, lchunk, gchunk, data):
         loff = self._local_chunk_offsets()

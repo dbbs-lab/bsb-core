@@ -42,6 +42,38 @@ class AllToAll(ConnectionStrategy):
                 self.connect_cells(from_ps, to_ps, src_locs, dest_locs)
 
 
+def _connect_fixed_degree(self, pre, post, degree, is_in):
+    # Generalized connect function for Fixed in- and out-degree
+    rng = np.random.default_rng()
+    ps_counted = pre.placement if is_in else post.placement
+    ps_fixed = post.placement if is_in else pre.placement
+    high = sum(len(ps) for ps in ps_counted)
+    for ps in ps_fixed:
+        l = len(ps)
+        counted_targets = np.full((l * degree, 3), -1)
+        fixed_targets = np.full((l * degree, 3), -1)
+        ptr = 0
+        for i in range(l):
+            fixed_targets[ptr : ptr + degree, 0] = i
+            counted_targets[ptr : ptr + degree, 0] = rng.choice(
+                high, degree, replace=False
+            )
+            ptr += degree
+        lowmux = 0
+        for ps_o in ps_counted:
+            highmux = lowmux + len(ps_o)
+            demux_idx = (counted_targets[:, 0] >= lowmux) & (
+                counted_targets[:, 0] < highmux
+            )
+            demuxed = counted_targets[demux_idx]
+            demuxed[:, 0] -= lowmux
+            if is_in:
+                self.connect_cells(ps_o, ps, demuxed, fixed_targets[demux_idx])
+            else:
+                self.connect_cells(ps, ps_o, fixed_targets[demux_idx], demuxed)
+            lowmux = highmux
+
+
 @config.node
 class FixedIndegree(InvertedRoI, ConnectionStrategy):
     """
@@ -52,26 +84,20 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
     indegree: int = config.attr(type=int, required=True)
 
     def connect(self, pre, post):
-        in_ = self.indegree
-        rng = np.random.default_rng()
-        high = sum(len(ps) for ps in pre.placement)
-        for ps in post.placement:
-            l = len(ps)
-            pre_targets = np.full((l * in_, 3), -1)
-            post_targets = np.full((l * in_, 3), -1)
-            ptr = 0
-            for i in range(l):
-                post_targets[ptr : ptr + in_, 0] = i
-                pre_targets[ptr : ptr + in_, 0] = rng.choice(high, in_, replace=False)
-                ptr += in_
-            lowmux = 0
-            for pre_ps in pre.placement:
-                highmux = lowmux + len(pre_ps)
-                demux_idx = (pre_targets[:, 0] >= lowmux) & (pre_targets[:, 0] < highmux)
-                demuxed = pre_targets[demux_idx]
-                demuxed[:, 0] -= lowmux
-                self.connect_cells(pre_ps, ps, demuxed, post_targets[demux_idx])
-                lowmux = highmux
+        _connect_fixed_degree(self, pre, post, self.indegree, True)
 
 
-__all__ = ["AllToAll", "Convergence", "FixedIndegree"]
+@config.node
+class FixedOutdegree(ConnectionStrategy):
+    """
+    Connect a group of presynaptic cell types to ``outdegree`` uniformly random
+    postsynaptic cells from all the postsynaptic cell types.
+    """
+
+    outdegree: int = config.attr(type=int, required=True)
+
+    def connect(self, pre, post):
+        _connect_fixed_degree(self, pre, post, self.outdegree, False)
+
+
+__all__ = ["AllToAll", "Convergence", "FixedIndegree", "FixedOutdegree"]

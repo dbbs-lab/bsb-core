@@ -2,6 +2,28 @@
 List of strategies
 ##################
 
+:class:`AllToAll <.connectivity.general.AllToAll>`
+==================================================
+
+This strategy connects each presynaptic neuron to all the postsynaptic neurons.
+It therefore creates one connection for each unique pair of neuron.
+
+:class:`FixedIndegree <.connectivity.general.FixedIndegree>`
+============================================================
+
+This strategy connects to each postsynaptic neuron, a fixed number of uniform randomly selected
+presynaptic neurons.
+
+* ``indegree``: Number of neuron to connect for each postsynaptic neuron.
+
+:class:`FixedOutdegree <.connectivity.general.FixedOutdegree>`
+==============================================================
+
+This strategy connects to each presynaptic neuron, a fixed number of uniform randomly selected
+postsynaptic neurons.
+
+* ``outdegree``: Number of neuron to connect for each presynaptic neuron.
+
 :class:`VoxelIntersection <.connectivity.detailed.voxel_intersection.VoxelIntersection>`
 ========================================================================================
 
