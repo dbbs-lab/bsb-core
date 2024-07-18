@@ -270,7 +270,7 @@ class Scaffold:
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = [*self.placement.values()]
+            strategies = set(self.placement.values())
         strategies = PlacementStrategy.sort_deps(strategies)
         with self.create_job_pool(fail_fast=fail_fast) as pool:
             if pool.is_main():
@@ -309,7 +309,7 @@ class Scaffold:
         Run after placement hooks.
         """
         if hooks is None:
-            hooks = self.after_placement
+            hooks = set(self.after_placement.values())
         with self.create_job_pool(fail_fast) as pool:
             if pool.is_main():
                 pool.schedule(hooks)
@@ -321,7 +321,7 @@ class Scaffold:
         Run after placement hooks.
         """
         if hooks is None:
-            hooks = self.after_placement
+            hooks = set(self.after_connectivity.values())
         with self.create_job_pool(fail_fast) as pool:
             if pool.is_main():
                 pool.schedule(hooks)

@@ -693,6 +693,43 @@ class TestFixedIndegree(
             self.assertTrue(np.all(total == 50), "Not all cells have indegree 50")
 
 
+class TestFixedOutdegree(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
+):
+    def setUp(self) -> None:
+        self.cfg = get_test_config("outdegree")
+        super().setUp()
+
+    def test_outdegree(self):
+        self.network.compile()
+        cs = self.network.get_connectivity_set("outdegree")
+        pre_locs, _ = cs.load_connections().all()
+        ps = self.network.get_placement_set("excitatory")
+        u, c = np.unique(pre_locs[:, 0], return_counts=True)
+        self.assertTrue(
+            np.array_equal(np.arange(len(ps)), np.sort(u)),
+            "Not all post cells have connections",
+        )
+        self.assertTrue(np.all(c == 50), "Not all cells have outdegree 50")
+
+    def test_multi_outdegree(self):
+        self.network.compile()
+        for pre_name in ("excitatory", "extra"):
+            post_ps = self.network.get_placement_set(pre_name)
+            total = np.zeros(len(post_ps), dtype=int)
+            for post_name in ("inhibitory", "extra"):
+                cs = self.network.get_connectivity_set(
+                    f"multi_outdegree_{pre_name}_to_{post_name}"
+                )
+                pre_locs, _ = cs.load_connections().all()
+                ps = self.network.get_placement_set("inhibitory")
+                u, c = np.unique(pre_locs[:, 0], return_counts=True)
+                this = np.zeros(len(post_ps), dtype=int)
+                this[u] = c
+                total += this
+            self.assertTrue(np.all(total == 50), "Not all cells have outdegree 50")
+
+
 class TestOutputNamingSingle(unittest.TestCase):
     """Test output naming as specified in: https://github.com/dbbs-lab/bsb-core/issues/823"""
 
