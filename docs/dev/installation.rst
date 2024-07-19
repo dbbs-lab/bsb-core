@@ -13,12 +13,3 @@ To install::
 Test your install with::
 
   python -m unittest discover -s tests
-
-Releases
---------
-
-To release a new version::
-
-  bump-my-version bump pre_n
-  python -m build
-  twine upload dist/* --skip-existing

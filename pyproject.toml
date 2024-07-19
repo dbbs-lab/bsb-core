@@ -89,8 +89,7 @@ dev = [
     "pre-commit~=3.5",
     "black~=24.1.1",
     "isort~=5.12",
-    "snakeviz~=2.1",
-    "bump-my-version~=0.18"
+    "snakeviz~=2.1"
 ]
 
 [tool.black]
@@ -98,27 +97,3 @@ line-length = 90
 
 [tool.isort]
 profile = "black"
-
-[tool.bumpversion]
-current_version = "4.2.0"
-parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
-serialize = ["{major}.{minor}.{patch}"]
-search = "{current_version}"
-replace = "{new_version}"
-regex = false
-ignore_missing_version = false
-tag = true
-sign_tags = false
-tag_name = "v{new_version}"
-tag_message = "Bump version: {current_version} → {new_version}"
-allow_dirty = false
-commit = true
-message = "Bump version: {current_version} → {new_version}"
-commit_args = "--no-verify"
-
-[tool.bumpversion.parts.pre_l]
-values = ["dev", "a", "b", "rc", "final"]
-optional_value = "final"
-
-[[tool.bumpversion.files]]
-filename = "bsb/__init__.py"
