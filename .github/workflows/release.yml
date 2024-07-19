@@ -23,7 +23,15 @@ jobs:
         with:
           token: ${{ github.token }}
           branch: main
-
+      - name: Update __init__.py and pyproject.toml
+        run: |
+          oldtagv="\"${{ steps.semver.outputs.current }}\""
+          replacev="\"${{steps.semver.outputs.next}}\""
+          oldtag=$( echo $oldtagv | sed "s/v//g")
+          newtag=$(echo $replacev | sed "s/v//g")
+          echo "my old tag: $oldtagv"
+          sed -i  "s/__version__ = $oldtag/__version__ = $newtag/g" bsb/__init__.py
+          sed -i  "s/current_version = $oldtag/current_version = $newtag/g" pyproject.toml
       - uses: rickstaa/action-create-tag@v1
         id: "tag_create"
         with:
