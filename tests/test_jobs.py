@@ -24,6 +24,7 @@ from bsb import (
     Partition,
     PlacementStrategy,
     RandomPlacement,
+    Scaffold,
     config,
 )
 from bsb.services.pool import (
@@ -33,6 +34,8 @@ from bsb.services.pool import (
     PoolProgressReason,
     PoolStatus,
     WorkflowError,
+    get_node_cache_items,
+    pool_cache,
 )
 
 
@@ -497,3 +500,77 @@ class TestSubmissionContext(
                 job = pool.queue(sleep_y, (4, 0.2), number=1)
                 self.assertIn("function sleep_y", job.name)
                 self.assertEqual(1, job.context["number"])
+
+
+class TestPoolCache(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+
+        @config.node
+        class TestCache(PlacementStrategy):
+            @pool_cache
+            def cache_something(self):
+                return 10
+
+            def place(self, chunk, indicators):
+                self.cache_something()
+
+        self.network = Scaffold(
+            config=Configuration.default(
+                placement=dict(
+                    withcache=TestCache(cell_types=[], partitions=[]),
+                )
+            )
+        )
+        self.network.placement.withcache.cache_something.cache_clear()
+
+    def test_cache_registration(self):
+        """Test that when a cache is hit, it is registered in the scaffold"""
+        self.network.placement.withcache.place(None, None)
+        self.assertEqual(
+            ["{root}.placement.withcache.cache_something"],
+            [*self.network._pool_cache.keys()],
+        )
+
+    def test_method_detection(self):
+        """Test that we can detect which jobs need which items"""
+        self.assertEqual(
+            ["{root}.placement.withcache.cache_something"],
+            get_node_cache_items(self.network.placement.withcache),
+        )
+
+    def test_pool_required_cache(self):
+        """Test that the pool knows which cache items are required"""
+        with self.network.create_job_pool() as pool:
+            self.assertEqual(set(), pool.get_required_cache_items())
+            pool.queue_placement(self.network.placement.withcache, [0, 0, 0])
+            self.assertEqual(
+                {"{root}.placement.withcache.cache_something"},
+                pool.get_required_cache_items(),
+            )
+
+    def test_cache_survival(self):
+        """Test that the required cache items survive until the jobs are done."""
+
+        # FIXME: This mechanism is critical for parallel execution, but is hard to test
+        #  under that condition. This test will pass with false positive results under
+        #  parallel conditions. This mechanism was manually tested when it was written,
+        #  and accepts PRs to properly test it in CI.
+
+        @config.node
+        class TestNode(PlacementStrategy):
+            def place(node, chunk, indicators):
+                # Get the other job's cache.
+                cache = node.scaffold.placement.withcache.cache_something.cache_info()
+                # Assert that both times this job is called, the cache has no items in it,
+                # even though the other job was executed and cached in between.
+                # This confirms that the cache is cleared once its dependents are done.
+                self.assertEqual(cache.misses, 0)
+
+        self.network.placement["withoutcache"] = TestNode(cell_types=[], partitions=[])
+        pool = self.network.create_job_pool()
+        with pool:
+            pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
+            pool.queue_placement(self.network.placement.withcache, [0, 0, 0])
+            pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
+            pool.execute()
