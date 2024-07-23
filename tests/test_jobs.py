@@ -1,7 +1,9 @@
+import os
 import time
 import unittest
 from graphlib import CycleError
 from time import sleep
+from unittest.mock import patch
 
 from bsb_test import (
     NetworkFixture,
@@ -34,6 +36,7 @@ from bsb.services.pool import (
     PoolProgressReason,
     PoolStatus,
     WorkflowError,
+    _cache_hash,
     get_node_cache_items,
     pool_cache,
 )
@@ -502,7 +505,21 @@ class TestSubmissionContext(
                 self.assertEqual(1, job.context["number"])
 
 
-class TestPoolCache(unittest.TestCase):
+def mock_free_cache(scaffold, required_cache_items: set[str]):
+    # Mock function to test job cache system
+
+    for stale_key in [
+        k
+        for k in scaffold._pool_cache.keys()
+        if _cache_hash(k) not in required_cache_items and k not in required_cache_items
+    ]:
+        # Save cleaned items in a file for testing
+        with open(f"test_cache_{MPI.get_rank()}.txt", "a") as f:
+            f.write(f"{stale_key}\n")
+        scaffold._pool_cache.pop(stale_key)()
+
+
+class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def setUp(self):
         super().setUp()
 
@@ -520,7 +537,8 @@ class TestPoolCache(unittest.TestCase):
                 placement=dict(
                     withcache=TestCache(cell_types=[], partitions=[]),
                 )
-            )
+            ),
+            storage=self.storage,
         )
         self.network.placement.withcache.cache_something.cache_clear()
 
@@ -549,6 +567,12 @@ class TestPoolCache(unittest.TestCase):
                 pool.get_required_cache_items(),
             )
 
+    @patch(
+        "bsb.services.pool.free_stale_pool_cache",
+        lambda scaffold, required_cache_items: mock_free_cache(
+            scaffold, required_cache_items
+        ),
+    )
     def test_cache_survival(self):
         """Test that the required cache items survive until the jobs are done."""
 
@@ -571,6 +595,22 @@ class TestPoolCache(unittest.TestCase):
         pool = self.network.create_job_pool()
         with pool:
             pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
+            # create 4 jobs with cache to check that the cache is deleted only once.
             pool.queue_placement(self.network.placement.withcache, [0, 0, 0])
+            pool.queue_placement(self.network.placement.withcache, [0, 0, 1])
+            pool.queue_placement(self.network.placement.withcache, [0, 1, 0])
+            pool.queue_placement(self.network.placement.withcache, [1, 0, 0])
             pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
             pool.execute()
+
+        for filename in os.listdir():
+            if filename.startswith("test_cache_"):
+                with open(filename, "r") as f:
+                    lines = f.readlines()
+                    self.assertEqual(
+                        len(lines), 1, "The free function should be called only once."
+                    )
+                    self.assertEqual(
+                        lines[0], "{root}.placement.withcache.cache_something\n"
+                    )
+                os.remove(filename)

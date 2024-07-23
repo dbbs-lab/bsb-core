@@ -897,6 +897,12 @@ class JobPool:
         )
 
     def get_required_cache_items(self):
+        """
+        Returns the list of cache functions for all the jobs in the queue
+
+        :return: set of cache function name
+        :rtype: set[str]
+        """
         items = set()
         for job in self._job_queue:
             if (
@@ -945,8 +951,12 @@ def get_node_cache_items(node):
     ]
 
 
-def free_stale_pool_cache(scaffold, required_cache_items: set[str]):
-    for stale_key in set(scaffold._pool_cache.keys()) - required_cache_items:
+def free_stale_pool_cache(scaffold, required_cache_items: set):
+    for stale_key in [
+        k
+        for k in scaffold._pool_cache.keys()
+        if _cache_hash(k) not in required_cache_items and k not in required_cache_items
+    ]:
         # If so, pop them and execute the registered cleanup function.
         scaffold._pool_cache.pop(stale_key)()
 
