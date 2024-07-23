@@ -305,7 +305,7 @@ class Job(abc.ABC):
         self._thread: typing.Optional[threading.Thread] = None
         self._res_file = None
         self._error = None
-        self._cache_items: list[str] = [] if cache_items is None else cache_items
+        self._cache_items: list[int] = [] if cache_items is None else cache_items
 
         for j in self._deps:
             j.on_completion(self._dep_completed)
@@ -901,7 +901,7 @@ class JobPool:
         Returns the list of cache functions for all the jobs in the queue
 
         :return: set of cache function name
-        :rtype: set[str]
+        :rtype: set[int]
         """
         items = set()
         for job in self._job_queue:
@@ -921,7 +921,7 @@ class JobPool:
         # Create a new cache window buffer
         new_buffer = np.zeros(1000, dtype=int)
         for i, item in enumerate(self.get_required_cache_items()):
-            new_buffer[i] = _cache_hash(item)
+            new_buffer[i] = item
 
         # If there are actual cache requirement differences, lock the window
         # and transfer the buffer
@@ -945,18 +945,14 @@ class JobPool:
 
 def get_node_cache_items(node):
     return [
-        attr.get_pool_cache_name(node)
+        attr.get_pool_cache_id(node)
         for key in dir(node)
-        if hasattr(attr := getattr(node, key), "get_pool_cache_name")
+        if hasattr(attr := getattr(node, key), "get_pool_cache_id")
     ]
 
 
-def free_stale_pool_cache(scaffold, required_cache_items: set):
-    for stale_key in [
-        k
-        for k in scaffold._pool_cache.keys()
-        if _cache_hash(k) not in required_cache_items and k not in required_cache_items
-    ]:
+def free_stale_pool_cache(scaffold, required_cache_items: set[int]):
+    for stale_key in set(scaffold._pool_cache.keys()) - required_cache_items:
         # If so, pop them and execute the registered cleanup function.
         scaffold._pool_cache.pop(stale_key)()
 
@@ -965,21 +961,21 @@ def pool_cache(caching_function):
     @functools.cache
     def decorated(self, *args, **kwargs):
         self.scaffold.register_pool_cached_item(
-            decorated.get_pool_cache_name(self), cleanup
+            decorated.get_pool_cache_id(self), cleanup
         )
         return caching_function(self, *args, **kwargs)
 
-    def get_pool_cache_name(node):
+    def get_pool_cache_id(node):
         if not hasattr(node, "get_node_name"):
             raise RuntimeError(
                 "Pool caching can only be used on methods of @node decorated classes."
             )
-        return f"{node.get_node_name()}.{caching_function.__name__}"
+        return _cache_hash(f"{node.get_node_name()}.{caching_function.__name__}")
 
     def cleanup():
         decorated.cache_clear()
 
-    decorated.get_pool_cache_name = get_pool_cache_name
+    decorated.get_pool_cache_id = get_pool_cache_id
 
     return decorated
 

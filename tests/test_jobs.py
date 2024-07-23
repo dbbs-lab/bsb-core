@@ -508,11 +508,7 @@ class TestSubmissionContext(
 def mock_free_cache(scaffold, required_cache_items: set[str]):
     # Mock function to test job cache system
 
-    for stale_key in [
-        k
-        for k in scaffold._pool_cache.keys()
-        if _cache_hash(k) not in required_cache_items and k not in required_cache_items
-    ]:
+    for stale_key in set(scaffold._pool_cache.keys()) - required_cache_items:
         # Save cleaned items in a file for testing
         with open(f"test_cache_{MPI.get_rank()}.txt", "a") as f:
             f.write(f"{stale_key}\n")
@@ -541,19 +537,20 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
             storage=self.storage,
         )
         self.network.placement.withcache.cache_something.cache_clear()
+        self.id_cache = _cache_hash("{root}.placement.withcache.cache_something")
 
     def test_cache_registration(self):
         """Test that when a cache is hit, it is registered in the scaffold"""
         self.network.placement.withcache.place(None, None)
         self.assertEqual(
-            ["{root}.placement.withcache.cache_something"],
+            [self.id_cache],
             [*self.network._pool_cache.keys()],
         )
 
     def test_method_detection(self):
         """Test that we can detect which jobs need which items"""
         self.assertEqual(
-            ["{root}.placement.withcache.cache_something"],
+            [self.id_cache],
             get_node_cache_items(self.network.placement.withcache),
         )
 
@@ -563,7 +560,7 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
             self.assertEqual(set(), pool.get_required_cache_items())
             pool.queue_placement(self.network.placement.withcache, [0, 0, 0])
             self.assertEqual(
-                {"{root}.placement.withcache.cache_something"},
+                {self.id_cache},
                 pool.get_required_cache_items(),
             )
 
@@ -594,23 +591,33 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
         self.network.placement["withoutcache"] = TestNode(cell_types=[], partitions=[])
         pool = self.network.create_job_pool()
         with pool:
-            pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
+            first = pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
             # create 4 jobs with cache to check that the cache is deleted only once.
-            pool.queue_placement(self.network.placement.withcache, [0, 0, 0])
-            pool.queue_placement(self.network.placement.withcache, [0, 0, 1])
-            pool.queue_placement(self.network.placement.withcache, [0, 1, 0])
-            pool.queue_placement(self.network.placement.withcache, [1, 0, 0])
-            pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
+            job0 = pool.queue_placement(
+                self.network.placement.withcache, [0, 0, 0], deps=[first]
+            )
+            job1 = pool.queue_placement(
+                self.network.placement.withcache, [0, 0, 1], deps=[first]
+            )
+            job2 = pool.queue_placement(
+                self.network.placement.withcache, [0, 1, 0], deps=[first]
+            )
+            job3 = pool.queue_placement(
+                self.network.placement.withcache, [1, 0, 0], deps=[first]
+            )
+            pool.queue_placement(
+                self.network.placement.withoutcache,
+                [0, 0, 0],
+                deps=[job0, job1, job2, job3],
+            )
             pool.execute()
 
         for filename in os.listdir():
-            if filename.startswith("test_cache_"):
+            if filename.startswith(f"test_cache_{MPI.get_rank()}"):
                 with open(filename, "r") as f:
                     lines = f.readlines()
                     self.assertEqual(
                         len(lines), 1, "The free function should be called only once."
                     )
-                    self.assertEqual(
-                        lines[0], "{root}.placement.withcache.cache_something\n"
-                    )
+                    self.assertEqual(lines[0], f"{self.id_cache}\n")
                 os.remove(filename)
