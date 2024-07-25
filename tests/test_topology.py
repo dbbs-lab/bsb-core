@@ -1,9 +1,17 @@
 import unittest
 
 import numpy as np
-from bsb_test import get_data_path
+from bsb_test import NumpyTestCase, RandomStorageFixture, get_data_path
 
-from bsb import AllenApiError, AllenStructure, Configuration, LayoutError, topology
+from bsb import (
+    AllenApiError,
+    AllenStructure,
+    Configuration,
+    ConfigurationError,
+    LayoutError,
+    Scaffold,
+    topology,
+)
 
 
 def single_layer():
@@ -76,6 +84,77 @@ def skip_test_allen_api():
     except Exception:
         pass
     return False
+
+
+class TestStack(
+    RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
+):
+
+    def test_incorrect_stack_index(self):
+        cfg = Configuration.default(
+            regions=dict(a=dict(type="stack", children=["b"])),
+            partitions=dict(b=dict(type="layer", stack_index=-1, thickness=10)),
+        )
+        with self.assertRaises(ConfigurationError):
+            Scaffold(cfg, self.storage)
+
+        cfg = Configuration.default(
+            regions=dict(a=dict(type="stack", children=["c", "b"])),
+            partitions=dict(
+                b=dict(type="layer", stack_index=0, thickness=10),
+                c=dict(type="layer", stack_index=2, thickness=10),
+            ),
+        )
+        with self.assertRaises(ConfigurationError):
+            Scaffold(cfg, self.storage)
+
+        cfg = Configuration.default(
+            regions=dict(a=dict(type="stack", children=["c", "b"])),
+            partitions=dict(
+                b=dict(type="layer", stack_index=1, thickness=10),
+                c=dict(type="layer", stack_index=1, thickness=10),
+            ),
+        )
+        with self.assertRaises(ConfigurationError):
+            Scaffold(cfg, self.storage)
+
+    def test_ordering_stack_index(self):
+        cfg = Configuration.default(
+            regions=dict(
+                a=dict(
+                    type="stack",
+                    children=["rhomboid1", "layer2", "rhomboid2", "layer1", "rhomboid3"],
+                )
+            ),
+            partitions=dict(
+                rhomboid1=dict(type="rhomboid", dimensions=[10, 10, 10]),
+                rhomboid2=dict(
+                    type="rhomboid", dimensions=[10, 10, 10], origin=[0, 0, 10]
+                ),
+                rhomboid3=dict(
+                    type="rhomboid", dimensions=[10, 10, 10], origin=[0, 0, 20]
+                ),
+                layer2=dict(type="layer", stack_index=3, thickness=10),
+                layer1=dict(type="layer", stack_index=1, thickness=10),
+            ),
+        )
+        network = Scaffold(cfg, self.storage)
+        expected_order = ["rhomboid1", "layer1", "rhomboid2", "layer2", "rhomboid3"]
+        expected_index = np.array([0, 3, 2, 1, 4])
+        stack_size = 0
+        for i, child in enumerate(
+            np.array(network.regions["a"].children)[expected_index]
+        ):
+            self.assertEqual(child.name, expected_order[i])
+            predicted_origin = np.array([0.0, 0.0, stack_size])
+            self.assertClose(predicted_origin, child.data.ldc)
+            dimensions = (
+                child.dimensions
+                if hasattr(child, "dimensions")
+                else np.array([200, 200, child.thickness])
+            )
+            self.assertClose(predicted_origin + dimensions, child.data.mdc)
+            stack_size = child.data.mdc[2]
 
 
 @unittest.skipIf(

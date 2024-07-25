@@ -9,6 +9,7 @@ import numpy as np
 
 from .. import config
 from ..config import refs, types
+from ..exceptions import ConfigurationError
 from ..reporting import warn
 from ._layout import Layout
 
@@ -92,6 +93,38 @@ class Stack(RegionGroup, classmap_entry="stack"):
         config.attr(type=types.in_(["x", "y", "z"]), default="z")
     )
 
+    def boot(self):
+        # Check that layers have different stack indexes and that the indexes are in range
+        indexes = np.array(
+            [
+                child.stack_index
+                for child in self.children
+                if hasattr(child, "stack_index")
+            ]
+        )
+        if np.any(indexes < 0) or np.any(indexes >= len(self.children)):
+            raise ConfigurationError(
+                "Layers stack indexes must be in the range of the number of layers"
+            )
+        if len(indexes) != np.unique(indexes).size:
+            raise ConfigurationError("Layers stack indexes must be unique")
+
+    def _resolve_order(self):
+        # Sort the children position in the stack. Layers can specify their position within.
+        indexes = [
+            (child.stack_index if hasattr(child, "stack_index") else -1)
+            for child in self.children
+        ]
+        order = np.zeros_like(indexes)
+        current = 0
+        for i in range(len(self.children)):
+            if i in indexes:
+                order[i] = indexes.index(i)
+            else:
+                order[i] = np.where(np.array(indexes) == -1)[0][current]
+                current += 1
+        return order
+
     def get_layout(self, hint):
         layout = super().get_layout(hint)
         stack_size = 0
@@ -99,7 +132,7 @@ class Stack(RegionGroup, classmap_entry="stack"):
         trans_eye = np.zeros(3)
         trans_eye[axis_idx] = 1
 
-        for child in layout.children:
+        for child in np.array(layout.children)[self._resolve_order()]:
             if child.data is None:
                 warn(f"Skipped layout arrangement of {child._owner.name} in {self.name}")
                 continue

@@ -246,11 +246,11 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
         if self.dimensions is None:
             dim = hint.data.mdc - hint.data.ldc
         else:
-            dim = self.dimensions
+            dim = np.array(self.dimensions)
         if self.origin is None:
             orig = hint.data.ldc.copy()
         else:
-            orig = self.origin
+            orig = np.array(self.origin)
         return Layout(RhomboidData(orig, dim + orig), owner=self)
 
 
@@ -272,7 +272,7 @@ class Layer(Rhomboid, classmap_entry="layer"):
     axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
         config.attr(type=types.in_(["x", "y", "z"]), default="z")
     )
-    stack_index: float = config.attr(type=float, default=0)
+    stack_index: int = config.attr(type=int, default=0)
 
     def get_layout(self, hint):
         axis = ["x", "y", "z"].index(self.axis)
@@ -281,7 +281,7 @@ class Layer(Rhomboid, classmap_entry="layer"):
         if self.origin is None:
             orig = hint.data.ldc.copy()
         else:
-            orig = self.origin
+            orig = np.array(self.origin)
         return Layout(RhomboidData(orig, dim + orig), owner=self)
 
     # TODO: Layer scaling
