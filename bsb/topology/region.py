@@ -127,24 +127,26 @@ class Stack(RegionGroup, classmap_entry="stack"):
 
     def get_layout(self, hint):
         layout = super().get_layout(hint)
-        stack_size = 0
         axis_idx = ("x", "y", "z").index(self.axis)
         trans_eye = np.zeros(3)
         trans_eye[axis_idx] = 1
 
-        for child in np.array(layout.children)[self._resolve_order()]:
+        children = np.array(layout.children)[self._resolve_order()]
+        # origin of stack corresponds to the origin of the first child
+        cumul_offset = children[0].data.ldc[axis_idx]
+        for child in children:
             if child.data is None:
                 warn(f"Skipped layout arrangement of {child._owner.name} in {self.name}")
                 continue
             translation = (
-                layout.data.ldc[axis_idx] + stack_size - child.data.ldc
+                layout.data.ldc[axis_idx] + cumul_offset - child.data.ldc
             ) * trans_eye
             if not np.allclose(0, translation):
                 child.propose_translate(translation)
-            stack_size += child.data.dimensions[axis_idx]
+            cumul_offset += child.data.dimensions[axis_idx]
         ldc = layout.data.ldc
         mdc = layout.data.mdc
-        mdc[axis_idx] = ldc[axis_idx] + stack_size
+        mdc[axis_idx] = ldc[axis_idx] + cumul_offset
         return layout
 
     def rotate(self, rotation):

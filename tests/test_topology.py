@@ -127,7 +127,10 @@ class TestStack(
                 )
             ),
             partitions=dict(
-                rhomboid1=dict(type="rhomboid", dimensions=[10, 10, 10]),
+                # we set the origin to rhomboid1 so that every partition is shifted by this value
+                rhomboid1=dict(
+                    type="rhomboid", dimensions=[10, 10, 10], origin=[0, 0, 10]
+                ),
                 rhomboid2=dict(
                     type="rhomboid", dimensions=[10, 10, 10], origin=[0, 0, 10]
                 ),
@@ -141,7 +144,7 @@ class TestStack(
         network = Scaffold(cfg, self.storage)
         expected_order = ["rhomboid1", "layer1", "rhomboid2", "layer2", "rhomboid3"]
         expected_index = np.array([0, 3, 2, 1, 4])
-        stack_size = 0
+        stack_size = 10
         for i, child in enumerate(
             np.array(network.regions["a"].children)[expected_index]
         ):
