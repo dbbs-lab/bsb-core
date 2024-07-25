@@ -40,15 +40,18 @@ API and subject to sudden change in the future.
 
 import abc
 import concurrent.futures
+import functools
 import logging
 import pickle
 import tempfile
 import threading
 import typing
 import warnings
+import zlib
 from contextlib import ExitStack
 from enum import Enum, auto
 
+import numpy as np
 from exceptiongroup import ExceptionGroup
 
 from .._util import obj_str_insert
@@ -215,11 +218,26 @@ _MPIPool = _MPIPoolModule("mpipool")
 
 
 def dispatcher(pool_id, job_args):
+    """
+    The dispatcher is the function that gets pickled on main, and unpacked "here" on the
+    worker. Through class variables on `JobPool` and the given `pool_id` we can find the
+    pool and scaffold object, and the job function to run.
+
+    Before running a job, the cache is checked for eventual cached items to free up.
+    """
     job_type, args, kwargs = job_args
     # Get the static job execution handler from this module
     handler = globals()[job_type].execute
+    # Get the owning scaffold from the JobPool class variables, which act as a registry.
     owner = JobPool.get_owner(pool_id)
-    # Execute it.
+
+    # Check the pool's cache
+    pool = JobPool._pools[pool_id]
+    required_cache_items = pool._read_required_cache_items()
+    # and free any stale cached items
+    free_stale_pool_cache(owner, required_cache_items)
+
+    # Execute the job handler.
     return handler(owner, args, kwargs)
 
 
@@ -268,7 +286,13 @@ class Job(abc.ABC):
     """
 
     def __init__(
-        self, pool, submission_context: SubmissionContext, args, kwargs, deps=None
+        self,
+        pool,
+        submission_context: SubmissionContext,
+        args,
+        kwargs,
+        deps=None,
+        cache_items=None,
     ):
         self.pool_id = pool.id
         self._args = args
@@ -281,6 +305,7 @@ class Job(abc.ABC):
         self._thread: typing.Optional[threading.Thread] = None
         self._res_file = None
         self._error = None
+        self._cache_items: list[int] = [] if cache_items is None else cache_items
 
         for j in self._deps:
             j.on_completion(self._dep_completed)
@@ -453,7 +478,8 @@ class PlacementJob(Job):
     def __init__(self, pool, strategy, chunk, deps=None):
         args = (strategy.name, chunk)
         context = SubmissionContext(strategy, [chunk])
-        super().__init__(pool, context, args, {}, deps=deps)
+        cache_items = get_node_cache_items(strategy)
+        super().__init__(pool, context, args, {}, deps=deps, cache_items=cache_items)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
@@ -475,7 +501,8 @@ class ConnectivityJob(Job):
         context = SubmissionContext(
             strategy, chunks=chunklist((*(pre_roi or []), *(post_roi or [])))
         )
-        super().__init__(pool, context, args, {}, deps=deps)
+        cache_items = get_node_cache_items(strategy)
+        super().__init__(pool, context, args, {}, deps=deps, cache_items=cache_items)
 
     @staticmethod
     def execute(job_owner, args, kwargs):
@@ -486,12 +513,19 @@ class ConnectivityJob(Job):
 
 
 class FunctionJob(Job):
-    def __init__(self, pool, f, args, kwargs, deps=None, **context):
+    def __init__(self, pool, f, args, kwargs, deps=None, cache_items=None, **context):
         # Pack the function into the args
         args = (f, args)
         # If no submitter was given, set the function as submitter
         context.setdefault("submitter", f)
-        super().__init__(pool, SubmissionContext(**context), args, kwargs, deps=deps)
+        super().__init__(
+            pool,
+            SubmissionContext(**context),
+            args,
+            kwargs,
+            deps=deps,
+            cache_items=cache_items,
+        )
 
     @staticmethod
     def execute(job_owner, args, kwargs):
@@ -521,6 +555,8 @@ class JobPool:
         self._workers_raise_unhandled = False
         self._fail_fast = fail_fast
         self._workflow = workflow
+        self._cache_buffer = np.zeros(1000, dtype=np.uint64)
+        self._cache_window = MPI.window(self._cache_buffer)
 
     def __enter__(self):
         self._context = ExitStack()
@@ -655,7 +691,7 @@ class JobPool:
         return any(not f.done() for f in self._schedulers)
 
     def queue(self, f, args=None, kwargs=None, deps=None, **context):
-        job = FunctionJob(self, f, args or [], kwargs or {}, deps, **context)
+        job = FunctionJob(self, f, args or [], kwargs or {}, deps, [], **context)
         self._put(job)
         return job
 
@@ -716,6 +752,10 @@ class JobPool:
                     "Unhandled exceptions during parallel execution.",
                     [JobPoolError("See main node logs for details.")],
                 )
+
+            # Free all cached items
+            free_stale_pool_cache(self.owner, set())
+
             return
 
         try:
@@ -726,6 +766,8 @@ class JobPool:
                 job._enqueue(self)
             # Add the scheduling futures to the running futures, to await them.
             self._running_futures.extend(self._schedulers)
+            # Start tracking cached items
+            self._update_cache_window()
 
             # Keep executing as long as any of the schedulers or jobs aren't done yet.
             while self.scheduling or any(
@@ -747,6 +789,11 @@ class JobPool:
                 for job in self._job_queue:
                     if job._future in done:
                         job._completed()
+
+                # If a job finished, update the required cache items
+                if len(done):
+                    self._update_cache_window()
+
                 # Remove running futures that are done
                 for future in done:
                     self._running_futures.remove(future)
@@ -797,6 +844,8 @@ class JobPool:
             while job.run(timeout=self._max_wait):
                 self.ping()
                 self.notify()
+            # After each job, check if any cache items can be freed.
+            free_stale_pool_cache(self.owner, self.get_required_cache_items())
             self.notify()
         # Raise any unhandled errors
         self.raise_unhandled()
@@ -846,3 +895,90 @@ class JobPool:
             f"Your workflow encountered errors.",
             errors,
         )
+
+    def get_required_cache_items(self):
+        """
+        Returns the list of cache functions for all the jobs in the queue
+
+        :return: set of cache function name
+        :rtype: set[int]
+        """
+        items = set()
+        for job in self._job_queue:
+            if (
+                job.status == JobStatus.QUEUED
+                or job.status == JobStatus.PENDING
+                or job.status == JobStatus.RUNNING
+            ):
+                items.update(job._cache_items)
+        return items
+
+    def _update_cache_window(self):
+        """
+        Checks and updates if the cache buffer should be updated by looking at the job
+        statuses in the job queue. Only call on main.
+        """
+        # Create a new cache window buffer
+        new_buffer = np.zeros(1000, dtype=int)
+        for i, item in enumerate(self.get_required_cache_items()):
+            new_buffer[i] = item
+
+        # If there are actual cache requirement differences, lock the window
+        # and transfer the buffer
+        if np.any(new_buffer != self._cache_buffer):
+            self._cache_window.Lock(0)
+            self._cache_buffer[:] = new_buffer
+            self._cache_window.Unlock(0)
+
+    def _read_required_cache_items(self):
+        """
+        Locks the cache window and read the still required cache items from rank 0.
+        Only call on workers.
+        """
+        from mpi4py.MPI import UINT64_T
+
+        self._cache_window.Lock(0)
+        self._cache_window.Get([self._cache_buffer, UINT64_T], 0)
+        self._cache_window.Unlock(0)
+        return set(self._cache_buffer)
+
+
+def get_node_cache_items(node):
+    return [
+        attr.get_pool_cache_id(node)
+        for key in dir(node)
+        if hasattr(attr := getattr(node, key), "get_pool_cache_id")
+    ]
+
+
+def free_stale_pool_cache(scaffold, required_cache_items: set[int]):
+    for stale_key in set(scaffold._pool_cache.keys()) - required_cache_items:
+        # If so, pop them and execute the registered cleanup function.
+        scaffold._pool_cache.pop(stale_key)()
+
+
+def pool_cache(caching_function):
+    @functools.cache
+    def decorated(self, *args, **kwargs):
+        self.scaffold.register_pool_cached_item(
+            decorated.get_pool_cache_id(self), cleanup
+        )
+        return caching_function(self, *args, **kwargs)
+
+    def get_pool_cache_id(node):
+        if not hasattr(node, "get_node_name"):
+            raise RuntimeError(
+                "Pool caching can only be used on methods of @node decorated classes."
+            )
+        return _cache_hash(f"{node.get_node_name()}.{caching_function.__name__}")
+
+    def cleanup():
+        decorated.cache_clear()
+
+    decorated.get_pool_cache_id = get_pool_cache_id
+
+    return decorated
+
+
+def _cache_hash(string):
+    return zlib.crc32(string.encode())

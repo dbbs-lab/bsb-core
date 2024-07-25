@@ -100,3 +100,33 @@ them out to display the progress of the job pool:
 
 Listeners can also be context managers, and will enter and exit the same context as the
 JobPool.
+
+.. _caching:
+
+Caching
+-------
+
+Some jobs may benefit from caching data. The problem with memoization techniques like
+``functools.cache`` in a parallel workflow would be that the data risks remaining cached
+for the entire workflow, consuming high amounts of memory on every parallel worker, while
+the job is long over.
+
+To prevent this, ``JobPools`` support caching items for as long as any other job owned by
+the scheduler still needs to complete. To use pool managed caching, simply decorate a
+method of a ``@node``-decorated class with the :func:`~bsb.services.pool.pool_cache`
+decorator:
+
+.. code-block:: python
+
+  from bsb import PlacementStrategy, config, pool_cache
+
+  @config.node
+  class MyStrategy(PlacementStrategy):
+    @pool_cache
+    def heavy_calculations(self):
+      return 5 + 5
+
+    def place(self, chunk, indicators):
+      # `heavy_calculations` will be called maximum once on each parallel node
+      for i in range(1000):
+        self.heavy_calculations()
