@@ -30,12 +30,18 @@ jobs:
           newtag=$(echo $replacev | sed "s/v//g")
           sed -i  "s/__version__ = .*/__version__ = $newtag/g" bsb/__init__.py
 
-      - name: Commit version change
-        uses: stefanzweifel/git-auto-commit-action@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v1
         with:
-          branch: main
-          commit_message: 'docs: bump version: ${{ steps.semver.outputs.current }} → ${{ steps.semver.outputs.next }} [skip ci]'
-          file_pattern: bsb/__init__.py
+          python-version: 3.11
+
+      - name: Bump version in Python project
+        run: |
+          pip install --upgrade pip bump-my-version
+          oldv="${{ steps.semver.outputs.current }}"
+          newv="${{steps.semver.outputs.next}}"
+          # Bump the version, dropping the leading `v` with `${x:1}`
+          bump-my-version replace --current-version=${oldv:1} --new-version=${newv:1} pyproject.toml
 
       - uses: rickstaa/action-create-tag@v1
         id: "tag_create"
