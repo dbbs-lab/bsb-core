@@ -37,8 +37,8 @@ To install::
 
   isort .
 
-  # try build the documentation, no warnings should appear
-  cd docs && rm -rf _build && sphinx-build -n -b html . _build/html && cd ..
+  # try build the documentation, warnings will trigger errors
+  cd docs && rm -rf _build && sphinx-build -nW -b html . _build/html && cd ..
 
   # run the tests
   python -m unittest discover -s tests
@@ -59,7 +59,7 @@ generation of changelogs and releases.
 Releases
 ~~~~~~~~
 A new BSB release is published automatically for every push on the ``main`` branch.
-The push will automatically trigger Github action that will bump the library version, add a git tag, make a github
+The push will automatically trigger Github Actions that will bump the library version, add a git tag, make a github
 release and update the `CHANGELOG <https://github.com/dbbs-lab/bsb-core/blob/main/CHANGELOG.md>`_
 This will update the official documentation on ``Readthedocs`` but also deploy the code on
 `PyPI <https://pypi.org/project/bsb-core/>`_ and the `EBRAINS <https://gitlab.ebrains.eu/robinde/bsb>`_ website.

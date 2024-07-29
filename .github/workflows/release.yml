@@ -24,11 +24,6 @@ jobs:
         with:
           token: ${{ github.token }}
           branch: main
-      - name: Update __init__.py and pyproject.toml
-        run: |
-          replacev="\"${{steps.semver.outputs.next}}\""
-          newtag=$(echo $replacev | sed "s/v//g")
-          sed -i  "s/__version__ = .*/__version__ = $newtag/g" bsb/__init__.py
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v1
@@ -42,6 +37,12 @@ jobs:
           newv="${{steps.semver.outputs.next}}"
           # Bump the version, dropping the leading `v` with `${x:1}`
           bump-my-version replace --current-version=${oldv:1} --new-version=${newv:1} pyproject.toml
+
+      - name: Commit version change
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: main
+          commit_message: 'docs: bump version: ${{ steps.semver.outputs.current }} → ${{ steps.semver.outputs.next }}'
 
       - uses: rickstaa/action-create-tag@v1
         id: "tag_create"
@@ -86,7 +87,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: main
-          commit_message: 'docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]'
+          commit_message: 'docs: update CHANGELOG.md for ${{ github.ref_name }}'
           file_pattern: CHANGELOG.md
 
   deploy:
@@ -96,10 +97,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: 3.11
 
       - name: Install dependencies
         run: |
