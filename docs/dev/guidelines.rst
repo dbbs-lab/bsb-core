@@ -43,7 +43,7 @@ To install::
   # run the tests
   python -m unittest discover -s tests
 
-The BSB repository implements Github actions to perform these tests directly on Github. Failing these tests will prevent
+The BSB repository implements Github Actions to perform these tests directly on Github. Failing these tests will prevent
 the integration of your contribution. Do not hesitate to ask for help on these |:wink:|
 
 When you believe your changes are ready to be integrated in the main repository, you can create a Pull Request (PR)
