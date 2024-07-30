@@ -7,7 +7,7 @@ which are essential for `bsb-core` to function. First time users are recommended
 install the `bsb` package instead.
 """
 
-__version__ = "4.2.0"
+__version__ = "4.3.0"
 
 import functools
 import importlib
@@ -417,6 +417,7 @@ parse_configuration_content: "bsb.config.parse_configuration_content"
 parse_configuration_file: "bsb.config.parse_configuration_file"
 parse_morphology_content: "bsb.morphologies.parsers.parse_morphology_content"
 parse_morphology_file: "bsb.morphologies.parsers.parse_morphology_file"
+pool_cache: "bsb.services.pool_cache"
 read_option: "bsb.options.read_option"
 refs: "bsb.config.refs"
 register_option: "bsb.options.register_option"
