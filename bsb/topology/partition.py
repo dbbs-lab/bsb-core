@@ -272,7 +272,6 @@ class Layer(Rhomboid, classmap_entry="layer"):
     axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
         config.attr(type=types.in_(["x", "y", "z"]), default="z")
     )
-    stack_index: int = config.attr(type=int, default=0)
 
     def get_layout(self, hint):
         axis = ["x", "y", "z"].index(self.axis)

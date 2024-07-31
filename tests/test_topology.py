@@ -15,7 +15,7 @@ from bsb import (
 
 
 def single_layer():
-    c = topology.Layer(thickness=150, stack_index=0)
+    c = topology.Layer(thickness=150)
     r = topology.Stack(children=[c])
     topology.create_topology([r], np.array([0, 0, 0]), np.array([100, 100, 100]))
     return r, c
@@ -51,8 +51,8 @@ class TestCreateTopology(unittest.TestCase):
 
 class TestTopology(unittest.TestCase):
     def test_stack(self):
-        c = topology.Layer(name="c", thickness=150, stack_index=0)
-        c2 = topology.Layer(name="c2", thickness=150, stack_index=1)
+        c = topology.Layer(name="c", thickness=150)
+        c2 = topology.Layer(name="c2", thickness=150)
         r = topology.Stack(name="mystack", children=[c, c2])
         topology.create_topology([r], [0, 0, 0], [100, 100, 100])
         self.assertEqual(0, c.data.y)
@@ -90,41 +90,16 @@ class TestStack(
     RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
 ):
 
-    def test_incorrect_stack_index(self):
-        cfg = Configuration.default(
-            regions=dict(a=dict(type="stack", children=["b"])),
-            partitions=dict(b=dict(type="layer", stack_index=-1, thickness=10)),
-        )
-        with self.assertRaises(ConfigurationError):
-            Scaffold(cfg, self.storage)
-
-        cfg = Configuration.default(
-            regions=dict(a=dict(type="stack", children=["c", "b"])),
-            partitions=dict(
-                b=dict(type="layer", stack_index=0, thickness=10),
-                c=dict(type="layer", stack_index=2, thickness=10),
-            ),
-        )
-        with self.assertRaises(ConfigurationError):
-            Scaffold(cfg, self.storage)
-
-        cfg = Configuration.default(
-            regions=dict(a=dict(type="stack", children=["c", "b"])),
-            partitions=dict(
-                b=dict(type="layer", stack_index=1, thickness=10),
-                c=dict(type="layer", stack_index=1, thickness=10),
-            ),
-        )
-        with self.assertRaises(ConfigurationError):
-            Scaffold(cfg, self.storage)
-
-    def test_ordering_stack_index(self):
-        cfg = Configuration.default(
+    def setUp(self):
+        super().setUp()
+        self.origin_order = ["rhomboid1", "layer2", "rhomboid2", "layer1", "rhomboid3"]
+        self.cfg = dict(
             regions=dict(
                 a=dict(
                     type="stack",
-                    children=["rhomboid1", "layer2", "rhomboid2", "layer1", "rhomboid3"],
-                )
+                    children=self.origin_order,
+                ),
+                b=dict(type="group", children=["layer0"]),
             ),
             partitions=dict(
                 # we set the origin to rhomboid1 so that every partition is shifted by this value
@@ -137,18 +112,15 @@ class TestStack(
                 rhomboid3=dict(
                     type="rhomboid", dimensions=[10, 10, 10], origin=[0, 0, 20]
                 ),
-                layer2=dict(type="layer", stack_index=3, thickness=10),
-                layer1=dict(type="layer", stack_index=1, thickness=10),
+                layer0=dict(type="layer", thickness=10),
+                layer1=dict(type="layer", thickness=10),
+                layer2=dict(type="layer", thickness=10),
             ),
         )
-        network = Scaffold(cfg, self.storage)
-        expected_order = ["rhomboid1", "layer1", "rhomboid2", "layer2", "rhomboid3"]
-        expected_index = np.array([0, 3, 2, 1, 4])
-        stack_size = 10
-        for i, child in enumerate(
-            np.array(network.regions["a"].children)[expected_index]
-        ):
-            self.assertEqual(child.name, expected_order[i])
+
+    def _test_dimensions_offset(self, children, stack_size=10):
+        for i, child in enumerate(children):
+            self.assertEqual(child.name, self.origin_order[i])
             predicted_origin = np.array([0.0, 0.0, stack_size])
             self.assertClose(predicted_origin, child.data.ldc)
             dimensions = (
@@ -158,6 +130,34 @@ class TestStack(
             )
             self.assertClose(predicted_origin + dimensions, child.data.mdc)
             stack_size = child.data.mdc[2]
+
+    def test_default_order(self):
+        network = Scaffold(Configuration.default(**self.cfg), self.storage)
+        self._test_dimensions_offset(np.array(network.regions["a"].children))
+
+    def test_stack_order(self):
+        self.cfg["regions"]["a"]["stack_order"] = [
+            "layer0",
+            "layer1",
+            "layer1",
+            "layer2",
+            "rhomboid1",
+            "rhomboid2",
+        ]
+        expected_order = ["layer1", "layer2", "rhomboid1", "rhomboid2", "rhomboid3"]
+        expected_index = np.array([3, 1, 0, 2, 4])
+        network = Scaffold(Configuration.default(**self.cfg), self.storage)
+        for i, child in enumerate(
+            np.array(network.regions["a"].children)[expected_index]
+        ):
+            self.assertEqual(child.name, expected_order[i])
+
+    def test_anchor(self):
+        self.cfg["regions"]["a"]["anchor"] = "layer2"
+        network = Scaffold(Configuration.default(**self.cfg), self.storage)
+        self._test_dimensions_offset(
+            np.array(network.regions["a"].children), stack_size=-10
+        )
 
 
 @unittest.skipIf(
