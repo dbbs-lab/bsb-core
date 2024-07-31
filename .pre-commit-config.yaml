@@ -1,3 +1,6 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
 repos:
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 24.1.1
@@ -14,3 +17,10 @@ repos:
         name: api-test
         entry: python3 .github/devops/generate_public_api.py
         language: system
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.3.0
+    hooks:
+      - id: conventional-pre-commit
+        name: conventional-commit
+        stages: [ commit-msg ]
+        args: [ ]

@@ -90,7 +90,7 @@ dev = [
     "black~=24.1.1",
     "isort~=5.12",
     "snakeviz~=2.1",
-    "bump-my-version~=0.18"
+    "bump-my-version~=0.24"
 ]
 
 [tool.black]
