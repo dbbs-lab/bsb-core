@@ -11,6 +11,10 @@ jobs:
     outputs:
       tag: ${{ steps.semver.outputs.next }}
       old_tag: ${{ steps.semver.outputs.current }}
+    
+
+    permissions:
+        contents: write
 
     steps:
       - name: Checkout Code
@@ -53,6 +57,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs: bump
+
+    permissions:
+        contents: write
 
     steps:
       - name: Checkout Code
