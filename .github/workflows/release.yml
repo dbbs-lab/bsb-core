@@ -13,16 +13,24 @@ jobs:
       old_tag: ${{ steps.semver.outputs.current }}
 
     steps:
+      - name: Create Github token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.DBBS_APP_ID }}
+          private-key: ${{ secrets.DBBS_APP_PRIVATE_KEY }}
+
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Get Next Version
         id: semver
         uses: ietf-tools/semver-action@v1
         with:
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           branch: main
 
       - name: Set up Python 3.11
@@ -38,23 +46,30 @@ jobs:
           # Bump the version, dropping the leading `v` with `${x:1}`
           bump-my-version replace --current-version=${oldv:1} --new-version=${newv:1} pyproject.toml
 
-      - name: Commit version change
+      - name: Commit & Push version change
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: main
-          commit_message: 'docs: bump version: ${{ steps.semver.outputs.current }} → ${{ steps.semver.outputs.next }}'
+          commit_message: 'docs: bump version: ${{ steps.semver.outputs.current }} → ${{ steps.semver.outputs.next }} [skip-ci]'
 
-      - uses: rickstaa/action-create-tag@v1
-        id: "tag_create"
+      - name: Create tag
+        uses: rickstaa/action-create-tag@v1
         with:
           tag: ${{ steps.semver.outputs.next }}
-          github_token: ${{ github.token }}
+          github_token: ${{ steps.app-token.outputs.token }}
 
   release:
     runs-on: ubuntu-latest
     needs: bump
 
     steps:
+      - name: Create Github token
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.DBBS_APP_ID }}
+          private-key: ${{ secrets.DBBS_APP_PRIVATE_KEY }}
+
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -68,7 +83,7 @@ jobs:
         id: changelog
         uses: requarks/changelog-action@v1
         with:
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           fromTag: ${{ needs.bump.outputs.tag }}
           toTag: ${{ needs.bump.outputs.old_tag }}
 
@@ -81,13 +96,13 @@ jobs:
           tag: ${{ needs.bump.outputs.tag }}
           name: ${{ needs.bump.outputs.tag }}
           body: ${{ steps.changelog.outputs.changes }}
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Commit CHANGELOG.md
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: main
-          commit_message: 'docs: update CHANGELOG.md for ${{ github.ref_name }}'
+          commit_message: 'docs: update CHANGELOG.md for ${{ github.ref_name }} [skpi ci]'
           file_pattern: CHANGELOG.md
 
   deploy:

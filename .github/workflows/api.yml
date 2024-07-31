@@ -3,7 +3,7 @@ name: Check public API
 on: [push, pull_request]
 
 jobs:
-  check-documentation:
+  check-api:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
 
