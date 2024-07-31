@@ -49,6 +49,25 @@ class MPIService:
             return self._comm.allgather(obj)
         return [obj]
 
+    def window(self, buffer):
+        if self._comm and self.get_size() > 1:
+            from mpi4py.MPI import INFO_NULL, Win
+
+            return Win.Create(buffer, True, INFO_NULL, self._comm)
+        else:
+
+            class WindowMock:
+                def Get(self, bufspec, rank):
+                    return bufspec[0]
+
+                def Lock(self, rank):
+                    pass
+
+                def Unlock(self, rank):
+                    pass
+
+            return WindowMock()
+
 
 class MPIModule(MockModule):
     """

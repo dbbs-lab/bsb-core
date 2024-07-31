@@ -131,6 +131,7 @@ class Scaffold:
         :returns: A network object
         :rtype: :class:`~.core.Scaffold`
         """
+        self._pool_cache: dict[int, typing.Callable[[], None]] = {}
         self._pool_listeners: list[tuple[typing.Callable[[list["Job"]], None], float]] = (
             []
         )
@@ -270,7 +271,7 @@ class Scaffold:
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = [*self.placement.values()]
+            strategies = set(self.placement.values())
         strategies = PlacementStrategy.sort_deps(strategies)
         with self.create_job_pool(fail_fast=fail_fast) as pool:
             if pool.is_main():
@@ -309,7 +310,7 @@ class Scaffold:
         Run after placement hooks.
         """
         if hooks is None:
-            hooks = self.after_placement
+            hooks = set(self.after_placement.values())
         with self.create_job_pool(fail_fast) as pool:
             if pool.is_main():
                 pool.schedule(hooks)
@@ -321,7 +322,7 @@ class Scaffold:
         Run after placement hooks.
         """
         if hooks is None:
-            hooks = self.after_placement
+            hooks = set(self.after_connectivity.values())
         with self.create_job_pool(fail_fast) as pool:
             if pool.is_main():
                 pool.schedule(hooks)
@@ -784,6 +785,19 @@ class Scaffold:
             if l is listener:
                 self._pool_listeners.pop(i)
                 break
+
+    def register_pool_cached_item(self, id, cleanup):
+        """
+        Registers a cleanup function for items cached during a parallel workflow.
+        Internal use only.
+
+        :param id: Id of the cached item. Should be unique but identical across MPI
+          nodes
+        :param cleanup: A callable that cleans up the cached item.
+        """
+        if id in self._pool_cache:
+            raise RuntimeError(f"Pool cache item '{id}' already exists.")
+        self._pool_cache[id] = cleanup
 
 
 class ReportListener:

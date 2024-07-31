@@ -151,6 +151,10 @@ The example connects cells that are near each other, between a :guilabel:`min` a
       if self.max < self.min:
         raise ConfigurationError("Max distance should be larger than min distance.")
 
+.. hint::
+
+  Some connection strategies may benefit in speed from :ref:`caching`.
+
 And an example configuration using this strategy:
 
 .. code-block:: json

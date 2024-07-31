@@ -1,3 +1,8 @@
+# 4.3.0
+* Introduction of a pool caching system
+* Fix run iteration values in core
+* Add FixedOutdegree
+
 # 4.2.0
 * Created geometric shape connection strategies
 * Added support for multiple shapes for each cell type

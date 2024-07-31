@@ -1,7 +1,9 @@
+import os
 import time
 import unittest
 from graphlib import CycleError
 from time import sleep
+from unittest.mock import patch
 
 from bsb_test import (
     NetworkFixture,
@@ -24,6 +26,7 @@ from bsb import (
     Partition,
     PlacementStrategy,
     RandomPlacement,
+    Scaffold,
     config,
 )
 from bsb.services.pool import (
@@ -33,6 +36,9 @@ from bsb.services.pool import (
     PoolProgressReason,
     PoolStatus,
     WorkflowError,
+    _cache_hash,
+    get_node_cache_items,
+    pool_cache,
 )
 
 
@@ -497,3 +503,121 @@ class TestSubmissionContext(
                 job = pool.queue(sleep_y, (4, 0.2), number=1)
                 self.assertIn("function sleep_y", job.name)
                 self.assertEqual(1, job.context["number"])
+
+
+def mock_free_cache(scaffold, required_cache_items: set[str]):
+    # Mock function to test job cache system
+
+    for stale_key in set(scaffold._pool_cache.keys()) - required_cache_items:
+        # Save cleaned items in a file for testing
+        with open(f"test_cache_{MPI.get_rank()}.txt", "a") as f:
+            f.write(f"{stale_key}\n")
+        scaffold._pool_cache.pop(stale_key)()
+
+
+class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
+    def setUp(self):
+        super().setUp()
+
+        @config.node
+        class TestCache(PlacementStrategy):
+            @pool_cache
+            def cache_something(self):
+                return 10
+
+            def place(self, chunk, indicators):
+                self.cache_something()
+
+        self.network = Scaffold(
+            config=Configuration.default(
+                placement=dict(
+                    withcache=TestCache(cell_types=[], partitions=[]),
+                )
+            ),
+            storage=self.storage,
+        )
+        self.network.placement.withcache.cache_something.cache_clear()
+        self.id_cache = _cache_hash("{root}.placement.withcache.cache_something")
+
+    def test_cache_registration(self):
+        """Test that when a cache is hit, it is registered in the scaffold"""
+        self.network.placement.withcache.place(None, None)
+        self.assertEqual(
+            [self.id_cache],
+            [*self.network._pool_cache.keys()],
+        )
+
+    def test_method_detection(self):
+        """Test that we can detect which jobs need which items"""
+        self.assertEqual(
+            [self.id_cache],
+            get_node_cache_items(self.network.placement.withcache),
+        )
+
+    def test_pool_required_cache(self):
+        """Test that the pool knows which cache items are required"""
+        with self.network.create_job_pool() as pool:
+            self.assertEqual(set(), pool.get_required_cache_items())
+            pool.queue_placement(self.network.placement.withcache, [0, 0, 0])
+            self.assertEqual(
+                {self.id_cache},
+                pool.get_required_cache_items(),
+            )
+
+    @patch(
+        "bsb.services.pool.free_stale_pool_cache",
+        lambda scaffold, required_cache_items: mock_free_cache(
+            scaffold, required_cache_items
+        ),
+    )
+    def test_cache_survival(self):
+        """Test that the required cache items survive until the jobs are done."""
+
+        # FIXME: This mechanism is critical for parallel execution, but is hard to test
+        #  under that condition. This test will pass with false positive results under
+        #  parallel conditions. This mechanism was manually tested when it was written,
+        #  and accepts PRs to properly test it in CI.
+
+        @config.node
+        class TestNode(PlacementStrategy):
+            def place(node, chunk, indicators):
+                # Get the other job's cache.
+                cache = node.scaffold.placement.withcache.cache_something.cache_info()
+                # Assert that both times this job is called, the cache has no items in it,
+                # even though the other job was executed and cached in between.
+                # This confirms that the cache is cleared once its dependents are done.
+                self.assertEqual(cache.misses, 0)
+
+        self.network.placement["withoutcache"] = TestNode(cell_types=[], partitions=[])
+        pool = self.network.create_job_pool()
+        with pool:
+            first = pool.queue_placement(self.network.placement.withoutcache, [0, 0, 0])
+            # create 4 jobs with cache to check that the cache is deleted only once.
+            job0 = pool.queue_placement(
+                self.network.placement.withcache, [0, 0, 0], deps=[first]
+            )
+            job1 = pool.queue_placement(
+                self.network.placement.withcache, [0, 0, 1], deps=[first]
+            )
+            job2 = pool.queue_placement(
+                self.network.placement.withcache, [0, 1, 0], deps=[first]
+            )
+            job3 = pool.queue_placement(
+                self.network.placement.withcache, [1, 0, 0], deps=[first]
+            )
+            pool.queue_placement(
+                self.network.placement.withoutcache,
+                [0, 0, 0],
+                deps=[job0, job1, job2, job3],
+            )
+            pool.execute()
+
+        for filename in os.listdir():
+            if filename.startswith(f"test_cache_{MPI.get_rank()}"):
+                with open(filename, "r") as f:
+                    lines = f.readlines()
+                    self.assertEqual(
+                        len(lines), 1, "The free function should be called only once."
+                    )
+                    self.assertEqual(lines[0], f"{self.id_cache}\n")
+                os.remove(filename)

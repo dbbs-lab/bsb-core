@@ -136,6 +136,7 @@ human-readable, multi-scale models!
 
   dev/installation
   dev/documentation
+  dev/guidelines
   dev/services
   dev/plugins
   dev/hooks
