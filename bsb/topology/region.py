@@ -85,33 +85,15 @@ class RegionGroup(Region, classmap_entry="group"):
 @config.node
 class Stack(RegionGroup, classmap_entry="stack"):
     """
-    Stack components on top of each other based on their ``stack_order`` if it is defined
-    and adjust its own height accordingly.
+    Stack components on top of each other and adjust its own height accordingly.
     """
 
     axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
         config.attr(type=types.in_(["x", "y", "z"]), default="z")
     )
-    stack_order: list[typing.Union["Region", "Partition"]] = config.reflist(
-        refs.regional_ref, backref="region"
-    )
     anchor: typing.Union["Region", "Partition"] = config.ref(
         refs.regional_ref, backref="region"
     )
-
-    def _resolve_stack_order(self, layout):
-        corrected_order = []
-        children_owners = [child._owner for child in layout.children]
-        for child in self.stack_order:
-            if child in children_owners:
-                to_add = layout.children[children_owners.index(child)]
-                if to_add not in corrected_order:
-                    corrected_order.append(to_add)
-
-        for child in layout.children:
-            if child not in corrected_order:
-                corrected_order.append(child)
-        return corrected_order
 
     def _resolve_anchor_offset(self, children, axis_idx):
         children_owners = [child._owner for child in children]
@@ -129,10 +111,9 @@ class Stack(RegionGroup, classmap_entry="stack"):
         trans_eye = np.zeros(3)
         trans_eye[axis_idx] = 1
 
-        children = self._resolve_stack_order(layout)
         # origin of stack corresponds to the origin of the first child
-        cumul_offset = self._resolve_anchor_offset(children, axis_idx)
-        for child in children:
+        cumul_offset = self._resolve_anchor_offset(layout.children, axis_idx)
+        for child in layout.children:
             if child.data is None:
                 warn(f"Skipped layout arrangement of {child._owner.name} in {self.name}")
                 continue

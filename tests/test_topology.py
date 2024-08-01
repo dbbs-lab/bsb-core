@@ -135,23 +135,6 @@ class TestStack(
         network = Scaffold(Configuration.default(**self.cfg), self.storage)
         self._test_dimensions_offset(np.array(network.regions["a"].children))
 
-    def test_stack_order(self):
-        self.cfg["regions"]["a"]["stack_order"] = [
-            "layer0",
-            "layer1",
-            "layer1",
-            "layer2",
-            "rhomboid1",
-            "rhomboid2",
-        ]
-        expected_order = ["layer1", "layer2", "rhomboid1", "rhomboid2", "rhomboid3"]
-        expected_index = np.array([3, 1, 0, 2, 4])
-        network = Scaffold(Configuration.default(**self.cfg), self.storage)
-        for i, child in enumerate(
-            np.array(network.regions["a"].children)[expected_index]
-        ):
-            self.assertEqual(child.name, expected_order[i])
-
     def test_anchor(self):
         self.cfg["regions"]["a"]["anchor"] = "layer2"
         network = Scaffold(Configuration.default(**self.cfg), self.storage)
