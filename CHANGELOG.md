@@ -1,9 +1,18 @@
-# 4.3.0
+## 4.4.0
+### :sparkles: New Features
+- [`f234265`](https://github.com/dbbs-lab/bsb-core/commit/f234265cbab4cd370332eb7dea794f872f6728d8) - add conventional commits and auto release *(PR #864 by @drodarie)*
+  - :arrow_lower_right: *addresses issue #860 opened by @Helveg*
+
+### :bug: Bug Fixes
+- [`32799b4`](https://github.com/dbbs-lab/bsb-core/commit/32799b4961811ac977dffafb49f3465ae9d6ab15) - use github app to bypass the main branch protections. *(PR #872 by @drodarie)*
+  - :arrow_lower_right: *fixes issue #870 opened by @drodarie*
+
+## 4.3.0
 * Introduction of a pool caching system
 * Fix run iteration values in core
 * Add FixedOutdegree
 
-# 4.2.0
+## 4.2.0
 * Created geometric shape connection strategies
 * Added support for multiple shapes for each cell type
 * Written docs for geometric shapes
@@ -11,12 +20,12 @@
 * fix readthedocs conflicts with furo package
 * Add test to check if Allen API is down and skip related tests
 
-# 4.1.1
+## 4.1.1
 * Fix reference of file_ref during configuration parsing when importing nodes.
 * Use a more strict rule for Jobs enqueuing.
 * Use certifi to fix ssl certificate issues.
 
-# 4.1.0
+## 4.1.0
 * Added `ParsesReferences` mixin from bsb-json to allow reference and import in configuration files.
   This includes also a recursive parsing of the configuration files.
 * Added `swap_axes` function in morphologies
