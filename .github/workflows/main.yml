@@ -1,10 +1,9 @@
 name: Bump version, create release and deploy
 
 on:
-  workflow-run:
-    workflows: ["Build and test BSB", "Documentation", "Black", "Run isort", "Check public API"]
-    branches: [main]
-    types: [completed]
+  push:
+    branches:
+      - main
 
 jobs:
   isort:
