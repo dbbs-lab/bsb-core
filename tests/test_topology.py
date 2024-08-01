@@ -136,7 +136,7 @@ class TestStack(
         self._test_dimensions_offset(np.array(network.regions["a"].children))
 
     def test_anchor(self):
-        self.cfg["regions"]["a"]["anchor"] = "layer2"
+        self.cfg["regions"]["a"]["anchor"] = "rhomboid2"
         network = Scaffold(Configuration.default(**self.cfg), self.storage)
         self._test_dimensions_offset(
             np.array(network.regions["a"].children), stack_size=-10

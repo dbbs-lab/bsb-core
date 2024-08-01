@@ -33,6 +33,7 @@ class Region(abc.ABC):
     children: list[typing.Union["Region", "Partition"]] = config.reflist(
         refs.regional_ref, backref="region", required=True
     )
+    """Reference to Regions or Partitions belonging to this region."""
 
     @property
     def data(self):
@@ -91,18 +92,24 @@ class Stack(RegionGroup, classmap_entry="stack"):
     axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
         config.attr(type=types.in_(["x", "y", "z"]), default="z")
     )
-    anchor: typing.Union["Region", "Partition"] = config.ref(
-        refs.regional_ref, backref="region"
-    )
+    """Axis along which the stack's children will be stacked"""
+    anchor: typing.Union["Region", "Partition"] = config.ref(refs.regional_ref)
+    """Reference to one child of the stack, which origin will become the origin of the stack"""
 
     def _resolve_anchor_offset(self, children, axis_idx):
+        """
+        Check if the anchor is one of the children of the stack and
+        if so, return the offset so the anchor is at the origin of the stack.
+        """
         children_owners = [child._owner for child in children]
         if self.anchor is not None and self.anchor in children_owners:
-            return sum(
-                -children[i].data.ldc[axis_idx]
-                for i in range(children_owners.index(self.anchor))
+            index = children_owners.index(self.anchor)
+            return children[index].data.ldc[axis_idx] - sum(
+                children[i].data.dimensions[axis_idx] for i in range(index)
             )
         else:
+            # if anchor is not defined or one of the children
+            # then the origin of the stack corresponds to the origin of the first child
             return children[0].data.ldc[axis_idx]
 
     def get_layout(self, hint):
@@ -111,7 +118,6 @@ class Stack(RegionGroup, classmap_entry="stack"):
         trans_eye = np.zeros(3)
         trans_eye[axis_idx] = 1
 
-        # origin of stack corresponds to the origin of the first child
         cumul_offset = self._resolve_anchor_offset(layout.children, axis_idx)
         for child in layout.children:
             if child.data is None:
