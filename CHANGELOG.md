@@ -1,3 +1,9 @@
+## [v4.4.2] - 2024-08-02
+### :bug: Bug Fixes
+- [`97978b4`](https://github.com/dbbs-lab/bsb-core/commit/97978b433dba579478387760010dfd7b09bfda19) - use OIDC instead of user token to publish to pypi *(PR [#877](https://github.com/dbbs-lab/bsb-core/pull/877) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#876](https://github.com/dbbs-lab/bsb-core/issues/876) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v4.4.1] - 2024-08-02
 ### :bug: Bug Fixes
 - [`e4c194c`](https://github.com/dbbs-lab/bsb-core/commit/e4c194ce9c7b4f3bc41f7589954a98d204e8d9fb) - make gha checks (docs, build, etc) triggered by main workflows *(PR [#874](https://github.com/dbbs-lab/bsb-core/pull/874) by [@drodarie](https://github.com/drodarie))*
@@ -429,3 +435,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
   adoption by the community.
 * First steps of distribution as a Python package.
 [v4.4.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.0...v4.4.1
+[v4.4.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.1...v4.4.2
