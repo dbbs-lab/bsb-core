@@ -113,7 +113,7 @@ tag_name = "v{new_version}"
 tag_message = "Bump version: {current_version} → {new_version}"
 allow_dirty = false
 commit = true
-message = "Bump version: {current_version} → {new_version}"
+message = "docs: bump version: {current_version} → {new_version} [skip ci]"
 commit_args = "--no-verify"
 
 [tool.bumpversion.parts.pre_l]

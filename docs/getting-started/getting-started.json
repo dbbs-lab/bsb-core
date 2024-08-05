@@ -18,13 +18,11 @@
   "partitions": {
     "base_layer": {
       "type": "layer",
-      "thickness": 100,
-      "stack_index": 0
+      "thickness": 100
     },
     "top_layer": {
       "type": "layer",
-      "thickness": 100,
-      "stack_index": 1
+      "thickness": 100
     }
   },
   "cell_types": {

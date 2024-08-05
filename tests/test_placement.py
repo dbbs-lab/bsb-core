@@ -347,7 +347,7 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
                 "chunk_size": [20, 10, 20],  # at least two chunks
             },
             partitions={
-                "first_layer": {"thickness": 5.0, "stack_index": 0},
+                "first_layer": {"thickness": 5.0},
             },
             cell_types=dict(
                 test_cell=dict(spatial=dict(radius=1.5, count=100)),

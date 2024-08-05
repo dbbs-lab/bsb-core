@@ -2,6 +2,43 @@
 Partitions
 ##########
 
+========
+Rhomboid
+========
+:class:`Rhomboid <.topology.partition.Rhomboid>` is the simplest implementation
+of the :class:`Partition <.topology.partition.Partition>`. Here, the `Rhomboid`
+occupies the space of a rectangular cuboid defined by its ``origin`` and ``dimensions``
+within its `Region`.
+
+Parameters
+----------
+* ``dimensions``: Sizes of the partition for each axis.
+* ``can_scale``: Boolean flag to authorize rescaling of the partition dimensions.
+* ``origin``: Coordinate of the origin of the partition.
+* ``can_move``: Boolean flag to authorize the translation of the partition.
+
+
+=====
+Layer
+=====
+A :class:`Layer <.topology.partition.Layer>` occupies the full space of its
+containing `Region` except on a defined ``axis``, where it is limited.
+This creates a stratum within the `Region` along the chosen ``axis``.
+
+Parameters
+----------
+* ``can_scale``: Boolean flag to authorize rescaling of the partition dimensions.
+* ``origin``: Coordinate of the origin of the partition.
+* ``can_move``: Boolean flag to authorize the translation of the partition.
+* ``thickness``: Thickness of the layer along its axis.
+* ``axis``: Axis along which the layer will be limited. Should be one of ["x", "y", "z"].
+
+.. note::
+
+    `Layer` is mainly meant to be contained in a `Stack` region. Indeed, if a `Stack` and its
+    `Layers` share the same ``axis``, then each `Layer` will occupy the whole space of the
+    Region, except on the ``axis`` where it will be defined according to their ``thickness``.
+
 .. _voxel-partition:
 
 ======

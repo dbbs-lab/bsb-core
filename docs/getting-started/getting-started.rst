@@ -150,7 +150,7 @@ Connectivity
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 56-66
+    :lines: 54-64
 
   .. literalinclude:: getting_started.py
     :language: python
