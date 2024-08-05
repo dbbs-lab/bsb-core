@@ -70,6 +70,12 @@ class Region(abc.ABC):
 
 @config.node
 class RegionGroup(Region, classmap_entry="group"):
+    """
+    Base implementation of Region.
+    Any transformation on the region will be directly
+    applied to its children (Regions or Partitions).
+    """
+
     def rotate(self, rotation):
         for child in self.children:
             child.rotate(rotation)
