@@ -2,9 +2,11 @@
 Partitions
 ##########
 
-Partitions contain shape descriptions used for the spatial layout of the network.
+Partitions contain shape descriptions used to define the spatial layout of the network.
 These descriptions can be represented as layers, meshes and voxelsets.
-In BSB are implemented two different kind of partitions: :ref:`layer  <layer-partition>` and :ref:`voxel based <voxel-partition>`.
+In the BSB the following two partitions are implemented:
+* :ref:`Layers  <layer-partition>`
+* :ref:`Voxelized volumes <voxel-partition>`.
 
 .. _layer-partition:
 
@@ -12,9 +14,9 @@ In BSB are implemented two different kind of partitions: :ref:`layer  <layer-par
 Layers
 ======
 
-:class:`Layer partition <.topology.partition.Layer>` is a parallelepiped shaped volume.
-The size of a layer is defined by the network except for the height, therefore it is needed to
-specify the thickness of the layer with the ``thickness`` attribute.
+The :class:`Layer partition <.topology.partition.Layer>` represents a parallelepiped-shaped volume.
+The size of a layer is defined by the network, except for its height.
+Therefore, it is necessary to specify the layer's thickness using the thickness attribute.
 
 .. tab-set-code::
 
@@ -29,12 +31,13 @@ specify the thickness of the layer with the ``thickness`` attribute.
         }
       }
 
-Cortical Model Use Case
+Build a stack of layers
 -----------------------
 
 
-Layers can be organized in a pile in order to separate the structure of your network according to the depth.
-:ref:`Stack <stack-region>` region is used to pile up your layers, for a three layer system it will be:
+Layers can be organized into a stack to structure your network based on depth.
+The :ref:`Stack <stack-region>` region is used to arrange layers in this manner.
+For a three-layer system, it will be organized as follows:
 
 .. tab-set-code::
 

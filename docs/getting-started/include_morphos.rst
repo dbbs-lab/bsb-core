@@ -176,7 +176,7 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 .. note::
 
   If there's multiple morphologies per cell type, they'll be assigned randomly, unless you
-  specify a :ref:`MorphologyDistributor <MorphologiesDistributors>`.
+  specify a :ref:`MorphologyDistributor <MorphologyDistributors>`.
 
 
 Recap

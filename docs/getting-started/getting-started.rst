@@ -119,7 +119,7 @@ Placement
     :lines: 19-24
 
 
-The :doc:`placement </placement/intro>` blocks is charge to place cells in the partitions using the cell type indications.
+The :doc:`placement </placement/intro>` blocks is in charge of placing cells in the partitions using the cell type indications.
 You can specify the strategy to use  by setting the :guilabel:`strategy` attribute.
 Here we use  the strategy :guilabel:`ParticlePlacement` that considers the cells as spheres and
 bumps them around as repelling particles until there is no overlap between them.

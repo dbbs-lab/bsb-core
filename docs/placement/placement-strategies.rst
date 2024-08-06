@@ -7,7 +7,7 @@ RandomPlacement
 
 *Class*: :class:`bsb.placement.RandomPlacement <.placement.random.RandomPlacement>`
 
-This class place cells in random postition without caring about overlaps. Here is an example with 10 cells.
+This class places cells in random positions without considering overlaps. Below is an example with 10 cells.
 
 .. code-block:: json
 
