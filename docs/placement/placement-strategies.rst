@@ -7,12 +7,45 @@ RandomPlacement
 
 *Class*: :class:`bsb.placement.RandomPlacement <.placement.random.RandomPlacement>`
 
+This class places cells in random positions without considering overlaps. Below is an example with 10 cells.
+
+.. code-block:: json
+
+  {
+    "cell_types": {
+      "golgi_cell": {
+        "placement": {
+          "class": "bsb.placement.particle.RandomPlacement",
+          "layer": "granular_layer",
+          "count": 10
+          }
+      },
+    }
 
 ParallelArrayPlacement
 **********************
 
 *Class*: :class:`bsb.placement.ParallelArrayPlacement
 <.placement.arrays.ParallelArrayPlacement>`
+
+This class place cells in an aligned array, it create a lattice with fixed spacing and with the desired angle.
+It is necessary to specify ``spacing_x`` and ``angle`` attributes.
+
+.. code-block:: json
+
+  {
+    "cell_types": {
+      "golgi_cell": {
+        "placement": {
+          "class": "bsb.placement.arrays.ParallelArrayPlacement",
+          "layer": "granular_layer",
+          "count": 100,
+          "spacing_x": 10,
+          "angle": 0
+          }
+      },
+    }
+  }
 
 FixedPositions
 **************
@@ -37,3 +70,5 @@ This class places the cells in fixed positions specified in the attribute ``posi
       },
     }
   }
+
+
