@@ -2,7 +2,7 @@
 Regions
 #######
 
-In BSB, a region is a hierarchical container of :doc:`partitions <topology/partitions>`,
+In the BSB, a region is a hierarchical container of :doc:`partitions </topology/partitions>`,
  used to manage different areas of the network.
 
 .. _stack-region:
@@ -11,5 +11,5 @@ In BSB, a region is a hierarchical container of :doc:`partitions <topology/parti
 List of builtin regions
 =======================
 
-BSB provides an implemented :class:`stack <.topology.regions.Stack>` type region that
+The BSB provides an implemented :class:`stack <.topology.regions.Stack>` type region that
 allows you to create a stack of partitions.
