@@ -69,7 +69,7 @@ parallel = [
 test = [
     "bsb-arbor~=4.0",
     "bsb-hdf5~=4.0",
-    "bsb-test~=4.1",
+    "bsb-test~=4.2",
     "coverage~=7.3",
 ]
 docs = [
