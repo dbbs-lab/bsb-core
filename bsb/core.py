@@ -527,7 +527,7 @@ class Scaffold:
 
     def get_placement_of(self, *cell_types):
         """
-        Find all of the placement strategies that given certain cell types.
+        Find all the placement strategies that given certain cell types.
 
         :param cell_types: Cell types (or their names) of interest.
         :type cell_types: Union[~bsb.cell_types.CellType, str]
@@ -540,13 +540,15 @@ class Scaffold:
         """
         Return a cell type's placement set from the output formatter.
 
-        :param tag: Unique identifier of the placement set in the storage
-        :type tag: str
-        :returns: A placement set
+        :param type: Cell type name
+        :type type: Union[~bsb.cell_types.CellType, str]
+        :param chunks: Optionally load a specific list of chunks.
+        :type chunks: list[tuple[float, float, float]]
         :param labels: Labels to filter the placement set by.
         :type labels: list[str]
         :param morphology_labels: Subcellular labels to apply to the morphologies.
         :type morphology_labels: list[str]
+        :returns: A placement set
         :rtype: :class:`~.storage.interfaces.PlacementSet`
         """
         if isinstance(type, str):
@@ -557,7 +559,7 @@ class Scaffold:
 
     def get_placement_sets(self) -> typing.List["PlacementSet"]:
         """
-        Return all of the placement sets present in the network.
+        Return all the placement sets present in the network.
 
         :rtype: List[~bsb.storage.interfaces.PlacementSet]
         """
@@ -581,9 +583,8 @@ class Scaffold:
         """
         Return all connectivity sets from the output formatter.
 
-        :param tag: Unique identifier of the connectivity set in the output formatter
-        :type tag: str
         :returns: All connectivity sets
+        :rtype: List[:class:`~.storage.interfaces.ConnectivitySet`]
         """
         return [self._load_cs_types(cs) for cs in self.storage.get_connectivity_sets()]
 
@@ -594,10 +595,16 @@ class Scaffold:
 
     def get_connectivity_set(self, tag=None, pre=None, post=None) -> "ConnectivitySet":
         """
-        Return a connectivity set from the output formatter.
+        Return a connectivity set from its name according to the output formatter.
+        The name can be specified directly with tag or with deduced from pre and post
+        if there is only one connectivity set matching this pair.
 
         :param tag: Unique identifier of the connectivity set in the output formatter
         :type tag: str
+        :param pre: Presynaptic cell type
+        :type pre: ~bsb.cell_types.CellType
+        :param post: Postsynaptic cell type
+        :type post: ~bsb.cell_types.CellType
         :returns: A connectivity set
         :rtype: :class:`~.storage.interfaces.ConnectivitySet`
         """

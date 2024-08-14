@@ -30,13 +30,6 @@ if typing.TYPE_CHECKING:
     from ..core import Scaffold
 
 
-def _size_requirements(section):
-    if "thickness" not in section and "volume_scale" not in section:
-        raise RequirementError(
-            "Either a `thickness` or `volume_scale` attribute required"
-        )
-
-
 class _backref_property(property):
     def __backref__(self, instance, value):
         setattr(instance, "_region", value)
@@ -282,19 +275,8 @@ class Layer(Rhomboid, classmap_entry="layer"):
     """
 
     dimensions = config.unset()
-    thickness: float = config.attr(type=float, required=_size_requirements)
+    thickness: float = config.attr(type=float, required=True)
     """Thickness of the layer along its axis"""
-    volume_scale: list[float] = config.attr(
-        type=types.or_(
-            types.list(float, size=2),
-            types.scalar_expand(
-                float,
-                lambda x: [x, x],
-            ),
-        ),
-        default=lambda: [1.0, 1.0],
-        call_default=True,
-    )
     axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
         config.attr(type=types.in_(["x", "y", "z"]), default="z")
     )
