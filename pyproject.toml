@@ -18,7 +18,6 @@ dependencies = [
     "errr~=1.2",
     "rtree~=1.0",
     "psutil~=5.8",
-    "pynrrd~=1.0",
     "morphio~=3.3",
     "toml~=0.10.0",
     "requests~=2.30",
@@ -30,6 +29,7 @@ dependencies = [
     "shortuuid~=1.0",
     "quantities~=0.15.0",
     "exceptiongroup>=1.2.0",
+    "voxcell~=3.1"
 ]
 
 [tool.flit.module]

@@ -69,6 +69,7 @@ autodoc_mock_imports = [
     "arbor",
     "morphio",
     "nrrd",
+    "voxcell",
 ]
 
 intersphinx_mapping = {
@@ -80,6 +81,7 @@ intersphinx_mapping = {
     "mpi4py": ("https://mpi4py.readthedocs.io/en/stable/", None),
     "arbor": ("https://docs.arbor-sim.org/en/latest/", None),
     "neo": ("https://neo.readthedocs.io/en/latest/", None),
+    "voxcell": ("https://voxcell.readthedocs.io/en/stable/", None),
 }
 
 # Add any paths that contain templates here, relative to this directory.

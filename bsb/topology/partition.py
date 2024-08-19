@@ -3,13 +3,17 @@
 """
 
 import abc
-import collections
 import functools
 import json
 import typing
 
 import nrrd
 import numpy as np
+from scipy.spatial.transform import Rotation
+from voxcell import RegionMap, VoxelData
+
+from bsb._util import rotation_matrix_from_vectors
+from bsb.config._attrs import cfgdict, cfglist
 
 from .. import config
 from ..config import types
@@ -353,7 +357,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
     )
     """Path to the NRRD file containing volumetric data to associate with the partition.
     If source is set, then sources should not be set."""
-    sources: NrrdDependencyNode = config.list(
+    sources: cfglist[NrrdDependencyNode] = config.list(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=False),
     )
@@ -394,7 +398,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
             # Use integer (sparse) indexing
             mask = [np.empty((0,), dtype=int) for i in range(3)]
             for mask_src in self._mask_src:
-                mask_data = mask_src.get_data()
+                mask_data = mask_src.get_data().raw
                 new_mask = np.nonzero(self._mask_cond(mask_data))
                 for i, mask_vector in enumerate(new_mask):
                     mask[i] = np.concatenate((mask[i], mask_vector))
@@ -403,7 +407,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         else:
             # Use boolean (dense) indexing
             for mask_src in self._mask_src:
-                mask_data = mask_src.get_data()
+                mask_data = mask_src.get_data().raw
                 mask = mask | self._mask_cond(mask_data)
             mask = np.nonzero(mask)
         return mask
@@ -420,7 +424,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         if not self.mask_only:
             voxel_data = np.empty((len(mask[0]), len(self._src)))
             for i, source in enumerate(self._src):
-                voxel_data[:, i] = source.get_data()[mask]
+                voxel_data[:, i] = source.get_data().raw[mask]
 
         return VoxelSet(
             np.transpose(mask),
@@ -503,6 +507,24 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     """Name or acronym of the region to filter within the annotation volume according to the AMBRH.
     If struct_name is set, then struct_id should not be set."""
 
+    space_origin = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, 0.0, 0.0]),
+        call_default=True,
+        type=types.ndarray(),
+    )
+    """Origin point for the datasets."""
+    default_vector = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, -1.0, 0.0]),
+        call_default=True,
+        type=types.ndarray(),
+    )
+    """Default orientation vector of each position."""
+    atlas_datasets: cfgdict[str, NrrdDependencyNode] = config.dict(
+        required=False, type=NrrdDependencyNode
+    )
+
     @config.property(type=int)
     def voxel_size(self):
         """Size of each voxel."""
@@ -552,6 +574,41 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
                 f"{content}"
             )
 
+    @functools.cached_property
+    def region_map(self):
+        """
+        Return RegionMap instance to manipulate the Allen brain region hierarchy.
+
+        :rtype: voxcell.region_map.RegionMap
+        """
+        return RegionMap.from_dict(AllenStructure._dl_structure_ontology()[0])
+
+    @functools.cached_property
+    def annotations(self):
+        """
+        Return VoxelData instance of the Allen annotations.
+
+        :rtype: voxcell.voxel_data.VoxelData
+        """
+        return self.mask_source.load_object()
+
+    @functools.cached_property
+    def datasets(self):
+        """
+        Return a dictionary of VoxelData instances corresponding to the datasets attached
+        to the annotations.
+
+        :rtype: dict[str, :class:`voxcell.voxel_data.VoxelData`]
+        """
+        return {k: v.load_object() for k, v in self.atlas_datasets.items()}
+
+    def boot(self):
+        for k, v in self.datasets.items():
+            if np.any(np.array(v.raw.shape[:3]) != np.array(self.annotations.shape)):
+                raise ConfigurationError(
+                    f"Shape of dataset {k} does not match the shape of the annotations."
+                )
+
     @classmethod
     def get_structure_mask_condition(cls, find):
         """
@@ -580,7 +637,7 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         :returns: A boolean of the mask filtered based on the Allen structure.
         :rtype: Callable[numpy.ndarray]
         """
-        mask_data, _ = nrrd.read(cls._dl_mask())
+        mask_data = VoxelData.load_nrrd(cls._dl_mask()).raw
         return cls.get_structure_mask_condition(find)(mask_data)
 
     @classmethod
@@ -592,68 +649,28 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         :type find: Union[str, int]
         :returns: Set of IDs
         :rtype: numpy.ndarray
-        """
-        struct = cls.find_structure(find)
-        values = set()
-
-        def flatmask(item):
-            values.add(item["id"])
-
-        cls._visit_structure([struct], flatmask)
-        return np.array([*values], dtype=int)
-
-    @classmethod
-    def find_structure(cls, id):
-        """
-        Find an Allen structure by name, acronym or ID.
-
-        :param id: Query for the name, acronym or ID of the Allen structure.
-        :type id: Union[str, int, float]
-        :returns: Allen structure node of the Allen ontology tree.
-        :rtype: dict
         :raises: NodeNotFoundError
         """
-        if isinstance(id, str):
-            treat = lambda s: s.strip().lower()
-            name = treat(id)
-            find = lambda x: treat(x["name"]) == name or treat(x["acronym"]) == name
-        elif isinstance(id, int) or isinstance(id, float):
-            id = int(id)
-            find = lambda x: x["id"] == id
+        region_map = cls().region_map
+        if isinstance(find, str):
+            id_roi = list(
+                region_map.find(
+                    find, attr="name", ignore_case=True, with_descendants=True
+                )
+            )
+            if len(id_roi) == 0:
+                id_roi = list(
+                    region_map.find(
+                        find, attr="acronym", ignore_case=True, with_descendants=True
+                    )
+                )
+        elif isinstance(find, int) or isinstance(find, float):
+            id_roi = list(region_map.find(int(find), attr="id", with_descendants=True))
         else:
-            raise TypeError(f"Argument must be a string or a number. {type(id)} given.")
-        try:
-            return cls._find_structure(find)
-        except NodeNotFoundError:
-            raise NodeNotFoundError(f"Could not find structure '{id}'") from None
-
-    @classmethod
-    def _find_structure(cls, find):
-        result = None
-
-        def visitor(item):
-            nonlocal result
-            if find(item):
-                result = item
-                return True
-
-        tree = cls._dl_structure_ontology()
-        cls._visit_structure(tree, visitor)
-        if result is None:
+            raise TypeError(f"Argument must be a string or a number. {type(find)} given.")
+        if len(id_roi) == 0:
             raise NodeNotFoundError("Could not find a node that satisfies constraints.")
-        return result
-
-    @classmethod
-    def _visit_structure(cls, tree, visitor):
-        deck = collections.deque(tree)
-        while True:
-            try:
-                item = deck.popleft()
-            except IndexError:
-                break
-            if visitor(item):
-                break
-            deck.extend(item["children"])
+        return np.array(id_roi)
 
     def _validate_mask_condition(self):
         # We override the `NrrdVoxels`' `_validate_mask_condition` and use this
@@ -661,6 +678,88 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         # has an id that is part of the structure.
         id = self.struct_id if self.struct_id is not None else self.struct_name
         self._mask_cond = self.get_structure_mask_condition(id)
+
+    def crosses_voxel(self, point, last_point):
+        """
+        Check if the distance of one voxel is separating two positions.
+
+        :param numpy.ndarray point: starting position
+        :param numpy.ndarray last_point: ending position
+        :return: True if position are separated by at least one voxel.
+        :rtype: bool
+        """
+        return np.any(np.absolute(point - last_point) >= self.voxel_size)
+
+    def voxel_of(self, point):
+        """
+        Convert a 3D float position into a voxel based coordinate.
+
+        :param numpy.ndarray point: floating point
+        :return: 3D voxel coordinate
+        :rtype: numpy.ndarray
+        """
+        return np.asarray(
+            np.floor((point - self.space_origin) / self.voxel_size),
+            dtype=int,
+        )
+
+    @staticmethod
+    def is_within(vox, dataset):
+        """
+        Check if a voxel location is within a dataset's dimension, based on its shape.
+
+        :param numpy.ndarray vox: 3D position of the voxel
+        :param numpy.ndarray dataset: array to test
+        :return: True if vox is within the dataset.
+        :rtype: bool
+        """
+        return (
+            np.all(vox >= 0)
+            * (vox[0] < dataset.shape[0])
+            * (vox[1] < dataset.shape[1])
+            * (vox[2] < dataset.shape[2])
+        )
+
+    def voxel_data_of(self, point, dataset):
+        """
+        Retrieve voxel information from a dataset.
+
+        :param numpy.ndarray point: floating point
+        :param numpy.ndarray dataset: 3D numpy dataset
+        :return: data stored at the point position.
+        """
+        vox = self.voxel_of(point)
+        if self.is_within(vox, dataset):
+            return dataset[vox[0], vox[1], vox[2]]
+
+    def voxel_orient(self, orientation_field, point):
+        """
+        Retrieve the orientation vector at a point location
+
+        :param numpy.ndarray orientation_field: brain orientation field
+        :param numpy.ndarray point: floating position
+        :return: 3D orientation vector.
+        :rtype: numpy.ndarray
+        """
+        loc_orient = self.voxel_data_of(point, orientation_field)
+        if np.all(np.linalg.norm(loc_orient) == 0) or np.isnan(loc_orient).any():
+            raise ValueError("No value for the provided location.")
+        return loc_orient
+
+    def voxel_rotation_of(self, orientation_field, point):
+        """
+        Retrieve the rotation to apply at a certain location to orient a point towards
+        the orientation field.
+
+        :param numpy.ndarray orientation_field: brain orientation field
+        :param numpy.ndarray point: floating position
+        :return: Rotation to apply to the point to match the orientation field.
+        :rtype: scipy.spatial.transform.Rotation
+        """
+        loc_orient = self.voxel_orient(orientation_field, point)
+        return Rotation.from_matrix(
+            rotation_matrix_from_vectors(self.default_vector, -loc_orient)
+        )
 
 
 def _safe_hread(s):

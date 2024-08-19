@@ -16,6 +16,7 @@ import urllib.request as _ur
 import certifi as _cert
 import nrrd as _nrrd
 import requests as _rq
+from voxcell import VoxelData
 
 from .. import config
 from .._util import obj_str_insert
@@ -496,7 +497,7 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
     def get_data(self):
         with self.file.provide_locally() as (path, encoding):
-            return _nrrd.read(path)[0]
+            return VoxelData.load_nrrd(path)
 
     def load_object(self):
         return self.pipe(self.get_data())

@@ -1201,7 +1201,7 @@ class TestTypes(unittest.TestCase):
         b = Test(
             c=get_data_path("orientations", "toy_annotations.nrrd"), _parent=TestRoot()
         )
-        tested = b.c.load_object()
+        tested = b.c.load_object().raw
         self.assertEqual(type(tested), np.ndarray)
         self.assertEqual(tested.shape, (10, 8, 8))
         self.assertEqual(tested.dtype, np.int32)
