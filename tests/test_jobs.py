@@ -515,6 +515,21 @@ def mock_free_cache(scaffold, required_cache_items: set[str]):
         scaffold._pool_cache.pop(stale_key)()
 
 
+def mock_read_required_cache_items(self):
+    # mock the read of cache items to add a small delay.
+    # this will guarantee that the main process has the
+    # time to update the cache buffer before the child
+    # process test it.
+    sleep(0.01)
+
+    from mpi4py.MPI import UINT64_T
+
+    self._cache_window.Lock(0)
+    self._cache_window.Get([self._cache_buffer, UINT64_T], 0)
+    self._cache_window.Unlock(0)
+    return set(self._cache_buffer)
+
+
 class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def setUp(self):
         super().setUp()
@@ -570,13 +585,12 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
             scaffold, required_cache_items
         ),
     )
+    @patch(
+        "bsb.services.pool.JobPool._read_required_cache_items",
+        lambda self: mock_read_required_cache_items(self),
+    )
     def test_cache_survival(self):
         """Test that the required cache items survive until the jobs are done."""
-
-        # FIXME: This mechanism is critical for parallel execution, but is hard to test
-        #  under that condition. This test will pass with false positive results under
-        #  parallel conditions. This mechanism was manually tested when it was written,
-        #  and accepts PRs to properly test it in CI.
 
         @config.node
         class TestNode(PlacementStrategy):
