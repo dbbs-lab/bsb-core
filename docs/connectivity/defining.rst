@@ -77,7 +77,6 @@ connect subpopulations of cells that are labelled with any of the given labels:
           }
         }
       }
-    }
 
     .. code-block:: python
 

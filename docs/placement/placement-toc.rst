@@ -4,4 +4,5 @@
 
    intro
    placement-strategies
+   placement-indicators
    placement-set

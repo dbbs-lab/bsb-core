@@ -6,3 +6,134 @@ which provides a set of instructions for defining the positions of each cell wit
 The BSB offers several built-in strategies (here is a :doc:`list </placement/placement-strategies>`),
 or you can implement your own.
 The placement data is stored in :doc:`PlacementSets </placement/placement-set>` for each cell type.
+
+Add a placement type
+====================
+
+In a placement block, all placement types are defined. It is necessary to specify
+the location for cell placement and the types of cells by using the
+:guilabel:`partition` and :guilabel:`cell_types` attributes.
+
+.. tab-set-code::
+
+    .. code-block:: json
+
+
+        "placement": {
+            "place_A_in_my_layer": {
+                "strategy": "bsb.placement.RandomPlacement",
+                "partitions": [
+                    "my_layer"
+                ],
+                "cell_types": [
+                    "A_type"
+                ]
+            }
+        }
+
+    .. code-block:: python
+
+      config.placement.add(
+        "place_A_in_my_layer",
+        strategy="bsb.placement.RandomPlacement",
+        partitions=["my_layer"],
+        cell_types=["A_type"],
+      )
+
+
+Use indications
+===============
+
+When a cell type is created, it is possible to define spatial attributes called :doc:`placement indications</placement/placement-indicators>`.
+These attributes are used by the placement strategy to determine the distribution of cells within the volume.
+
+.. tab-set-code::
+
+    .. code-block:: json
+
+        "cell_types": {
+            "A_type": {
+                "spatial": {
+                    "density": 0.005,
+                    "radius": 2.5
+                }
+            },
+            "B_type": {
+                "spatial": {
+                    "count": 50,
+                    "radius": 5
+                }
+            }
+        }
+
+        "placement": {
+            "place_A_and_B_in_my_layer": {
+                "strategy": "bsb.placement.RandomPlacement",
+                "partitions": [
+                    "my_layer"
+                ],
+                "cell_types": [
+                    "A_type","B_type"
+                ]
+            }
+        }
+
+    .. code-block:: python
+
+      config.cell_types.add(
+        "A_type",
+        spatial=dict(radius=2.5, density=0.005)
+      )
+      config.cell_types.add(
+        "B_type",
+        spatial=dict(radius=5, count=50)
+      )
+
+      config.placement.add(
+        "place_A_and_B_in_my_layer",
+        strategy="bsb.placement.RandomPlacement",
+        partitions=["my_layer"],
+        cell_types=["A_type","B_type"],
+      )
+
+In this example, we place 50 type B cells with a radius of 5 µm,
+while type A cells are placed with a density of 0.005 :math:`\mu m^{-3}`.
+
+
+Define an order for the execution of your Placement Strategy
+============================================================
+
+It may be necessary to place a set of cells only after specific strategies have been executed.
+In such cases, you can define a list of strategies as dependencies.
+For example, you can create a :guilabel:`secondary_placement` that is executed only after the
+:guilabel:`place_A_in_my_layer` placement has been completed.
+
+
+.. tab-set-code::
+
+    .. code-block:: json
+
+
+        "placement": {
+            "secondary_placement": {
+                "strategy": "bsb.placement.RandomPlacement",
+                "partitions": [
+                    "my_layer"
+                ],
+                "cell_types": [
+                    "B_type"
+                ],
+                "depends_on": ["place_A_in_my_layer"]
+            }
+        }
+
+    .. code-block:: python
+
+      config.placement.add(
+        "secondary_placement",
+        strategy="bsb.placement.RandomPlacement",
+        partitions=["my_layer"],
+        cell_types=["B_type"],
+        depends_on=["place_A_in_my_layer"],
+      )
+

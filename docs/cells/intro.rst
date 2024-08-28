@@ -15,8 +15,8 @@ represented by **cell models**.
 
 .. rubric:: Basic configuration
 
-The :guilabel:`radius` and :guilabel:`density` are the 2 most basic *placement
-indicators*, they specify how large and dense the cells in the population generally are.
+The :guilabel:`radius` and :guilabel:`density` are the 2 most basic :doc:`placement
+indications </placement/placement-indicators>`, they specify how large and dense the cells in the population generally are.
 The :guilabel:`plotting` block allows you to specify formatting details.
 
 .. code-block:: json
