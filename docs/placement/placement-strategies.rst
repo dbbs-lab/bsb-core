@@ -42,7 +42,10 @@ This class places cells in random positions without considering overlaps. Below 
         partitions=["my_layer"],
         cell_types=["my_cell"],
       )
-
+.. note::
+ While placing cells randomly, it will be ensured that they do not occupy excessive volume.
+ The ratio of the total cell volume to the partition volume, known as the packing factor,
+ should not exceed 0.4.
 
 ParallelArrayPlacement
 **********************
