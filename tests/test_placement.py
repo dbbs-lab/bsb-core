@@ -253,14 +253,28 @@ class TestPlacementStrategies(
     def test_random_placement(self):
         cfg = get_test_config("single")
         network = Scaffold(cfg, self.storage)
-        cfg.placement["test_placement"] = dict(
-            strategy="bsb.placement.RandomPlacement",
-            cell_types=["test_cell"],
-            partitions=["test_layer"],
-        )
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertEqual(40, len(ps), "fixed count random placement broken")
+
+    def test_regression_issue_879(self):
+        """
+        If different partitions share chunks, these chunks should be dealt
+        only once by the placement strategy.
+        """
+        cfg = get_test_config("single")
+        cfg.partitions.add("test_layer2", {"thickness": 50.0})
+        cfg.placement["test_placement"] = dict(
+            strategy="bsb.placement.RandomPlacement",
+            cell_types=["test_cell"],
+            partitions=["test_layer", "test_layer2"],
+        )
+        network = Scaffold(cfg, self.storage)
+        network.compile(clear=True)
+        ps = network.get_placement_set("test_cell")
+        self.assertEqual(
+            40, len(ps), "multi partitions fixed count random placement broken"
+        )
 
     def test_fixed_pos(self):
         cfg = Configuration.default(
