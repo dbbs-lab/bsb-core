@@ -97,7 +97,7 @@ These attributes are used by the placement strategy to determine the distributio
       )
 
 In this example, we place 50 type B cells with a radius of 5 µm,
-while type A cells are placed with a density of 0.005 :math:`\mu m^{-3}`.
+while type A cells are placed with a density of 0.005 cells/µm^3.
 
 
 Define an order for the execution of your Placement Strategy
