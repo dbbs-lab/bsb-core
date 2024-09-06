@@ -1,10 +1,10 @@
 from bsb_plot import plot_network
 
 import bsb.options
-from bsb import Scaffold, from_json
+from bsb import Scaffold, fparse_configuration_file
 
 bsb.options.verbosity = 3
-config = from_json("network_configuration.json")
+config = parse_configuration_file("network_configuration.json", parser="json")
 
 config.partitions.add("top_layer", thickness=100, stack_index=1)
 config.regions.add(
