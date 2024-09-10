@@ -513,6 +513,36 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         m.label(["B", "A"], [0, 1, 2])
         self.assertEqual(3, np.sum(m.get_label_mask(["A"])[:3]), "then first 3 lbled")
 
+    def test_introduce_point(self):
+        x = 0
+
+        def _on_mutate():
+            nonlocal x
+            x += 1
+
+        b = Branch(
+            np.arange(12).reshape(4, 3),
+            np.arange(4),
+            properties={"tags": np.arange(4, 8)},
+        )
+        b._on_mutate = _on_mutate
+        b.label(["A"], [0, 1])
+        b.label(["B"], [2, 3])
+        b.introduce_point(1, [12, 13, 14])
+        self.assertAll(b.points[1] == np.array([12, 13, 14]))
+        self.assertAll(b.radii == np.array([0, 1, 1, 2, 3]))
+        self.assertAll(b.labels == np.array([1, 1, 1, 2, 2]))
+        self.assertAll(b._properties["tags"] == np.array([4, 5, 5, 6, 7]))
+        self.assertTrue(x == 1)
+        b.introduce_point(-1, [15, 16, 17], 4, ["E"], {"tags": 8})
+        self.assertAll(b.points[-2] == np.array([15, 16, 17]))
+        self.assertAll(b.radii == np.array([0, 1, 1, 2, 4, 3]))
+        self.assertAll(b.labels == np.array([1, 1, 1, 2, 3, 2]))
+        self.assertAll(b._properties["tags"] == np.array([4, 5, 5, 6, 8, 7]))
+        self.assertTrue(x == 2)
+        with self.assertRaises(IndexError):
+            b.introduce_point(6, [15, 16, 17])
+
 
 class TestPointSetters(NumpyTestCase, unittest.TestCase):
     def setUp(self):

@@ -1489,28 +1489,34 @@ class Branch:
         """
         return self.labels.get_mask(labels)
 
-    def introduce_point(self, index, *args, labels=None):
+    def introduce_point(self, index, position, radius=None, labels=None, properties=None):
         """
         Insert a new point at ``index``, before the existing point at ``index``.
 
         :param index: Index of the new point.
         :type index: int
-        :param args: Vector coordinates of the new point
-        :type args: float
+        :param position: Coordinates of the new point
+        :type position: List[float]
+        :param radius: The radius to assign to the point.
+        :type radius: float
         :param labels: The labels to assign to the point.
         :type labels: list
+        :param properties: The properties to assign to the point.
+        :type properties: dict
         """
         self._on_mutate()
-        for v, vector_name in enumerate(type(self).vectors):
-            vector = getattr(self, vector_name)
-            new_vector = np.concatenate((vector[:index], [args[v]], vector[index:]))
-            setattr(self, vector_name, new_vector)
-        if labels is None:
-            labels = set()
-        for label, mask in self._label_masks.items():
-            has_label = label in labels
-            new_mask = np.concatenate((mask[:index], [has_label], mask[index:]))
-            self._label_masks[label] = new_mask
+        old_labels = self.labels[index]
+        self.points = np.insert(self.points, index, position, 0)
+        self._labels = np.insert(self._labels, index, old_labels)
+        self._radii = np.insert(self._radii, index, radius or self._radii[index])
+        for k, v in self._properties.items():
+            self._properties[k] = np.insert(v, index, v[index])
+        if labels is not None:
+            self.label(labels, [index - 1])
+        if properties is not None:
+            for k, v in properties.items():
+                if k in self._properties:
+                    self._properties[k][index - 1] = v
 
     def introduce_arc_point(self, arc_val):
         """
