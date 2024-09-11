@@ -1513,10 +1513,12 @@ class Branch:
         self.points = np.insert(self.points, index, position, 0)
         self._labels = np.insert(self._labels, index, old_labels)
         self._radii = np.insert(self._radii, index, radius or self._radii[index])
+        # By default duplicate the existing property value ...
         for k, v in self._properties.items():
             self._properties[k] = np.insert(v, index, v[index])
         if labels is not None:
             self.label(labels, [index])
+        # ... and overwrite it with any new property values, if given.
         if properties is not None:
             for k, v in properties.items():
                 if k in self._properties:
