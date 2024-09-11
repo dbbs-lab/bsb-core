@@ -1492,6 +1492,8 @@ class Branch:
     def introduce_point(self, index, position, radius=None, labels=None, properties=None):
         """
         Insert a new point at ``index``, before the existing point at ``index``.
+        Radius, labels and extra properties can be set or will be copied from the
+        existing point at ``index``.
 
         :param index: Index of the new point.
         :type index: int
@@ -1506,14 +1508,14 @@ class Branch:
         """
         if index < 0 or index >= len(self.points):
             raise IndexError(
-                "Index of the point to insert should be in range of the branch points."
+                f"Could not introduce point in branch at index {index}: out of bounds for branch length {len(self)}."
             )
         self._on_mutate()
         old_labels = self.labels[index]
         self.points = np.insert(self.points, index, position, 0)
         self._labels = np.insert(self._labels, index, old_labels)
         self._radii = np.insert(self._radii, index, radius or self._radii[index])
-        # By default duplicate the existing property value ...
+        # By default, duplicate the existing property value ...
         for k, v in self._properties.items():
             self._properties[k] = np.insert(v, index, v[index])
         if labels is not None:
@@ -1523,6 +1525,10 @@ class Branch:
             for k, v in properties.items():
                 if k in self._properties:
                     self._properties[k][index] = v
+                else:
+                    raise MorphologyError(
+                        f"Property key '{k}' is not part of the Branch."
+                    )
 
     def introduce_arc_point(self, arc_val):
         """
