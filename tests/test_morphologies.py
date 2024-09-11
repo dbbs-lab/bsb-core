@@ -534,7 +534,7 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         self.assertAll(b.labels == np.array([1, 1, 1, 2, 2]))
         self.assertAll(b._properties["tags"] == np.array([4, 5, 5, 6, 7]))
         self.assertTrue(x == 1)
-        b.introduce_point(-1, [15, 16, 17], 4, ["E"], {"tags": 8})
+        b.introduce_point(4, [15, 16, 17], 4, ["E"], {"tags": 8})
         self.assertAll(b.points[-2] == np.array([15, 16, 17]))
         self.assertAll(b.radii == np.array([0, 1, 1, 2, 4, 3]))
         self.assertAll(b.labels == np.array([1, 1, 1, 2, 3, 2]))
@@ -542,6 +542,8 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         self.assertTrue(x == 2)
         with self.assertRaises(IndexError):
             b.introduce_point(6, [15, 16, 17])
+        with self.assertRaises(IndexError):
+            b.introduce_point(-1, [15, 16, 17])
 
 
 class TestPointSetters(NumpyTestCase, unittest.TestCase):

@@ -1504,6 +1504,10 @@ class Branch:
         :param properties: The properties to assign to the point.
         :type properties: dict
         """
+        if index < 0 or index >= len(self.points):
+            raise IndexError(
+                "Index of the point to insert should be in range of the branch points."
+            )
         self._on_mutate()
         old_labels = self.labels[index]
         self.points = np.insert(self.points, index, position, 0)
@@ -1512,11 +1516,11 @@ class Branch:
         for k, v in self._properties.items():
             self._properties[k] = np.insert(v, index, v[index])
         if labels is not None:
-            self.label(labels, [index - 1])
+            self.label(labels, [index])
         if properties is not None:
             for k, v in properties.items():
                 if k in self._properties:
-                    self._properties[k][index - 1] = v
+                    self._properties[k][index] = v
 
     def introduce_arc_point(self, arc_val):
         """
