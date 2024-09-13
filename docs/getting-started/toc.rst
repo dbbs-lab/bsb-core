@@ -7,5 +7,6 @@ Getting Started
 
   getting-started
   include_morphos
+  guide_simulation
   basics
   projects

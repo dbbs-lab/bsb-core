@@ -41,7 +41,7 @@ human-readable, multi-scale models!
        Learn how to write your own components to e.g. place or connect cells.
 
     .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
-       :link: simulations
+       :link: simulation-guide
        :link-type: ref
 
        Learn how to simulate your network models
