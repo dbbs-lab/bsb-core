@@ -527,7 +527,7 @@ class Scaffold:
 
     def get_placement_of(self, *cell_types):
         """
-        Find all the placement strategies that given certain cell types.
+        Find all the placement strategies that involve the given cell types.
 
         :param cell_types: Cell types (or their names) of interest.
         :type cell_types: Union[~bsb.cell_types.CellType, str]
