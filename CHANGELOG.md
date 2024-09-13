@@ -1,3 +1,9 @@
+## [v4.4.4] - 2024-09-13
+### :bug: Bug Fixes
+- [`43ef230`](https://github.com/dbbs-lab/bsb-core/commit/43ef2308e6f742f195830adddc3934d2cee59561) - update morphology introduce_point function *(PR [#884](https://github.com/dbbs-lab/bsb-core/pull/884) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#883](https://github.com/dbbs-lab/bsb-core/issues/883) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v4.4.3] - 2024-09-02
 ### :bug: Bug Fixes
 - [`903434b`](https://github.com/dbbs-lab/bsb-core/commit/903434b3c4a7b7acdb78b3f1e2dee93aea5c3062) - group chunks for placement from different partitions to avoid duplicates *(PR [#880](https://github.com/dbbs-lab/bsb-core/pull/880) by [@drodarie](https://github.com/drodarie))*
@@ -443,3 +449,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.4.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.0...v4.4.1
 [v4.4.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.1...v4.4.2
 [v4.4.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.2...v4.4.3
+[v4.4.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.3...v4.4.4
