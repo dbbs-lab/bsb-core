@@ -6,7 +6,7 @@ from bsb import Scaffold, Stack, from_json
 bsb.options.verbosity = 3
 config = from_json("network_configuration.json")
 
-config.partitions.add("top_layer", thickness=100, stack_index=1)
+config.partitions.add("top_layer", thickness=100)
 config.regions["brain_region"] = Stack(
     children=[
         "base_layer",
