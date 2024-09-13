@@ -1,3 +1,9 @@
+## [v4.5.0] - 2024-09-13
+### :sparkles: New Features
+- [`9f4046a`](https://github.com/dbbs-lab/bsb-core/commit/9f4046a2b40ad40257bf7ab13297d4441d43d02f) - Stack regions and Layer partitions *(PR [#868](https://github.com/dbbs-lab/bsb-core/pull/868) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *addresses issue [#867](https://github.com/dbbs-lab/bsb-core/issues/867) opened by [@marialauradeg98](https://github.com/marialauradeg98)*
+
+
 ## [v4.4.4] - 2024-09-13
 ### :bug: Bug Fixes
 - [`43ef230`](https://github.com/dbbs-lab/bsb-core/commit/43ef2308e6f742f195830adddc3934d2cee59561) - update morphology introduce_point function *(PR [#884](https://github.com/dbbs-lab/bsb-core/pull/884) by [@drodarie](https://github.com/drodarie))*
@@ -450,3 +456,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.4.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.1...v4.4.2
 [v4.4.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.2...v4.4.3
 [v4.4.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.3...v4.4.4
+[v4.5.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.4...v4.5.0
