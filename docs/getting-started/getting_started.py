@@ -1,7 +1,7 @@
 from bsb_plot import plot_network
 
 import bsb.options
-from bsb import Scaffold, fparse_configuration_file
+from bsb import Scaffold, parse_configuration_file
 
 bsb.options.verbosity = 3
 config = parse_configuration_file("network_configuration.json", parser="json")
