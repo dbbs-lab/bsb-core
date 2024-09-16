@@ -192,3 +192,7 @@ Alternatively, if you prefer to manage the simulations using Python code:
         my_network = Scaffold(config)
         my_network.compile()
         my_network.run_simulation("basal_activity")
+
+
+For more detailed information about simulation modules,
+please refer to the :doc:`simulation section </simulation/intro>`.
