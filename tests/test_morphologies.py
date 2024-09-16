@@ -513,6 +513,60 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         m.label(["B", "A"], [0, 1, 2])
         self.assertEqual(3, np.sum(m.get_label_mask(["A"])[:3]), "then first 3 lbled")
 
+    def test_introduce_point_defaults(self):
+        x = 0
+
+        def _on_mutate():
+            nonlocal x
+            x += 1
+
+        b = Branch(
+            np.arange(12).reshape(4, 3),
+            np.arange(4),
+            properties={"tags": np.arange(4, 8)},
+        )
+        b._on_mutate = _on_mutate
+        b.label(["A"], [0, 1])
+        b.label(["B"], [2, 3])
+        b.introduce_point(1, [12, 13, 14])
+        self.assertAll(b.points[1] == np.array([12, 13, 14]))
+        self.assertAll(b.radii == np.array([0, 1, 1, 2, 3]))
+        self.assertAll(b.labels == np.array([1, 1, 1, 2, 2]))
+        self.assertAll(b.tags == np.array([4, 5, 5, 6, 7]))
+        self.assertTrue(x == 1)
+
+    def test_introduce_point(self):
+        b = Branch(
+            np.arange(12).reshape(4, 3),
+            np.arange(4),
+            properties={"tags": np.arange(4, 8), "other": np.arange(8, 12)},
+        )
+        b.label(["A"], [0, 1])
+        b.label(["B"], [2, 3])
+        b.introduce_point(3, [15, 16, 17], 4, ["E"], {"tags": 8})
+        self.assertAll(b.points[-2] == np.array([15, 16, 17]))
+        self.assertAll(b.radii == np.array([0, 1, 2, 4, 3]))
+        self.assertAll(b.labels == np.array([1, 1, 2, 3, 2]))
+        # tag of the new point set in properties
+        self.assertAll(b.tags == np.array([4, 5, 6, 8, 7]))
+        # other of the new point copied in from the following point
+        self.assertAll(b.other == np.array([8, 9, 10, 11, 11]))
+
+    def test_introduce_point_errors(self):
+        b = Branch(
+            np.arange(12).reshape(4, 3),
+            np.arange(4),
+            properties={"tags": np.arange(4, 8)},
+        )
+        b.label(["A"], [0, 1])
+        b.label(["B"], [2, 3])
+        with self.assertRaises(IndexError):
+            b.introduce_point(4, [15, 16, 17])
+        with self.assertRaises(IndexError):
+            b.introduce_point(-1, [15, 16, 17])
+        with self.assertRaises(MorphologyError):
+            b.introduce_point(0, [15, 16, 17], properties={"wrong_key": 7})
+
 
 class TestPointSetters(NumpyTestCase, unittest.TestCase):
     def setUp(self):

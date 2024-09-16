@@ -34,13 +34,6 @@ if typing.TYPE_CHECKING:
     from ..core import Scaffold
 
 
-def _size_requirements(section):
-    if "thickness" not in section and "volume_scale" not in section:
-        raise RequirementError(
-            "Either a `thickness` or `volume_scale` attribute required"
-        )
-
-
 class _backref_property(property):
     def __backref__(self, instance, value):
         setattr(instance, "_region", value)
@@ -53,6 +46,10 @@ class _backref_property(property):
     auto_classmap=True,
 )
 class Partition(abc.ABC):
+    """
+    Abstract class to describe spatial containers for network pieces.
+    """
+
     scaffold: "Scaffold"
     name: str = config.attr(key=True)
 
@@ -166,12 +163,21 @@ class Partition(abc.ABC):
 
 @config.node
 class Rhomboid(Partition, classmap_entry="rhomboid"):
+    """
+    Rectangular cuboid partition defined according to its origin and dimensions.
+    """
+
     dimensions: list[float] = config.attr(type=types.list(type=float, size=3))
+    """Sizes of the partition for each axis."""
     can_scale: bool = config.attr(type=bool, default=True)
+    """Boolean flag to authorize rescaling of the partition dimensions"""
     origin: list[float] = config.attr(type=types.list(type=float, size=3))
+    """Coordinate of the origin of the partition"""
     can_move: bool = config.attr(type=bool, default=True)
+    """Boolean flag to authorize the translation of the partition"""
     orientation: list[float] = config.attr(type=types.list(type=float, size=3))
     can_rotate: bool = config.attr(type=bool, default=True)
+    """Boolean flag to authorize the rotation of the partition"""
 
     def volume(self, chunk=None):
         if chunk is not None:
@@ -184,10 +190,16 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
 
     @property
     def mdc(self):
+        """
+        Return the highest coordinate of the partition.
+        """
         return self._data.mdc
 
     @property
     def ldc(self):
+        """
+        Return the lowest coordinate of the partition.
+        """
         return self._data.ldc
 
     def surface(self, chunk=None):
@@ -219,7 +231,7 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
         Return an approximation of this partition intersected with a chunk as a list of
         voxels.
 
-        Default implementation creates a parallellepepid intersection between the
+        Default implementation creates a parallelepiped intersection between the
         LDC, MDC and chunk data.
         """
         low = np.maximum(self.ldc, chunk.ldc)
@@ -250,33 +262,29 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
         if self.dimensions is None:
             dim = hint.data.mdc - hint.data.ldc
         else:
-            dim = self.dimensions
+            dim = np.array(self.dimensions)
         if self.origin is None:
             orig = hint.data.ldc.copy()
         else:
-            orig = self.origin
+            orig = np.array(self.origin)
         return Layout(RhomboidData(orig, dim + orig), owner=self)
 
 
 @config.node
 class Layer(Rhomboid, classmap_entry="layer"):
+    """
+    Partition that occupies the full space of its containing region
+    except on a defined axis, where it is limited. This creates a stratum
+    within the region along the chosen axis.
+    """
+
     dimensions = config.unset()
-    thickness: float = config.attr(type=float, required=_size_requirements)
-    volume_scale: list[float] = config.attr(
-        type=types.or_(
-            types.list(float, size=2),
-            types.scalar_expand(
-                float,
-                lambda x: [x, x],
-            ),
-        ),
-        default=lambda: [1.0, 1.0],
-        call_default=True,
-    )
+    thickness: float = config.attr(type=float, required=True)
+    """Thickness of the layer along its axis"""
     axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
         config.attr(type=types.in_(["x", "y", "z"]), default="z")
     )
-    stack_index: float = config.attr(type=float, default=0)
+    """Axis along which the layer will be limited."""
 
     def get_layout(self, hint):
         axis = ["x", "y", "z"].index(self.axis)
@@ -285,7 +293,7 @@ class Layer(Rhomboid, classmap_entry="layer"):
         if self.origin is None:
             orig = hint.data.ldc.copy()
         else:
-            orig = self.origin
+            orig = np.array(self.origin)
         return Layout(RhomboidData(orig, dim + orig), owner=self)
 
     # TODO: Layer scaling
