@@ -54,7 +54,7 @@ The simulator needs a model to determine how cells will behave during the simula
 The keys given in the :guilabel:`cell_models` should correspond to a ``cell type`` in the
 network. If a certain ``cell type`` does not have a corresponding ``cell model`` then no
 cells of that type will be instantiated in the network. For our case we choose one
-of the simplest NEST models, the parrot neuron:
+of the simplest NEST models, the `parrot neuron <https://nest-simulator.readthedocs.io/en/v3.8/models/parrot_neuron.html>`_:
 
 .. tab-set-code::
 

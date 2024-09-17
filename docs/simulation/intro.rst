@@ -14,7 +14,7 @@ All simulation details are specified within the simulation block, which includes
  * set of ``connection models`` :  that instruct the simulator on how to handle the :doc:`ConnectivityStrategies </connectivity/defining>` of the network
  * set of ``devices`` : define the experimental setup (such as input stimuli and recorders).
 
-All of the above is simulation backend specific and is covered in the specific sections:
+All of the above is simulation backend specific and is covered in the corresponding sections:
 
  * :doc:`NEST </simulation/nest>`.
  * :doc:`NEURON </simulation/neuron>`.
