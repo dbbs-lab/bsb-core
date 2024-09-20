@@ -9,6 +9,7 @@ from .. import config
 from ..config import refs, types
 
 if typing.TYPE_CHECKING:
+    from ..cell_types import CellType
     from .cell import CellModel
 
 
@@ -55,6 +56,17 @@ class CellModelFilter:
             model: pop
             for model, pop in simdata.populations.items()
             if not self.cell_models or model in self.cell_models
+        }
+
+
+class CellTypeFilter:
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=False)
+
+    def get_targets(self, adapter, simulation, simdata):
+        return {
+            cell_name: cell_type.get_placement_set(chunks=simdata.chunks)
+            for cell_name, cell_type in simulation.scaffold.cell_types.items()
+            if not self.cell_types or cell_type in self.cell_types
         }
 
 
@@ -209,6 +221,36 @@ class CylindricalTargetting(
                 < self.radius**2
             ]
             for model in super().get_targets(adapter, simulation, simdata).keys()
+        }
+
+
+@config.node
+class SphericalTargettingCellTypes(
+    CellTypeFilter, FractionFilter, Targetting, classmap_entry="sphere_cell_types"
+):
+    """
+    Targets all cell types in a sphere.
+    """
+
+    origin: list[float] = config.attr(type=types.list(type=float, size=3), required=True)
+    radius: float = config.attr(type=float, required=True)
+
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
+        """
+        Target all or certain cells within a sphere of specified radius.
+        """
+        return {
+            model: ps.load_ids()[
+                (
+                    np.sum(
+                        (ps.load_positions() - self.origin) ** 2,
+                        axis=1,
+                    )
+                    < self.radius**2
+                )
+            ]
+            for model, ps in super().get_targets(adapter, simulation, simdata).items()
         }
 
 
