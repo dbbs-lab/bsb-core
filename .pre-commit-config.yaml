@@ -15,7 +15,7 @@ repos:
     hooks:
       - id: api-test
         name: api-test
-        entry: python3 .github/devops/generate_public_api.py
+        entry: python3.9 .github/devops/generate_public_api.py
         language: system
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.3.0
@@ -24,3 +24,5 @@ repos:
         name: conventional-commit
         stages: [ commit-msg ]
         args: [ ]
+default_language_version:
+    python: python3.9

@@ -4,6 +4,11 @@ import functools
 import sys
 from pathlib import Path
 
+try:
+    functools.cache
+except AttributeError:
+    functools.cache = functools.lru_cache
+
 
 def _assign_targets(assign: ast.Assign, id_: str):
     return any(
