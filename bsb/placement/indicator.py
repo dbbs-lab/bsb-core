@@ -97,12 +97,10 @@ class PlacementIndicator:
             relation = relative_to
             if count_ratio is not None:
                 strats = self._strat.scaffold.get_placement_of(relation)
-                estimate = (
-                    sum(
-                        PlacementIndicator(s, relation).guess(chunk, voxels)
-                        for s in strats
-                    )
-                    * count_ratio
+                estimate = self._estim_for_chunk(
+                    chunk,
+                    sum(PlacementIndicator(s, relation).guess() for s in strats)
+                    * count_ratio,
                 )
             elif density_ratio is not None:
                 # Create an indicator based on this strategy for the related CT.

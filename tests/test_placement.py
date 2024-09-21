@@ -21,6 +21,7 @@ from bsb import (
     PlacementError,
     PlacementRelationError,
     PlacementStrategy,
+    Rhomboid,
     Scaffold,
     VoxelData,
     Voxels,
@@ -221,6 +222,25 @@ class TestIndicators(
         with self.assertRaises(RuntimeError):
             # voxel density key not found
             dud4_ind.guess(voxels=self.voxels.get_voxelset())
+
+    def test_regression_issue_885(self):
+        # Test placement with count ratio in separated partitions
+        self.network.topology.children.append(
+            part := Rhomboid(
+                name="dud_layer2", origin=[0, 0, 120], dimensions=[200, 200, 80]
+            )
+        )
+        self.network.resize()
+        placement = PlacementDud(
+            name="dud",
+            strategy="PlacementDud",
+            partitions=[part],
+            cell_types=[self.network.cell_types["cell_rel_count"]],
+        )
+        self.network.placement["dud3"] = placement
+        indic = placement.get_indicators()["cell_rel_count"]
+        self.assertEqual(20 / 4, indic.guess(_chunk(0, 0, 1)))
+        self.assertEqual(20 / 4, indic.guess(_chunk(1, 1, 1)))
 
     def test_negative_guess_count(self):
         self.placement = single_layer_placement(
