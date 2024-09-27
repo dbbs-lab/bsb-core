@@ -148,9 +148,9 @@ and *stimulation* devices, for delivering stimuli.
 The ``bsb-nest`` module provides interfaces for NEST devices through the ``NestDevice`` object.
 To properly configure a device, you need to specify three attributes:
 
-    :guilabel:`weight` : *float* specifying the connection weight between the device and its target (required).
-    :guilabel:`delay` : *float* specifying the transmission delay between the device and its target (required).
-    :guilabel:`targeting` : Specifies the targets of the device, which can be a population or a NEST rule.
+   * :guilabel:`weight` : *float* specifying the connection weight between the device and its target (required).
+   * :guilabel:`delay` : *float* specifying the transmission delay between the device and its target (required).
+   * :guilabel:`targeting` : Specifies the targets of the device, which can be a population or a NEST rule.
 
 For example, to create a device named ``my_new_device`` of class ``device_type``, with a weight of 1
 and a delay of 0.1 ms, targeting the population of ``my_cell_model``:
