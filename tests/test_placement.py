@@ -342,6 +342,38 @@ class TestPlacementStrategies(
         self.assertAll(pos[:, 1] <= cfg.partitions.test_layer.data.mdc[1], "not in layer")
         self.assertAll(pos[:, 1] >= cfg.partitions.test_layer.data.ldc[1], "not in layer")
 
+    def test_regression_issue_889(self):
+        cfg = Configuration.default(
+            regions={
+                "cerebellar_cortex": {"type": "group", "children": ["purkinje_layer"]}
+            },
+            partitions={
+                "purkinje_layer": {
+                    "type": "rhomboid",
+                    "origin": [100, 100, 0],
+                    "dimensions": [100, 100, 15],
+                }
+            },
+            cell_types={
+                "purkinje_cell": {
+                    "spatial": {"planar_density": 0.00045, "radius": 7.5},
+                }
+            },
+            placement={
+                "purkinje_layer_placement": {
+                    "strategy": "bsb.placement.ParallelArrayPlacement",
+                    "partitions": ["purkinje_layer"],
+                    "cell_types": ["purkinje_cell"],
+                    "spacing_x": 50,
+                    "angle": 0,
+                }
+            },
+        )
+        network = Scaffold(cfg, self.storage)
+        network.compile(clear=True)
+        ps = network.get_placement_set("purkinje_cell")
+        self.assertEqual(4, len(ps), "parallel array placement with offset is broken")
+
 
 class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def test_particle_vd(self):
