@@ -239,8 +239,37 @@ class TestIndicators(
         )
         self.network.placement["dud3"] = placement
         indic = placement.get_indicators()["cell_rel_count"]
-        self.assertEqual(20 / 4, indic.guess(_chunk(0, 0, 1)))
-        self.assertEqual(20 / 4, indic.guess(_chunk(1, 1, 1)))
+        # the target is 40 * 0.5 distributed in 4 chunks
+        for chunk in part.to_chunks(np.array([100, 100, 100])):
+            self.assertEqual(
+                40 * 0.5 / 4, indic.guess(_chunk(chunk[0], chunk[1], chunk[2]))
+            )
+
+    def test_local_count_ratio(self):
+        # Test placement with local count ratio in overlapping partitions
+        # dud_layer2 overlaps with dud_layer
+        self.network.topology.children[0].thickness = 200.0
+        self.network.topology.children.append(
+            part := Rhomboid(
+                name="dud_layer2", origin=[100, 0, 0], dimensions=[100, 200, 100]
+            )
+        )
+        self.network.resize()
+        self.network.cell_types["cell_rel_count"].spatial.count_ratio = None
+        self.network.cell_types["cell_rel_count"].spatial.local_count_ratio = 2.0
+        placement = PlacementDud(
+            name="dud",
+            strategy="PlacementDud",
+            partitions=[part],
+            cell_types=[self.network.cell_types["cell_rel_count"]],
+        )
+        self.network.placement["dud3"] = placement
+        indic = placement.get_indicators()["cell_rel_count"]
+        # 2 chunks fully overlapping with the 8 from the target
+        for chunk in part.to_chunks(np.array([100, 100, 100])):
+            self.assertEqual(
+                40 / 8 * 2.0, indic.guess(_chunk(chunk[0], chunk[1], chunk[2]))
+            )
 
     def test_negative_guess_count(self):
         self.placement = single_layer_placement(

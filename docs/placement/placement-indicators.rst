@@ -51,6 +51,8 @@ And then, you can choose one of the following attributes:
 
 * :guilabel:`count_ratio`: Compute the number of cells to place from the ratio between the current cell type
   and a reference cell type.
+* :guilabel:`local_count_ratio`: Same as ``count_ratio`` but applied only on chunks that the current cell type and the
+  reference cell type have in common.
 * :guilabel:`density_ratio`: Similar to ``count_ratio`` but use density instead of cell count.
 
 .. note::
