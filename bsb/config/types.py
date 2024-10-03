@@ -789,13 +789,17 @@ class ndarray(TypeHandler):
     :rtype: Callable
     """
 
-    def __init__(self, dtype=None):
+    def __init__(self, shape=None, dtype=None):
+        self.shape = shape
         self.dtype = dtype
 
     def __call__(self, value):
+        result = np.array(value, copy=False)
         if self.dtype is not None:
-            return np.array(value, copy=False, dtype=self.dtype)
-        return np.array(value, copy=False)
+            result = np.asarray(result, dtype=self.dtype)
+        if self.shape is not None:
+            result = result.reshape(self.shape)
+        return result
 
     @property
     def __name__(self):
