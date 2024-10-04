@@ -789,7 +789,10 @@ class ndarray(TypeHandler):
     :rtype: Callable
     """
 
-    def __init__(self, shape=None, dtype=None):
+    def __init__(self, shape: tuple[int] = None, dtype=None):
+        for dim in shape:
+            if dim < 0:
+                raise TypeError(f"Ndarray shape must all be positive. Provided {shape}.")
         self.shape = shape
         self.dtype = dtype
 
@@ -798,7 +801,12 @@ class ndarray(TypeHandler):
         if self.dtype is not None:
             result = np.asarray(result, dtype=self.dtype)
         if self.shape is not None:
-            result = result.reshape(self.shape)
+            try:
+                result = result.reshape(self.shape)
+            except Exception:
+                raise TypeError(
+                    "Couldn't cast {} into an array of shape {}".format(value, self.shape)
+                )
         return result
 
     @property
