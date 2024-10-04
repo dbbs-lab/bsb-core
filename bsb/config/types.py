@@ -789,7 +789,11 @@ class ndarray(TypeHandler):
     :rtype: Callable
     """
 
-    def __init__(self, shape: tuple[int] = None, dtype=None):
+    def __init__(self, shape: builtins.tuple[builtins.int, ...] = None, dtype=None):
+        """
+        :param shape: shape of the array, optional.
+        :param dtype: data-type, optional
+        """
         if shape is not None:
             for dim in shape:
                 if dim < 0:
