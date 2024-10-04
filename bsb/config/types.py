@@ -790,9 +790,12 @@ class ndarray(TypeHandler):
     """
 
     def __init__(self, shape: tuple[int] = None, dtype=None):
-        for dim in shape:
-            if dim < 0:
-                raise TypeError(f"Ndarray shape must all be positive. Provided {shape}.")
+        if shape is not None:
+            for dim in shape:
+                if dim < 0:
+                    raise TypeError(
+                        f"Ndarray shape must all be positive. Provided {shape}."
+                    )
         self.shape = shape
         self.dtype = dtype
 

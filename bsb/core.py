@@ -767,7 +767,8 @@ class Scaffold:
         try:
             # Check whether stdout is a TTY, and that it is larger than 0x0
             # (e.g. MPI sets it to 0x0 unless an xterm is emulated.
-            tty = os.isatty(sys.stdout.fileno()) and sum(os.get_terminal_size())
+            # tty = os.isatty(sys.stdout.fileno()) and sum(os.get_terminal_size())
+            tty = False
         except Exception:
             tty = False
         if tty:
