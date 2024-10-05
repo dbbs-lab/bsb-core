@@ -577,15 +577,15 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
     """
 
     origin = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 0.0, 0.0]
     )
     """The coordinates of the center of the ellipsoid."""
     lambdas = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[1.0, 0.5, 2.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[1.0, 0.5, 2.0]
     )
     """The length of the three semi-axes."""
 
-    @config.property(type=types.ndarray(), required=True)
+    @config.property(type=types.ndarray(shape=(3,)), required=True)
     def v0(self):
         """The versor on which the first semi-axis lies."""
         return self._v0
@@ -594,7 +594,7 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
     def v0(self, value):
         self._v0 = np.copy(value) / np.linalg.norm(value)
 
-    @config.property(type=types.ndarray(), required=True)
+    @config.property(type=types.ndarray(shape=(3,)), required=True)
     def v1(self):
         """The versor on which the second semi-axis lies."""
         return self._v1
@@ -603,7 +603,7 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
     def v1(self, value):
         self._v1 = np.copy(value) / np.linalg.norm(value)
 
-    @config.property(type=types.ndarray(), required=True)
+    @config.property(type=types.ndarray(shape=(3,)), required=True)
     def v2(self):
         """The versor on which the third semi-axis lies."""
         return self._v2
@@ -700,11 +700,11 @@ class Cone(GeometricShape, classmap_entry="cone"):
     """
 
     apex = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 1.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 1.0, 0.0]
     )
     """The coordinates of the apex of the cone."""
     origin = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 0.0, 0.0]
     )
     """The coordinates of the center of the cone's base."""
     radius = config.attr(type=float, required=False, default=1.0)
@@ -824,11 +824,11 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
     """
 
     origin = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 0.0, 0.0]
     )
     """The coordinates of the center of the bottom circle of the cylinder."""
     top_center = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 2.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 2.0, 0.0]
     )
     """The coordinates of the center of the top circle of the cylinder."""
     radius = config.attr(type=float, required=False, default=1.0)
@@ -936,7 +936,7 @@ class Sphere(GeometricShape, classmap_entry="sphere"):
     """
 
     origin = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 0.0, 0.0]
     )
     """The coordinates of the center of the sphere."""
     radius = config.attr(type=float, required=False, default=1.0)
@@ -1008,11 +1008,11 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
     """
 
     origin = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 0.0, 0.0]
     )
     """The coordinates of the center of the barycenter of the bottom rectangle."""
     top_center = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 1.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 1.0, 0.0]
     )
     """The coordinates of the center of the barycenter of the top rectangle."""
     side_length_1 = config.attr(type=float, required=False, default=1.0)
@@ -1159,21 +1159,21 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
     """
 
     origin = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 0.0, 0.0]
     )
     """The coordinates of the left-bottom edge."""
     side_vector_1 = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[1.0, 0.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[1.0, 0.0, 0.0]
     )
     """The first vector identifying the parallelepiped (using the right-hand orientation: the 
         thumb)."""
     side_vector_2 = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 1.0, 0.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 1.0, 0.0]
     )
     """The second vector identifying the parallelepiped (using the right-hand orientation: the 
         index)."""
     side_vector_3 = config.attr(
-        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 1.0]
+        type=types.ndarray(shape=(3,), dtype=float), required=True, hint=[0.0, 0.0, 1.0]
     )
     """The third vector identifying the parallelepiped (using the right-hand orientation: the 
         middle finger)."""

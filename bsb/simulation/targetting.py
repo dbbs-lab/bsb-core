@@ -177,11 +177,14 @@ class CylindricalTargetting(
     Targets all cells in a cylinder along specified axis.
     """
 
-    origin: list[float] = config.attr(type=types.list(type=float, size=2))
+    origin: np.ndarray[float] = config.attr(type=types.ndarray(shape=(2,), dtype=float))
+    """Coordinates of the base of the cylinder for each non main axis"""
     axis: typing.Union[typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]] = (
         config.attr(type=types.in_(["x", "y", "z"]), default="y")
     )
+    """Main axis of the cylinder"""
     radius: float = config.attr(type=float, required=True)
+    """Radius of the cylinder"""
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
@@ -198,7 +201,7 @@ class CylindricalTargetting(
             model: simdata.populations[model][
                 np.sum(
                     simdata.placement[model].load_positions()[:, axes] - self.origin**2,
-                    axis=0,
+                    axis=1,
                 )
                 < self.radius**2
             ]

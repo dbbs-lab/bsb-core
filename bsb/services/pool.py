@@ -709,7 +709,7 @@ class JobPool:
         """
         Execute the jobs in the queue
 
-        In serial execution this runs all of the jobs in the queue in First In First Out
+        In serial execution this runs all the jobs in the queue in First In First Out
         order. In parallel execution this enqueues all jobs into the MPIPool unless they
         have dependencies that need to complete first.
         """
