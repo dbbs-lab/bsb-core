@@ -794,12 +794,8 @@ class ndarray(TypeHandler):
         :param shape: shape of the array, optional.
         :param dtype: data-type, optional
         """
-        if shape is not None:
-            for dim in shape:
-                if dim < 0:
-                    raise TypeError(
-                        f"Ndarray shape must all be positive. Provided {shape}."
-                    )
+        if any(dim < 0 for dim in (shape or ())):
+            raise TypeError(f"Ndarray shape must all be positive. Provided {shape}.")
         self.shape = shape
         self.dtype = dtype
 
@@ -812,7 +808,7 @@ class ndarray(TypeHandler):
                 result = result.reshape(self.shape)
             except Exception:
                 raise TypeError(
-                    "Couldn't cast {} into an array of shape {}".format(value, self.shape)
+                    f"Couldn't cast array of {getattr(value, 'shape', 'unknown')} shape into an array of {self.shape} shape."
                 )
         return result
 
