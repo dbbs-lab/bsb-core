@@ -1,3 +1,5 @@
+.. _cli-guide:
+
 ############
 Introduction
 ############

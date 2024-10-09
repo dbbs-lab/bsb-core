@@ -1,3 +1,5 @@
+.. _installation-guide:
+
 ============
 Installation
 ============
@@ -22,7 +24,7 @@ You can verify that the installation works with:
   # Create an empty scaffold network with the default configuration.
   scaffold = Scaffold()
 
-You can now head over to the :doc:`get started <getting-started>`.
+You can now head over to the :doc:`get started <getting-started_reconstruction>`.
 
 Parallel support
 ================

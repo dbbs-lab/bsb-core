@@ -25,8 +25,14 @@ human-readable, multi-scale models!
 
 ----
 
-.. grid:: 1 1 2 2
+.. grid:: 1 1 4 2
     :gutter: 1
+
+    .. grid-item-card:: :octicon:`desktop-download;1em;sd-text-warning` Installation
+      :link: installation-guide
+      :link-type: ref
+
+      How to install the code.
 
     .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Get started
       :link: get-started
@@ -34,34 +40,40 @@ human-readable, multi-scale models!
 
       Get started with your first project!
 
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
-       :link: components
-       :link-type: ref
-
-       Learn how to write your own components to e.g. place or connect cells.
-
-    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
-       :link: simulation-guide
-       :link-type: ref
-
-       Learn how to simulate your network models
-
     .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
        :link: examples
        :link-type: ref
 
        View examples explained step by step
 
-    .. grid-item-card:: :octicon:`package-dependents;1em;sd-text-warning` Plugins
-       :link: plugins
+    .. grid-item-card:: :octicon:`repo-clone;1em;sd-text-warning` BSB - CLI
+       :link: cli-guide
        :link-type: ref
 
-       Learn to package your code for others to use!
+       Learn how to use the CLI.
 
-    .. grid-item-card:: :octicon:`mark-github;1em;sd-text-warning` Contributing
-       :link: https://github.com/dbbs-lab/bsb
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Contributing
+       :link: development-section
+       :link-type: ref
 
        Help out the project by contributing code.
+
+    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Components
+       :link: main-components
+       :link-type: ref
+
+       Explore more about the main components.
+
+    .. grid-item-card:: :octicon:`briefcase;1em;sd-text-warning` Python API
+       :link: whole-api
+       :link-type: ref
+
+
+    .. grid-item-card:: :octicon:`info;1em;sd-text-warning` FAQ
+       :link: faq
+       :link-type: ref
+
+
 
 .. toctree::
    :maxdepth: 2
@@ -73,53 +85,24 @@ human-readable, multi-scale models!
    examples/toc
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Configuration
-
-   config/configuration-toc
-
-
-.. toctree::
   :maxdepth: 2
   :caption: CLI
 
   cli/cli-toc
 
 .. toctree::
-  :maxdepth: 2
-  :caption: Topology
+   :maxdepth: 2
+   :caption: Components
 
-  topology/topology-toc
+   components/intro
+   config/configuration-toc
+   topology/topology-toc
+   cells/cells-toc
+   morphologies/morphology-toc
+   placement/placement-toc
+   connectivity/connectivity-toc
+   simulation/simulation-toc
 
-.. toctree::
-  :maxdepth: 2
-  :caption: Cell types
-
-  cells/cells-toc
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Morphologies
-
-  morphologies/morphology-toc
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Placement
-
-  placement/placement-toc
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Connectivity
-
-  connectivity/connectivity-toc
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Simulation
-
-  simulation/simulation-toc
 
 .. toctree::
    :maxdepth: 2
@@ -128,6 +111,12 @@ human-readable, multi-scale models!
    bsb/modules
    genindex
    py-modindex
+
+.. toctree::
+   :maxdepth: 1
+   :caption: FAQ
+
+   dev/faq
 
 .. toctree::
   :maxdepth: 2

@@ -199,13 +199,8 @@ Now that the configuration is prepared, we can compile our network using:
 .. grid:: 1 1 2 2
     :gutter: 1
 
-    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
-	    :link: simulation-guide
-	    :link-type: ref
 
-	    Learn how to simulate your network models
-
-    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
+    .. grid-item-card:: :octicon:`cpu;1em;sd-text-warning` Simulations
 	    :link: simulation-guide
 	    :link-type: ref
 
@@ -222,6 +217,12 @@ Now that the configuration is prepared, we can compile our network using:
 	    :link-type: ref
 
 	    Explore more examples.
+
+    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Components
+       :link: main-components
+       :link-type: ref
+
+       Explore more about the main components.
 
 
 Recap
