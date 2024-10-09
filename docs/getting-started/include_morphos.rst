@@ -5,7 +5,7 @@ Adding morphologies
 
 .. note::
 
-    This guide is a continuation of the |:books:| :doc:`Getting Started guide </getting-started/getting-started>`.
+    This guide is a continuation of the :doc:`Getting Started guide </getting-started/getting-started_reconstruction>`.
 
 .. hint::
 
@@ -177,6 +177,51 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 
   If there's multiple morphologies per cell type, they'll be assigned randomly, unless you
   specify a :ref:`MorphologyDistributor <MorphologyDistributors>`.
+
+Compile your network
+--------------------
+
+Now that the configuration is prepared, we can compile our network using:
+
+.. tab-set-code::
+
+  .. code-block:: bash
+
+    bsb compile --verbosity 3
+
+  .. literalinclude:: include_morphos.py
+    :language: python
+    :lines: 50-51
+
+
+. rubric:: What next?
+
+.. grid:: 1 1 2 2
+    :gutter: 1
+
+    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
+	    :link: simulation-guide
+	    :link-type: ref
+
+	    Learn how to simulate your network models
+
+    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
+	    :link: simulation-guide
+	    :link-type: ref
+
+	    Learn how to simulate your network models
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Custom components
+       :link: components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.
+
+    .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Examples
+	    :link: examples
+	    :link-type: ref
+
+	    Explore more examples.
 
 
 Recap

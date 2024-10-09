@@ -1,3 +1,5 @@
+    .. _get-started:
+
 ===============
 Top Level Guide
 ===============

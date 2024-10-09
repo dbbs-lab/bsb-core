@@ -5,7 +5,8 @@ Getting Started
   :maxdepth: 1
   :caption: Getting Started
 
-  getting-started
+  top-level-guide
+  getting-started_reconstruction
   include_morphos
   guide_simulation
   basics

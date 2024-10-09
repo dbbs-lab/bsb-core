@@ -1,18 +1,20 @@
-from bsb_plot import plot_network
-
 import bsb.options
-from bsb import Scaffold, Stack, from_json
+from bsb import Configuration, Scaffold
 
 bsb.options.verbosity = 3
-config = from_json("network_configuration.json")
+config = Configuration.default(storage={"engine": "hdf5"})
 
-config.partitions.add("top_layer", thickness=100, stack_index=1)
-config.regions["brain_region"] = Stack(
+config.partitions.add("base_layer", thickness=100)
+config.partitions.add("top_layer", thickness=100)
+config.regions.add(
+    "brain_region",
+    type="stack",
     children=[
         "base_layer",
         "top_layer",
-    ]
+    ],
 )
+
 config.morphologies = [
     "neuron_A.swc",
     {"name": "neuron_B", "file": "neuron2.swc"},
@@ -46,6 +48,4 @@ config.connectivity.add(
 )
 
 network = Scaffold(config)
-
 network.compile()
-plot_network(network)

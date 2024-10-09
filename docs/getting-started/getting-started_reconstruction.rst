@@ -1,4 +1,3 @@
-    .. _get-started:
 
 ##################
 Your first network
@@ -43,15 +42,38 @@ the CLI or Python:
 
   .. code-block:: bash
 
-    pip install bsb-plotting
-    bsb compile --verbosity 3 --plot
+    bsb compile --verbosity 3
 
-  .. literalinclude:: getting_started.py
-    :language: python
-    :lines: -7,32-
+  .. code-block:: python
+
+    import bsb.options
+    from bsb import Scaffold, parse_from_file
+
+    bsb.options.verbosity = 3
+    config = parse_from_file("network_configuration.json",parser="json")
+    network = Scaffold(config)
+    network.compile()
 
 The ``verbosity`` flag increases the amount of output that is generated, to follow along
-or troubleshoot. The ``plot`` flags opens a plot |:slight_smile:|.
+or troubleshoot.
+
+.. note::
+
+    The configuration file can be written in either ``json`` or ``yaml`` format;
+    simply specify the format in the :guilabel:`new` command options:
+
+
+Alternatively, if you prefer working with Python code, you can start by creating a ``Configuration`` object:
+
+  .. code-block:: python
+
+    import bsb.options
+    from bsb import Scaffold, Configuration
+
+    config = Configuration.default(storage={"engine": "hdf5"})
+
+
+
 
 .. _getting-started-configurables:
 
@@ -79,7 +101,7 @@ which will stack our layers on top of each other:
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 9-17
+    :lines: 7-16
 
 The :guilabel:`type` of the ``brain_region`` is ``stack``. This means it will place its
 children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
@@ -116,7 +138,7 @@ Placement
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 19-24
+    :lines: 20-25
 
 
 The :doc:`placement </placement/intro>` blocks is in charge of placing cells in the partitions using the cell type indications.
@@ -128,12 +150,12 @@ Take another look at your network:
 
 .. code-block:: bash
 
-  bsb compile -v 3 -p --clear
+  bsb compile -v 3  --clear
 
 .. note::
 
-	We're using the short forms ``-v`` and ``-p`` of the CLI options ``--verbosity`` and
-	``--plot``, respectively. You can use ``bsb --help`` to inspect the CLI options.
+ We're using the short forms ``-v`` of the CLI options ``--verbosity``.
+ You can use ``bsb --help`` to inspect the CLI options.
 
 .. warning::
 
@@ -152,54 +174,17 @@ Connectivity
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 25-30
+    :lines: 26-31
 
 
 The :doc:`connectivity </connectivity/defining>` blocks specify connections between systems of cell types. They can
 create connections between single or multiple cell types for both pre and post synaptic groups.
 
 Regenerate the network once more, now it will also contain your connections! With your
-cells and connections in place, you're ready to move to the :ref:`simulations` stage.
+cells and connections in place, you're ready to move to the next stage.
 
-.. rubric:: What next?
 
-.. grid:: 1 1 2 2
-    :gutter: 1
 
-    .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Continue getting started
-	    :link: include_morphos
-	    :link-type: ref
-
-	    Follow the next chapter and learn how to include morphologies.
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
-	    :link: components
-	    :link-type: ref
-
-	    Learn how to write your own components to e.g. place or connect cells.
-
-    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
-	    :link: simulations
-	    :link-type: ref
-
-	    Learn how to simulate your network models
-
-    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
-	    :link: examples
-	    :link-type: ref
-
-	    View examples explained step by step
-
-    .. grid-item-card:: :octicon:`package-dependents;1em;sd-text-warning` Plugins
-	    :link: plugins
-	    :link-type: ref
-
-	    Learn to package your code for others to use!
-
-    .. grid-item-card:: :octicon:`mark-github;1em;sd-text-warning` Contributing
-	    :link: https://github.com/dbbs-lab/bsb-core
-
-	    Help out the project by contributing code.
 
 Recap
 -----

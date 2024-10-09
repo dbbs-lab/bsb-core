@@ -68,7 +68,6 @@ human-readable, multi-scale models!
    :caption: Getting Started
 
    getting-started/installation
-   getting-started/top-level-guide
    getting-started/toc
    guides/toc
    examples/toc

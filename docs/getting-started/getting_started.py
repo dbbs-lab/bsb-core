@@ -1,12 +1,11 @@
-from bsb_plot import plot_network
-
 import bsb.options
-from bsb import Scaffold, parse_configuration_file
+from bsb import Configuration, Scaffold
 
 bsb.options.verbosity = 3
-config = parse_configuration_file("network_configuration.json", parser="json")
+config = Configuration.default(storage={"engine": "hdf5"})
 
-config.partitions.add("top_layer", thickness=100, stack_index=1)
+config.partitions.add("base_layer", thickness=100)
+config.partitions.add("top_layer", thickness=100)
 config.regions.add(
     "brain_region",
     type="stack",
@@ -15,7 +14,9 @@ config.regions.add(
         "top_layer",
     ],
 )
+
 config.cell_types.add("top_type", spatial=dict(radius=7, count=10))
+
 config.placement.add(
     "all_placement",
     strategy="bsb.placement.RandomPlacement",
@@ -31,4 +32,3 @@ config.connectivity.add(
 
 network = Scaffold(config)
 network.compile()
-plot_network(network)

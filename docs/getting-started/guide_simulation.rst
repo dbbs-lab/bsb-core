@@ -4,12 +4,12 @@
 Do your first simulation
 ########################
 
-At this point, it is assumed that you are already familiar with network construction.
-This section will guide you through configuring a simulation for your network.
-If you need assistance with network setup, please refer to the :doc:`getting started guide </getting-started/getting-started>`.
+This section assumes you are already familiar with network construction. It will guide you through configuring
+a simulation for your network. If you need assistance with network setup,
+please refer to the :doc:`getting started guide </getting-started/getting-started_reconstruction>`.
 
-After constructing the network, the next step is to configure the simulation parameters.
-Begin by specifying the :guilabel:`simulator` to be used. Here we presents the `NEST <https://nest-simulator.readthedocs.io/en/stable/installation/index.html>`_
+Once the network is built, the next step is to configure the simulation parameters.
+Start by specifying the :guilabel:`simulator` to be used. Here we presents the `NEST <https://nest-simulator.readthedocs.io/en/stable/installation/index.html>`_
 simulator but other simulators can also be selected. Additionally, you need to define the :guilabel:`resolution` (the time step of the simulation in milliseconds)
 and the :guilabel:`duration` (the total length of the simulation in milliseconds).
 Therefore, your simulation block should be structured as follows:
@@ -33,10 +33,6 @@ Therefore, your simulation block should be structured as follows:
 
     .. code-block:: python
 
-        from bsb import parse_configuration_file
-
-        config = parse_configuration_file("my_configuration.json", parser="json")
-
         config.simulations.add("basal_activity",
           simulator="nest",
           resolution=0.1,
@@ -46,6 +42,10 @@ Therefore, your simulation block should be structured as follows:
           devices={}
         )
 
+.. note::
+
+    If you are using Python code, we assume that all network blocks are already
+    configured within a ``Configuration`` object named  :guilabel:`config`.
 
 
 Cells Models
@@ -54,7 +54,7 @@ The simulator needs a model to determine how cells will behave during the simula
 The keys given in the :guilabel:`cell_models` should correspond to a ``cell type`` in the
 network. If a certain ``cell type`` does not have a corresponding ``cell model`` then no
 cells of that type will be instantiated in the network. For our case we choose one
-of the simplest NEST models, the `parrot neuron <https://nest-simulator.readthedocs.io/en/v3.8/models/parrot_neuron.html>`_:
+of the simplest NEST models, the `exponential integrate-and-fire neuron model <https://nest-simulator.readthedocs.io/en/v3.8/models/aeif_cond_exp.html>`_:
 
 .. tab-set-code::
 
@@ -62,18 +62,18 @@ of the simplest NEST models, the `parrot neuron <https://nest-simulator.readthed
 
          "cell_models": {
             "base_type": {
-              "model": "parrot_neuron"
+              "model": "aeif_cond_exp"
             },
             "top_type": {
-              "model": "parrot_neuron"
+              "model": "aeif_cond_exp"
             }
           },
 
     .. code-block:: python
 
         config.simulations["basal_activity"].cell_models=dict(
-          base_type={"model":"parrot_neuron"},
-          top_type={"model":"parrot_neuron"}
+          base_type={"model":"aeif_cond_exp"},
+          top_type={"model":"aeif_cond_exp"}
         )
 
 Connection Models
@@ -181,6 +181,7 @@ this file will be used to run simulations through the CLI:
 
 .. code-block:: bash
 
+        bsb compile -v 3 my_configuration.json
         bsb simulate my_network.hdf5 basal_activity
 
 Alternatively, if you prefer to manage the simulations using Python code:
