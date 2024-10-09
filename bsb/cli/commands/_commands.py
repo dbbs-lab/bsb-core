@@ -115,10 +115,10 @@ def _flatten_arr_args(arr):
 
 class MakeConfigCommand(BaseCommand, name="make-config"):
     def handler(self, context):
-        from ...config import copy_template
+        from ...config import copy_configuration_template
 
         args = context.arguments
-        copy_template(args.template, args.output, path=args.path or ())
+        copy_configuration_template(args.template, args.output, path=args.path or ())
 
     def get_options(self):
         return {}
