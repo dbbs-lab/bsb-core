@@ -194,7 +194,7 @@ Now that the configuration is prepared, we can compile our network using:
     :lines: 50-51
 
 
-. rubric:: What next?
+.. rubric:: What next?
 
 .. grid:: 1 1 2 2
     :gutter: 1
@@ -212,7 +212,7 @@ Now that the configuration is prepared, we can compile our network using:
 
        Learn how to write your own components to e.g. place or connect cells.
 
-    .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Examples
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
 	    :link: examples
 	    :link-type: ref
 

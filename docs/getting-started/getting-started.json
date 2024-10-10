@@ -5,9 +5,9 @@
     "root": "network.hdf5"
   },
   "network": {
-    "x": 400.0,
-    "y": 600.0,
-    "z": 400.0
+    "x": 200.0,
+    "y": 200.0,
+    "z": 200.0
   },
   "regions": {
     "brain_region": {
@@ -31,13 +31,13 @@
     "base_type": {
       "spatial": {
         "radius": 2,
-        "density": 1e-3
+        "density": 1e-4
       }
     },
     "top_type": {
       "spatial": {
         "radius": 7,
-        "count": 10
+        "count": 40
       }
     }
   },

@@ -12,7 +12,7 @@ Follow the :doc:`/getting-started/installation`:
 
 	This guide aims to get your first model running with the bare minimum steps. If you'd
 	like to familiarize yourself with the core concepts and get a more top level
-	understanding first, check out the :doc:`./top-level-guide` before you continue.
+	understanding first, check out the :doc:`/components/intro` before you continue.
 
 The framework supports both declarative statements in configuration formats, or Python
 code. Be sure to take a quick look at each code tab to get a feel for the equivalent forms

@@ -1,8 +1,8 @@
    .. _simulation-guide:
 
-########################
-Do your first simulation
-########################
+#########################
+Run your first simulation
+#########################
 
 This section assumes you are already familiar with network construction. It will guide you through configuring
 a simulation for your network. If you need assistance with network setup,
@@ -54,7 +54,7 @@ The simulator needs a model to determine how cells will behave during the simula
 The keys given in the :guilabel:`cell_models` should correspond to a ``cell type`` in the
 network. If a certain ``cell type`` does not have a corresponding ``cell model`` then no
 cells of that type will be instantiated in the network. For our case we choose one
-of the simplest NEST models, the `exponential integrate-and-fire neuron model <https://nest-simulator.readthedocs.io/en/v3.8/models/aeif_cond_exp.html>`_:
+of the simplest NEST models, the `simple leaky integrate-and-fire neuron model <https://nest-simulator.readthedocs.io/en/v3.8/models/iaf_cond_alpha.html>`_:
 
 .. tab-set-code::
 
@@ -62,18 +62,18 @@ of the simplest NEST models, the `exponential integrate-and-fire neuron model <h
 
          "cell_models": {
             "base_type": {
-              "model": "aeif_cond_exp"
+              "model": "iaf_cond_alpha"
             },
             "top_type": {
-              "model": "aeif_cond_exp"
+              "model": "iaf_cond_alpha"
             }
           },
 
     .. code-block:: python
 
         config.simulations["basal_activity"].cell_models=dict(
-          base_type={"model":"aeif_cond_exp"},
-          top_type={"model":"aeif_cond_exp"}
+          base_type={"model":"iaf_cond_alpha"},
+          top_type={"model":"iaf_cond_alpha"}
         )
 
 Connection Models
@@ -91,7 +91,7 @@ In this example, we add a ``static_synapse`` connection to the connectivity :gui
         "A_to_B": {
             "synapse": {
               "model": "static_synapse",
-              "weight": 1,
+              "weight": 100,
               "delay": 1
             }
         }
@@ -103,13 +103,13 @@ In this example, we add a ``static_synapse`` connection to the connectivity :gui
           A_to_B=dict(
             synapse=dict(
               model="static_synapse",
-              weight=1,
+              weight=100,
               delay=1
             )
           )
         )
 
-In this case the synapse model needs ``weight`` and ``delay`` parameters that are set to 1.
+In this case the synapse model needs ``weight`` and ``delay`` parameters that are set to 100 and 1, rispectively.
 
 Devices
 -------
@@ -124,13 +124,13 @@ referencing devices typically used in experiments, such as stimulators and measu
             "devices": {
                     "background_noise": {
                       "device": "poisson_generator",
-                      "rate": 5,
+                      "rate": 20,
                       "targetting": {
                         "strategy": "cell_model",
                         "cell_models": [
                           "top_type"]
                       },
-                      "weight": 1,
+                      "weight": 40,
                       "delay": 1
                     },
                     "base_layer_record": {
@@ -142,6 +142,16 @@ referencing devices typically used in experiments, such as stimulators and measu
                           "base_type"
                         ]
                       }
+                    },
+                    "top_layer_record": {
+                      "device": "spike_recorder",
+                      "delay": 0.1,
+                      "targetting": {
+                        "strategy": "cell_model",
+                        "cell_models": [
+                          "top_type"
+                        ]
+                      }
                     }
             }
 
@@ -150,12 +160,12 @@ referencing devices typically used in experiments, such as stimulators and measu
             config.simulations["basal_activity"].devices=dict(
               general_noise=dict(
                       device= "poisson_generator",
-                      rate= 5,
+                      rate= 20,
                       targetting= {
                         "strategy": "cell_model",
                         "cell_models": ["top_type"]
                       },
-                      weight= 1,
+                      weight= 40,
                       delay= 1
               ),
               base_layer_record=dict(
@@ -164,6 +174,14 @@ referencing devices typically used in experiments, such as stimulators and measu
                       targetting= {
                         "strategy": "cell_model",
                         "cell_models": ["base_type"]
+                      }
+              ),
+              top_layer_record=dict(
+                      device= "spike_recorder",
+                      delay= 0.1,
+                      targetting= {
+                        "strategy": "cell_model",
+                        "cell_models": ["top_type"]
                       }
               )
             )
@@ -197,3 +215,35 @@ Alternatively, if you prefer to manage the simulations using Python code:
 
 For more detailed information about simulation modules,
 please refer to the :doc:`simulation section </simulation/intro>`.
+
+.. rubric:: Next steps:
+
+.. grid:: 1 1 1 2
+    :gutter: 1
+
+
+    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Analyze Results
+	    :link: guide_analyze_results
+	    :link-type: ref
+
+	    How to extract your data.
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Custom components
+       :link: components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.
+
+Recap
+-----
+
+.. tab-set-code::
+
+  .. literalinclude:: guide-simulation.yaml
+    :language: yaml
+
+  .. literalinclude:: guide-simulation.json
+    :language: json
+
+  .. literalinclude:: guide-simulation.py
+    :language: python

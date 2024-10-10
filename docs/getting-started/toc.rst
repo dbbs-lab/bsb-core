@@ -9,5 +9,6 @@ Getting Started
   getting-started_reconstruction
   include_morphos
   guide_simulation
+  analyze_results
   basics
   projects
