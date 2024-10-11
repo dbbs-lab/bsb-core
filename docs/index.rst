@@ -95,6 +95,7 @@ human-readable, multi-scale models!
    :caption: Components
 
    components/intro
+   components/scaffold
    config/configuration-toc
    topology/topology-toc
    cells/cells-toc
@@ -102,6 +103,7 @@ human-readable, multi-scale models!
    placement/placement-toc
    connectivity/connectivity-toc
    simulation/simulation-toc
+   components/storage
 
 
 .. toctree::

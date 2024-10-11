@@ -12,9 +12,9 @@ Top Level Guide
   :figwidth: 90%
   :figclass: only-dark
 
-The Brain **Scaffold** Builder revolves around the :class:`~.core.Scaffold` object. A
-scaffold ties together all the information in the :class:`~.config.Configuration` with the
-:class:`~.storage.Storage`. The configuration contains your model description, while the
+The Brain **Scaffold** Builder revolves around the :doc:`Scaffold </components/scaffold>` object. A
+scaffold ties together all the information in the ``Configuration`` with the
+:doc:`Storage </components/storage>`. The configuration contains your model description, while the
 storage contains your model data, like concrete cell positions or connections.
 
 Using the scaffold object one can turn the abstract model configuration into a concrete
@@ -25,12 +25,6 @@ those cells and connections. All of these configurable objects can be accessed f
 scaffold object, under ``network.placement``, ``network.connectivity``,
 ``network.simulations``, ...
 
-Using the scaffold object, you can inspect the data in the storage by using the
-:class:`~.storage.interfaces.PlacementSet` and
-:class:`~.storage.interfaces.ConnectivitySet` APIs. PlacementSets can be obtained with
-:meth:`scaffold.get_placement_set <.core.Scaffold.get_placement_set>`, and
-ConnectivitySets with :meth:`scaffold.get_connectivity_set
-<.core.Scaffold.get_placement_set>`.
 
 Ultimately this is the goal of the entire framework: To let you explicitly define every
 component and parameter that is a part of your model, and all its parameters, in such a
@@ -53,6 +47,12 @@ Workflow
 Configuration
 =============
 
+The ``Configuration`` object is organized as a hierarchical tree.
+From the root, the main blocks branch off, consisting of nine required components: :guilabel:`network`,
+:guilabel:`storage`, :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`morphologies`, :guilabel:`cell types`, :guilabel:`placement`, :guilabel:`connectivity`, and :guilabel:`simulation`.
+These blocks contain nested sub-blocks that form the network.
+Additionally, there are two optional blocks: :guilabel:`after_placement` and :guilabel:`after_connectivity`, where users can define specific hooks to run within the workflow.
+
 .. figure:: /images/configuration.png
   :figwidth: 90%
   :figclass: only-light
@@ -60,3 +60,17 @@ Configuration
 .. figure:: /images/configuration_dark.png
   :figwidth: 90%
   :figclass: only-dark
+
+Configuration File
+------------------
+
+A configuration file describes the components of a scaffold model. It contains the
+instructions to place and connect neurons, how to represent the cells and connections as
+models in simulators and what to stimulate and record in simulations.
+
+The default configuration format is JSON, but YAML is also supported.
+A standard configuration file is structured as follows:
+
+.. include:: _empty_config_example.rst
+
+
