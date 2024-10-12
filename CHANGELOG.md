@@ -1,3 +1,10 @@
+## [v4.5.1] - 2024-10-12
+### :bug: Bug Fixes
+- [`ab77c6f`](https://github.com/dbbs-lab/bsb-core/commit/ab77c6fbe14ed298c770e68fe31a64ccd6588d0c) - count_ratio on non overlapping partitions *(PR [#886](https://github.com/dbbs-lab/bsb-core/pull/886) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#885](https://github.com/dbbs-lab/bsb-core/issues/885) opened by [@drodarie](https://github.com/drodarie)*
+  - :arrow_lower_right: *fixes issue [#889](https://github.com/dbbs-lab/bsb-core/issues/889) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v4.5.0] - 2024-09-13
 ### :sparkles: New Features
 - [`9f4046a`](https://github.com/dbbs-lab/bsb-core/commit/9f4046a2b40ad40257bf7ab13297d4441d43d02f) - Stack regions and Layer partitions *(PR [#868](https://github.com/dbbs-lab/bsb-core/pull/868) by [@drodarie](https://github.com/drodarie))*
@@ -457,3 +464,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.4.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.2...v4.4.3
 [v4.4.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.3...v4.4.4
 [v4.5.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.4...v4.5.0
+[v4.5.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.0...v4.5.1
