@@ -464,7 +464,7 @@ class Scaffold:
         chunk=None,
     ):
         """
-        Place cells inside of the scaffold
+        Place cells inside the scaffold
 
         .. code-block:: python
 

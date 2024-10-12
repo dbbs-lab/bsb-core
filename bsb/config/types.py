@@ -789,13 +789,28 @@ class ndarray(TypeHandler):
     :rtype: Callable
     """
 
-    def __init__(self, dtype=None):
+    def __init__(self, shape: builtins.tuple[builtins.int, ...] = None, dtype=None):
+        """
+        :param shape: shape of the array, optional.
+        :param dtype: data-type, optional
+        """
+        if any(dim < 0 for dim in (shape or ())):
+            raise TypeError(f"Ndarray shape must all be positive. Provided {shape}.")
+        self.shape = shape
         self.dtype = dtype
 
     def __call__(self, value):
+        result = np.array(value, copy=False)
         if self.dtype is not None:
-            return np.array(value, copy=False, dtype=self.dtype)
-        return np.array(value, copy=False)
+            result = np.asarray(result, dtype=self.dtype)
+        if self.shape is not None:
+            try:
+                result = result.reshape(self.shape)
+            except Exception:
+                raise TypeError(
+                    f"Couldn't cast array of {getattr(value, 'shape', 'unknown')} shape into an array of {self.shape} shape."
+                )
+        return result
 
     @property
     def __name__(self):
