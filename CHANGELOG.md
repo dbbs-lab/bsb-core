@@ -1,3 +1,10 @@
+## [v4.5.2] - 2024-10-12
+### :bug: Bug Fixes
+- [`21015c5`](https://github.com/dbbs-lab/bsb-core/commit/21015c530e340140ee424e4dbc7b18053a628d54) - targetting and add shape to ndarray *(PR [#891](https://github.com/dbbs-lab/bsb-core/pull/891) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#869](https://github.com/dbbs-lab/bsb-core/issues/869) opened by [@drodarie](https://github.com/drodarie)*
+  - :arrow_lower_right: *fixes issue [#890](https://github.com/dbbs-lab/bsb-core/issues/890) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v4.5.1] - 2024-10-12
 ### :bug: Bug Fixes
 - [`ab77c6f`](https://github.com/dbbs-lab/bsb-core/commit/ab77c6fbe14ed298c770e68fe31a64ccd6588d0c) - count_ratio on non overlapping partitions *(PR [#886](https://github.com/dbbs-lab/bsb-core/pull/886) by [@drodarie](https://github.com/drodarie))*
@@ -465,3 +472,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.4.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.3...v4.4.4
 [v4.5.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.4...v4.5.0
 [v4.5.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.0...v4.5.1
+[v4.5.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.1...v4.5.2
