@@ -5,82 +5,49 @@ Partitions
 Partitions contain shape descriptions used to define the spatial layout of the network.
 These descriptions can be represented as layers, meshes and voxelsets.
 In the BSB the following two partitions are implemented:
+* :ref:`Rhomboid  <rhomboid-partition>`
 * :ref:`Layers  <layer-partition>`
 * :ref:`Voxelized volumes <voxel-partition>`.
 
+.. _rhomboid-partition:
+
+========
+Rhomboid
+========
+:class:`Rhomboid <.topology.partition.Rhomboid>` is the simplest implementation
+of the :class:`Partition <.topology.partition.Partition>`. Here, the `Rhomboid`
+occupies the space of a rectangular cuboid defined by its ``origin`` and ``dimensions``
+within its `Region`.
+
+Parameters
+----------
+* ``dimensions``: Sizes of the partition for each axis.
+* ``can_scale``: Boolean flag to authorize rescaling of the partition dimensions.
+* ``origin``: Coordinate of the origin of the partition.
+* ``can_move``: Boolean flag to authorize the translation of the partition.
+
 .. _layer-partition:
 
-======
-Layers
-======
+=====
+Layer
+=====
+A :class:`Layer <.topology.partition.Layer>` occupies the full space of its
+containing `Region` except on a defined ``axis``, where it is limited.
+This creates a stratum within the `Region` along the chosen ``axis``.
 
-The :class:`Layer partition <.topology.partition.Layer>` represents a parallelepiped-shaped volume.
-The size of a layer is defined by the network, except for its height.
-Therefore, it is necessary to specify the layer's thickness using the thickness attribute.
+Parameters
+----------
+* ``can_scale``: Boolean flag to authorize rescaling of the partition dimensions.
+* ``origin``: Coordinate of the origin of the partition.
+* ``can_move``: Boolean flag to authorize the translation of the partition.
+* ``thickness``: Thickness of the layer along its axis.
+* ``axis``: Axis along which the layer will be limited. Should be one of ["x", "y", "z"].
 
-.. tab-set-code::
+.. note::
 
-    .. code-block:: json
-
-      {
-        "partitions": {
-          "my_layer_partition": {
-            "type": "layer",
-            "thickness": 25
-          }
-        }
-      }
-
-Build a stack of layers
------------------------
-
-
-Layers can be organized into a stack to structure your network based on depth.
-The :ref:`Stack <stack-region>` region is used to arrange layers in this manner.
-For a three-layer system, it will be organized as follows:
-
-.. tab-set-code::
-
-    .. code-block:: json
-
-        {
-            "name": "Starting example",
-            "storage": {
-            "engine": "hdf5",
-            "root": "network.hdf5"
-            },
-            "network": {
-                "x": 400.0,
-                "y": 600.0,
-                "z": 300.0
-            },
-            "regions": {
-                "brain_region": {
-                    "type": "stack",
-                    "children": ["base_layer","middle_layer","top_layer"]
-                }
-            },
-            "partitions": {
-                "base_layer": {
-                    "type": "layer",
-                    "thickness": 100,
-                    "stack_index": 0
-                },
-                "middle_layer": {
-                    "type": "layer",
-                    "thickness": 100,
-                    "stack_index": 1
-                },
-                "top_layer": {
-                    "type": "layer",
-                    "thickness": 100,
-                    "stack_index": 2
-                }
-            }
-        }
-
-
-
+    `Layer` is mainly meant to be contained in a `Stack` region. Indeed, if a `Stack` and its
+    `Layers` share the same ``axis``, then each `Layer` will occupy the whole space of the
+    Region, except on the ``axis`` where it will be defined according to their ``thickness``.
 
 .. _voxel-partition:
 

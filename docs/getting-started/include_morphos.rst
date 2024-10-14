@@ -163,11 +163,11 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 
   .. literalinclude:: include_morphos.yaml
     :language: yaml
-    :lines: 56-64
+    :lines: 54-62
 
   .. literalinclude:: include_morphos.json
     :language: json
-    :lines: 74-84
+    :lines: 72-82
 
   .. literalinclude:: include_morphos.py
     :language: python

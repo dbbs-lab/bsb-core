@@ -2,12 +2,10 @@
 List of placement strategies
 ############################
 
-RandomPlacement
-*****************
+:class:`RandomPlacement <.placement.random.RandomPlacement>`
+============================================================
 
-*Class*: :class:`bsb.placement.RandomPlacement <.placement.random.RandomPlacement>`
-
-This class places cells in random positions without considering overlaps. Below is an example with 10 cells.
+This class assigns a random position to each cell within their related partition. Below is an example with 10 cells.
 
 .. tab-set-code::
 
@@ -25,7 +23,7 @@ This class places cells in random positions without considering overlaps. Below 
         "placement": {
             "place_randomly":{
                 "strategy": "bsb.placement.particle.RandomPlacement",
-                "partitions": "my_layer",
+                "partitions": ["my_layer"],
                 "cell_types": ["my_cell"]
             }
         },
@@ -42,19 +40,19 @@ This class places cells in random positions without considering overlaps. Below 
         partitions=["my_layer"],
         cell_types=["my_cell"],
       )
+
 .. note::
- While placing cells randomly, it will be ensured that they do not occupy excessive volume.
- The ratio of the total cell volume to the partition volume, known as the packing factor,
+ This strategy will ensure that the cell somas (represented as sphere)
+ do not occupy an excessive volume with respect to their containing partition.
+ Therefore, the ratio of the total cell soma volume to the partition volume, referred as the `packing factor`,
  should not exceed 0.4.
 
-ParallelArrayPlacement
-**********************
+:class:`ParallelArrayPlacement <.placement.arrays.ParallelArrayPlacement>`
+==========================================================================
 
-*Class*: :class:`bsb.placement.ParallelArrayPlacement
-<.placement.arrays.ParallelArrayPlacement>`
-
-This class place cells in an aligned array, it create a lattice with fixed spacing and with the desired angle.
-It is necessary to specify ``spacing_x`` and ``angle`` attributes.
+This class places a single layer of cells on the `xy` plane in an aligned array fashion.
+To this end, it create a lattice with fixed spacing between cell positions for each of its row (``spacing_x`` in µm).
+The lattice can be additionally rotated along the `z` axis (``angle`` defined in degrees).
 
 .. tab-set-code::
 
@@ -71,8 +69,8 @@ It is necessary to specify ``spacing_x`` and ``angle`` attributes.
 
         "placement": {
             "place_on_flat_array":{
-                "strategy": "bsb.placement.particle.ParallelArrayPlacement",
-                "partitions": "my_layer",
+                "strategy": "bsb.placement.ParallelArrayPlacement",
+                "partitions": ["my_layer"],
                 "cell_types": ["my_cell"],
                 "spacing_x": 10,
                 "angle": 0
@@ -95,14 +93,10 @@ It is necessary to specify ``spacing_x`` and ``angle`` attributes.
       )
 
 
+:class:`FixedPositions <.placement.strategy.FixedPositions>`
+============================================================
 
-
-FixedPositions
-**************
-
-*Class*: :class:`bsb.placement.FixedPositions <.placement.strategy.FixedPositions>`
-
-This class places the cells in fixed positions specified in the attribute ``positions``.
+This class places the cells at fixed positions specified by the attribute ``positions``.
 
 * ``positions``: a list of 3D points where the neurons should be placed. For example:
 
@@ -121,10 +115,10 @@ This class places the cells in fixed positions specified in the attribute ``posi
 
         "placement": {
             "place_in_fixed_position":{
-                "strategy": "bsb.placement.particle.FixedPositions",
-                "partitions": "my_layer",
+                "strategy": "bsb.placement.FixedPositions",
+                "partitions": ["my_layer"],
                 "cell_types": ["my_cell"],
-                "positions": [[0,0,0],[20,20,20]]
+                "positions": [[0, 0, 0], [20, 20, 20]]
             }
         },
 
@@ -136,10 +130,10 @@ This class places the cells in fixed positions specified in the attribute ``posi
       )
       config.placement.add(
         "place_in_fixed_position",
-        strategy="bsb.placement.RandomPlacement",
+        strategy="bsb.placement.FixedPositions",
         partitions=["my_layer"],
         cell_types=["my_cell"],
-        positions=[[0,0,0],[20,20,20]]
+        positions=[[0, 0, 0], [20, 20, 20]]
       )
 
 In this case, we place two cells of type ``my_cell`` at fixed positions

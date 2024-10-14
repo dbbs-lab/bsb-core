@@ -22,11 +22,9 @@ partitions:
   base_layer:
     type: layer
     thickness: 100
-    stack_index: 0
   top_layer:
     type: layer
     thickness: 100
-    stack_index: 1
 cell_types:
   base_type:
     spatial:

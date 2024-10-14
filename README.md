@@ -1,6 +1,6 @@
+[![Build Status](https://github.com/dbbs-lab/bsb-core/actions/workflows/main.yml/badge.svg)](https://github.com/dbbs-lab/bsb-core/actions/workflows/main.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Documentation Status](https://readthedocs.org/projects/bsb/badge/?version=latest)](https://bsb.readthedocs.io/en/latest/?badge=latest)
-[![Build Status](https://travis-ci.com/dbbs-lab/bsb-core.svg?branch=main)](https://travis-ci.com/dbbs-lab/bsb-core)
 [![codecov](https://codecov.io/gh/dbbs-lab/bsb-core/branch/main/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb-core)
 
 <h3>:closed_book: Read the documentation on https://bsb.readthedocs.io/en/latest</h3>
