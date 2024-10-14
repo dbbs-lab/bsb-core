@@ -13,23 +13,29 @@ Top Level Guide
   :figclass: only-dark
 
 The Brain **Scaffold** Builder revolves around the :doc:`Scaffold </components/scaffold>` object. A
-scaffold ties together all the information in the ``Configuration`` with the
+scaffold ties together all the information in the :doc:`Configuration </config/files>` with the
 :doc:`Storage </components/storage>`. The configuration contains your model description, while the
 storage contains your model data, like concrete cell positions or connections.
 
 Using the scaffold object one can turn the abstract model configuration into a concrete
 storage object full of neuroscience. For it to do so, the configuration needs to describe
-which steps to take to place cells, called ``Placement``, which steps to take to connect
-cells, called ``Connectivity``, and what representations to use during ``Simulation`` for
-those cells and connections. All of these configurable objects can be accessed from the
-scaffold object, under ``network.placement``, ``network.connectivity``,
-``network.simulations``, ...
+which method to use to:
+
+* define the shape and volume of your network, called ``Topology`` (composed of ``Regions`` and ``Partitions``),
+* estimate the cell composition, called ``Cell Types`` (and ``Morphologies`` when needed),
+* place cells, called ``Placement``,
+* connect cells, called ``Connectivity``,
+* simulate the resulting network, called ``Simulation``
+
+All of these configurable objects or **components** can be
+accessed from the scaffold object, under ``scaffold.placement``, ``scaffold.connectivity``,
+``scaffold.simulations``, ...
 
 
-Ultimately this is the goal of the entire framework: To let you explicitly define every
-component and parameter that is a part of your model, and all its parameters, in such a
-way that a single CLI command, ``bsb compile``, can turn your configuration into a
-reconstructed biophysically detailed large scale neural network.
+Through this interface lies the ultimate goal of the entire framework: To let you explicitly define
+every component that is a part of your model, and all its related parameters, in such a way that
+a single CLI command, ``bsb compile``, can turn your configuration into a reconstructed
+biophysically detailed large scale neural network.
 
 Workflow
 ========
@@ -48,10 +54,12 @@ Configuration
 =============
 
 The ``Configuration`` object is organized as a hierarchical tree.
-From the root, the main blocks branch off, consisting of nine required components: :guilabel:`network`,
-:guilabel:`storage`, :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`morphologies`, :guilabel:`cell types`, :guilabel:`placement`, :guilabel:`connectivity`, and :guilabel:`simulation`.
+From the root, the main blocks branch off, consisting of nine main components: :guilabel:`network`,
+:guilabel:`storage`, :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`morphologies`, :guilabel:`cell_types`,
+:guilabel:`placement`, :guilabel:`connectivity`, and :guilabel:`simulation`.
 These blocks contain nested sub-blocks that form the network.
-Additionally, there are two optional blocks: :guilabel:`after_placement` and :guilabel:`after_connectivity`, where users can define specific hooks to run within the workflow.
+Additionally, there are two optional blocks: :guilabel:`after_placement` and :guilabel:`after_connectivity`,
+where users can define specific hooks to run within the workflow.
 
 .. figure:: /images/configuration.png
   :figwidth: 90%

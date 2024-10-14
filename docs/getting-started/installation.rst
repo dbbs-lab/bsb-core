@@ -3,17 +3,21 @@
 ============
 Installation
 ============
-
+| The BSB framework is tested and documented for Python versions 3.9, 3.10 and 3.11.
+| Support and compatibility are not guaranteed for the other versions of Python.
 
 .. tip::
 
-  Use virtual environments!
+  We highly recommend you to use
+  `python virtual environments <https://realpython.com/python-virtual-environments-a-primer/>`_
+  to install BSB!
+
 
 The BSB framework can be installed using ``pip``:
 
 .. code-block:: bash
 
-  pip install "bsb~=4.1"
+  pip install bsb
 
 You can verify that the installation works with:
 
@@ -24,7 +28,7 @@ You can verify that the installation works with:
   # Create an empty scaffold network with the default configuration.
   scaffold = Scaffold()
 
-You can now head over to the :doc:`get started <getting-started_reconstruction>`.
+You can now head over to the :doc:`getting started <top-level-guide>` section.
 
 Parallel support
 ================
@@ -49,13 +53,13 @@ To then install the BSB with parallel MPI support:
 
 .. code-block:: bash
 
-  pip install "bsb[parallel]~=4.1"
+  pip install bsb[parallel]
 
 Simulator backends
 ==================
 
-If you'd like to install the scaffold builder for point neuron simulations with
-NEST or multicompartmental neuron simulations with NEURON or Arbor use:
+If you would like to install the scaffold builder for point neuron simulations with
+NEST or multi-compartmental neuron simulations with NEURON or Arbor use:
 
 .. code-block:: bash
 
@@ -67,8 +71,8 @@ NEST or multicompartmental neuron simulations with NEURON or Arbor use:
   # or any combination
   pip install bsb[arbor,nest,neuron]
 
-.. note::
+.. warning::
 
-  This does not install the simulators themselves. It installs the Python tools that the
-  BSB needs to support them. Install the simulators separately according to their
-  respective installation instructions.
+  The NEST simulator is not installed with the `bsb-nest` package and should be set up separately.
+  It installs the Python tools that the BSB needs to interface NEST. Install NEST following to their
+  `installation instructions <https://nest-simulator.readthedocs.io/en/stable/installation/index.html>`_ .
