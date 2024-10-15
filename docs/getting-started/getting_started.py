@@ -2,7 +2,11 @@ import bsb.options
 from bsb import Configuration, Scaffold
 
 bsb.options.verbosity = 3
-config = Configuration.default(storage={"engine": "hdf5"})
+config = Configuration.default(storage={"engine": "hdf5", "root": "network.hdf5"})
+
+config.network.x = 400.0
+config.network.y = 600.0
+config.network.z = 400.0
 
 config.partitions.add("base_layer", thickness=100)
 config.partitions.add("top_layer", thickness=100)
@@ -15,14 +19,29 @@ config.regions.add(
     ],
 )
 
-config.cell_types.add("top_type", spatial=dict(radius=7, count=10))
+config.cell_types.add(
+    "base_type",
+    spatial=dict(
+        radius=2.5,
+        density=3.9e-4,
+        plotting=dict(display_name="Template cell", color="#E62314", opacity=0.5),
+    ),
+)
+config.cell_types.add("top_type", spatial=dict(radius=7, count=40))
 
 config.placement.add(
-    "all_placement",
+    "base_placement",
     strategy="bsb.placement.RandomPlacement",
-    cell_types=["base_type", "top_type"],
+    cell_types=["base_type"],
     partitions=["base_layer"],
 )
+config.placement.add(
+    "top_placement",
+    strategy="bsb.placement.RandomPlacement",
+    cell_types=["top_type"],
+    partitions=["top_layer"],
+)
+
 config.connectivity.add(
     "A_to_B",
     strategy="bsb.connectivity.AllToAll",
@@ -30,5 +49,5 @@ config.connectivity.add(
     postsynaptic=dict(cell_types=["top_type"]),
 )
 
-network = Scaffold(config)
-network.compile()
+scaffold = Scaffold(config)
+scaffold.compile(clear=True)

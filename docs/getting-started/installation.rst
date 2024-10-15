@@ -28,7 +28,7 @@ You can verify that the installation works with:
   # Create an empty scaffold network with the default configuration.
   scaffold = Scaffold()
 
-You can now head over to the :doc:`getting started <top-level-guide>` section.
+You have now the minimal installation to complete the :doc:`getting started <top-level-guide>` section.
 
 Parallel support
 ================
@@ -76,3 +76,9 @@ NEST or multi-compartmental neuron simulations with NEURON or Arbor use:
   The NEST simulator is not installed with the `bsb-nest` package and should be set up separately.
   It installs the Python tools that the BSB needs to interface NEST. Install NEST following to their
   `installation instructions <https://nest-simulator.readthedocs.io/en/stable/installation/index.html>`_ .
+
+Developer installation
+======================
+
+.. include:: ../dev/installation.rst
+    :start-after: start-dev-install

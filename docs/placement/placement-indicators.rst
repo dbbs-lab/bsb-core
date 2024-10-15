@@ -31,9 +31,9 @@ Independent counts estimation strategies
 You can choose one of the following attributes to estimate the number of cells to place in its partition(s).
 
 * :guilabel:`count`: Set directly the number of cells to place.
-* :guilabel:`density`: Use a density of cell per unit of volume (in cell/um^-3). This will be converted to counts
+* :guilabel:`density`: Use a density of cell per unit of volume (in cell/µm^-3). This will be converted to counts
   based on the partition(s) total volume.
-* :guilabel:`planar_density`: Use a density of cell along the `xy` plane per unit of area (in cell/um^-2). Here too,
+* :guilabel:`planar_density`: Use a density of cell along the `xy` plane per unit of area (in cell/µm^-2). Here too,
   density is converted to counts thanks to the partition(s) area along the `xy` plane.
 * :guilabel:`density_key`: Leverage a density file, defined here with a reference to a `partitions.keys`
   (see `Voxels` section in :doc:`/topology/partitions`). The number of cells is derived from this volumetric density
