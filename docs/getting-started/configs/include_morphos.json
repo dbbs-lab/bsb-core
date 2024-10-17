@@ -5,9 +5,9 @@
     "root": "network.hdf5"
   },
   "network": {
-    "x": 200.0,
-    "y": 200.0,
-    "z": 200.0
+    "x": 400.0,
+    "y": 600.0,
+    "z": 400.0
   },
   "morphologies": [
     "neuron_A.swc",
@@ -16,8 +16,8 @@
       "file": "neuron2.swc"
     },
     {
-       "name": "neuron_NM",
-       "file": "nm://cell005_GroundTruth"
+      "name": "neuron_NM",
+      "file": "nm://cell005_GroundTruth"
     }
   ],
   "regions": {
@@ -39,11 +39,14 @@
   "cell_types": {
     "base_type": {
       "spatial": {
-        "radius": 2,
-        "density": 1e-4,
-        "morphologies": [
-          "neuron_A"
-        ]
+        "radius": 2.5,
+        "density": 3.9e-4,
+        "morphologies": ["neuron_A"]
+      },
+      "plotting": {
+        "display_name": "Template cell",
+        "color": "#E62314",
+        "opacity": 0.5
       }
     },
     "top_type": {
@@ -59,7 +62,7 @@
   },
   "placement": {
     "base_placement": {
-      "strategy": "bsb.placement.RandomPlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
     },

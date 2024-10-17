@@ -12,23 +12,23 @@ Top Level Guide
   :figwidth: 90%
   :figclass: only-dark
 
-The Brain **Scaffold** Builder revolves around the :doc:`Scaffold </components/scaffold>` object. A
+The Brain **Scaffold** Builder revolves around the :doc:`Scaffold </core/scaffold>` object. A
 scaffold ties together all the information in the :doc:`Configuration </config/files>` with the
-:doc:`Storage </components/storage>`. The configuration contains your model description, while the
+:doc:`Storage </core/storage>`. The configuration contains your model description, while the
 storage contains your model data, like concrete cell positions or connections.
 
 Using the scaffold object, one can turn the abstract model configuration into a concrete
 storage object full of neuroscience.
 
 To do so, the configuration leverages configurable objects to describe the underlying neural network,
-called **components**. Components defines which method and parameters should be used to reconstruct and
+called **components**. Components defines which methods and parameters should be used to reconstruct and
 simulate the network. The ones that you would probably employ the most are:
 
 * :guilabel:`Topology` defines the shape and volume of your network,
   (it is composed of :guilabel:`Regions` and :guilabel:`Partitions`),
 * :guilabel:`Cell Types` allows you to estimate the cellular composition
   (and attach :guilabel:`Morphologies` when needed),
-* :guilabel:`Placement` places cells ,
+* :guilabel:`Placement` places cells,
 * :guilabel:`Connectivity` connect cells,
 * :guilabel:`Simulation` simulates the resulting network.
 

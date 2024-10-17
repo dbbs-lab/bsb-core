@@ -8,9 +8,9 @@ running the example in this section.
 
 .. note::
 
-    | This guide aims to get your first model running with the bare minimum steps.
+    | This guide aims to get your first model running with the minimum number of steps.
     | If you would like to familiarize yourself with the core concepts and get a more top level
-      understanding first, check out the :doc:`/components/intro` before you continue.
+      understanding first, check out the :doc:`/config/files` before you continue.
 
 The framework supports both declarative statements in configuration formats, or Python
 code. Be sure to take a quick look at each code tab to get a feel for the equivalent forms
@@ -67,8 +67,8 @@ contain your network (configuration and storage) after reconstruction.
     By default, the :guilabel:`new` command uses the yaml format unless the ``--json``
     flag is set.
 
-Alternatively, if you prefer to create your configuration with Python code,
-you can start by creating a ``Configuration`` object:
+If you prefer, instead of loading the configuration from a file, you can create your configuration
+directly in Python code with a ``Configuration`` object:
 
   .. code-block:: python
 
@@ -77,6 +77,10 @@ you can start by creating a ``Configuration`` object:
 
     bsb.options.verbosity = 3
     config = Configuration.default(storage={"engine": "hdf5", "root": "network.hdf5"})
+    # Implement your code here
+
+    scaffold = Scaffold(config)
+    scaffold.compile()
 
 .. _getting-started-configurables:
 
@@ -92,11 +96,11 @@ including its size along the three dimensions :guilabel:`x`, :guilabel:`y`, :gui
 
 .. tab-set-code::
 
-  .. literalinclude:: getting-started.json
+  .. literalinclude:: configs/getting-started.json
     :language: json
     :lines: 7-11
 
-  .. literalinclude:: getting_started.py
+  .. literalinclude:: configs/getting_started.py
     :language: python
     :lines: 7-9
 
@@ -104,8 +108,8 @@ Topology
 --------
 
 Your network model needs a description of its shape, which is called the topology of the
-network. The topology consists of 2 components: :class:`Regions <.topology.region.Region>`
-and :class:`Partitions <.topology.partition.Partition>`.
+network. The topology consists of 2 components: :doc:`Regions </topology/regions>`
+and :doc:`Partitions </topology/partitions>`.
 Regions combine multiple partitions and/or regions together, in a hierarchy, all the way
 up to a single topmost region, while partitions are exact pieces of volume that can be
 filled with cells.
@@ -114,11 +118,11 @@ To get started, we will add a second layer ``top_layer``, and a region ``brain_r
 
 .. tab-set-code::
 
-  .. literalinclude:: getting-started.json
+  .. literalinclude:: configs/getting-started.json
     :language: json
     :lines: 12-27
 
-  .. literalinclude:: getting_started.py
+  .. literalinclude:: configs/getting_started.py
     :language: python
     :lines: 11-20
 
@@ -128,10 +132,10 @@ children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
 dimensions. See the :doc:`topology section</topology/intro>` for more explanation on
 these components.
 
-.. note::
-    BSB checks the configuration for errors each time it is modified. Now, in the Python
-    code implementation, we are adding components one by one. This means that if one
-    component refers to another, this latter should already in the configuration.
+.. warning::
+    BSB checks the configuration for errors each time the latter is modified. Now, in the
+    Python code implementation, we are adding components one by one. This means that if
+    one component refers to another, this latter should already in the configuration.
     That is why, in the python code implementation, we created the partitions before the
     region because the region uses references to the partitions' name.
 
@@ -149,11 +153,11 @@ time we want to a place 40 of these cells and their soma :guilabel:`radius` of `
 
 .. tab-set-code::
 
-  .. literalinclude:: getting-started.json
+  .. literalinclude:: configs/getting-started.json
     :language: json
     :lines: 28-46
 
-  .. literalinclude:: getting_started.py
+  .. literalinclude:: configs/getting_started.py
     :language: python
     :lines: 22-30
 
@@ -171,17 +175,14 @@ Now that we have defined our new ``top_type``, we should place it in our ``top_l
 
 .. tab-set-code::
 
-  .. literalinclude:: getting-started.json
+  .. literalinclude:: configs/getting-started.json
     :language: json
     :lines: 47-58
 
-  .. literalinclude:: getting_started.py
+  .. literalinclude:: configs/getting_started.py
     :language: python
     :lines: 32-43
 
-The ``example_placement`` already in the configuration file uses the strategy
-:guilabel:`ParticlePlacement` that considers the cells as spheres and bumps them around as repelling
-particles until there is no overlap between them.
 We added here the ``top_placement`` that place cells soma randomly within their respective partition.
 
 You should now try to compile your network to check if you did no mistake:
@@ -200,7 +201,7 @@ You should now try to compile your network to check if you did no mistake:
 .. note::
 
  We are using the short forms ``-v`` of the CLI options ``verbosity``.
- You can use ``bsb --help`` to inspect the CLI options.
+ You can use ``bsb --help`` to inspect the :doc:`CLI options </cli/options>`.
 
 .. warning::
 
@@ -211,20 +212,21 @@ You should now try to compile your network to check if you did no mistake:
 Connectivity
 ------------
 
-The :doc:`connectivity </connectivity/defining>` blocks specify connections between systems of cell
-types. For each connectivity component, you should specify the connection :guilabel:`strategy` and
+The :doc:`connectivity </connectivity/defining>` component contains the blocks that specify
+connections between systems of cell types.
+For each connectivity component, you should specify the connection :guilabel:`strategy` and
 for both :guilabel:`presynaptic` (source) and :guilabel:`postsynaptic` (target) groups, provide the
-list of :guilabel:``cell_types`` names to connect.
+list of :guilabel:`cell_types` names to connect.
 
 Here, we are going to connect all ``base_type`` cells to all ``top_type`` cells.
 
 .. tab-set-code::
 
-  .. literalinclude:: getting-started.json
+  .. literalinclude:: configs/getting-started.json
     :language: json
     :lines: 59-69
 
-  .. literalinclude:: getting_started.py
+  .. literalinclude:: configs/getting_started.py
     :language: python
     :lines: 45-50
 
@@ -232,16 +234,16 @@ Recompile the network once more, now it will also contain your connections! With
 cells and connections in place, you are ready to move to the next stage.
 
 .. note::
-  For Python, the `compile` function should be called at the end of your script, once the
-  configuration is complete.
+  For Python, the `compile` function should be called (only once) at the end of your script,
+  once the configuration is complete.
 
 Recap
 -----
 
 .. tab-set-code::
 
-  .. literalinclude:: getting-started.json
+  .. literalinclude:: configs/getting-started.json
     :language: json
 
-  .. literalinclude:: getting_started.py
+  .. literalinclude:: configs/getting_started.py
     :language: python

@@ -3,9 +3,9 @@ storage:
   engine: hdf5
   root: network.hdf5
 network:
-  x: 200
-  y: 200
-  z: 200
+  x: 400.0
+  y: 600.0
+  z: 400.0
 morphologies:
 - neuron_A.swc
 - name: neuron_B
@@ -28,10 +28,14 @@ partitions:
 cell_types:
   base_type:
     spatial:
-      radius: 2
-      density: 0.0001
+      radius: 2.5
+      density: 3.9e-4
       morphologies:
       - neuron_A
+    plotting:
+      display_name: Template cell
+      color: "#E62314"
+      opacity: 0.5
   top_type:
     spatial:
       radius: 7

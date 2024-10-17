@@ -5,88 +5,100 @@ Adding morphologies
 
 .. note::
 
-    This guide is a continuation of the :doc:`Getting Started guide </getting-started/getting-started_reconstruction>`.
+    This guide is a continuation of the
+    :doc:`Getting Started guide </getting-started/getting-started_reconstruction>`.
 
-.. hint::
+Previously, we constructed a stacked double layer topology, with 2 cell types. We then
+connected these cell type populations in an all-to-all fashion.
 
-    To follow along, download 2 morphologies from
-    `NeuroMorpho <https://neuromorpho.org/>`_ and save them as ``neuron_A.swc`` and
-    ``neuron2.swc`` locally.
+In this tutorial, we are going to assign :doc:`morphologies </morphologies/intro>` to our
+cells, and connects the cells based on the intersection of their morphologies !
+You will learn how to load morphologies from local files or to fetch
+from remote sources, like NeuroMorpho, using BSB.
 
-Previously we constructed a stacked double layer topology, with 2 cell types. We then
-connected them in an all-to-all fashion. The next step assigns
-:doc:`morphologies </morphologies/intro>` to our cells, and connects the cells based on
-the intersection of their morphologies!
+| But first, we need actual morphology files.
+| Download your 2 favorite morphologies from `NeuroMorpho <https://neuromorpho.org/>`_
+  in the swc file format and save them as ``neuron_A.swc`` and ``neuron2.swc`` in your
+  project folder.
 
-Morphologies can be loaded from local files or to fetch from remote sources, like NeuroMorpho.
 
 Using local files
 -----------------
 
-You can declare source morphologies in the root :guilabel:`morphologies` list:
+:guilabel:`morphologies` is a list component of the BSB configuration responsible
+to fetch and load morphology files. Here is the minimal configuration example to add a
+morphology to the scaffold:
 
 .. tab-set-code::
 
-  .. literalinclude:: include_morphos.yaml
+  .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
     :lines: 9-10
 
   .. code-block:: json
 
-       "morphologies": [
-         "neuron_A"
-       ],
+       "morphologies": ["neuron_A.swc"]
 
-  .. literalinclude:: include_morphos.py
-    :language: python
-    :lines: 18,19,21
+  .. code-block:: python
 
-In this case a morphology is created from ``neuron_A.swc`` and given the name ``"neuron_A"``.
-As a second step, we associate this morphology to the ``base_type`` by referencing it by name
-in :guilabel:`cell_types.base_type.spatial.morphologies`:
+    config.morphologies = ["neuron_A.swc"]
+
+In this case, a morphology is created from ``neuron_A.swc`` and given the name ``"neuron_A"``.
+By default the name assigned to the morphology is the file name without its extension (here ``.swc``).
+
+Next, we need to associate this morphology to one cell type, here the ``base_type``, by
+referencing it by name in :guilabel:`cell_types.base_type.spatial.morphologies`:
 
 .. tab-set-code::
 
-  .. literalinclude:: include_morphos.yaml
+  .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
-    :lines: 30-36
+    :lines: 28-38
     :emphasize-lines: 6-7
 
-  .. literalinclude:: include_morphos.json
+  .. literalinclude:: configs/include_morphos.json
     :language: json
-    :lines: 41-50
-    :emphasize-lines: 6-8
+    :lines: 39-51
+    :emphasize-lines: 6
 
-  .. literalinclude:: include_morphos.py
+  .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 23
+    :lines: 27-35
+    :emphasize-lines: 6
 
+.. note::
 
-By default the name assigned to the morphology is the file name without its extension (here ``.swc``). To
-change the name we can use a node with a :guilabel:`name` and :guilabel:`file`:
+  If there are multiple morphologies per cell type, they will be assigned randomly, unless you
+  specify a :ref:`MorphologyDistributor <MorphologyDistributors>`.
+
+Let's add the second morphology but this time we will change its name with a morphology node
+containing the attributes :guilabel:`name` and :guilabel:`file`:
 
 .. tab-set-code::
 
-  .. literalinclude:: include_morphos.yaml
+  .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
     :lines: 9-12
     :emphasize-lines: 3-4
 
-  .. literalinclude:: include_morphos.json
+  .. literalinclude:: configs/include_morphos.json
     :language: json
     :lines: 12-17
-    :emphasize-lines: 4-5
+    :emphasize-lines: 3-6
 
-  .. literalinclude:: include_morphos.py
+  .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 18-21
+    :lines: 22-25
     :emphasize-lines: 3
 
 It is also possible to add a pipeline to perform transformations on the loaded
-morphology. Pipelines can be added by adding a :guilabel:`pipeline` list to the morphology node.
-Each item in the list may either be a string reference to an importable function or a method of
-the :class:`~bsb.morphologies.Morphology` class. To pass parameters, use a node with the
-function reference placed in the :guilabel:`func` attribute, and a :guilabel:`parameters` list.
+morphology. Pipelines can be added with a :guilabel:`pipeline` list component to the
+morphology node.
+Each item in the list may either be a string reference to a method of the
+:class:`~bsb.morphologies.Morphology` class or an importable function.
+If the function requires parameters, use a node with the function reference placed in the
+:guilabel:`func` attribute, and a :guilabel:`parameters` list.
+
 Here is an example what that would look like:
 
 .. tab-set-code::
@@ -117,16 +129,37 @@ Here is an example what that would look like:
       }
     ]
 
+  .. code-block:: python
+
+    config.morphologies = [
+      dict(
+        file= "my_neuron.swc",
+        pipeline=[
+          "center",
+          "my_module.add_axon",
+          dict(func="rotate", rotation=[20, 0, 20])
+        ]
+      )
+    ]
+
+In this case, we created a pipeline of 3 steps:
+
+1. Reset the origin of the morphology, using the :meth:`~.morphologies.SubTree.center` function from the
+   Morphology class.
+2. Run the :guilabel:`add_axon` function from the external file `my_module.py`
+3. Rotate the morphology by 20 degrees along the x and z axis, using the
+   :meth:`~.morphologies.SubTree.rotate` function from the Morphology class.
+
 .. note::
 
   Any additional keys given in a pipeline step, such as :guilabel:`rotation` in the
   example, are passed to the function as keyword arguments.
 
-Fetching with alternative URI schemes
--------------------------------------
+Fetching with URI schemes
+-------------------------
 
-The framework uses URI schemes to define the path of the sources that are loaded. By
-default it tries to load from the project local folder, using the``file`` URI scheme (``"file://"``).
+The framework uses URI schemes to define the path of the sources (files or URL) that BSB needs to load. By
+default, it tries to load from the project local folder, using the``file`` URI scheme (``"file://"``).
 It is possible to fetch morphologies directly from `neuromorpho.org
 <https://neuromorpho.org>`_ using the NeuroMorpho scheme (``"nm://"``). You can refer to
 NeuroMorpho morphologies by their morphology name:
@@ -137,19 +170,19 @@ NeuroMorpho morphologies by their morphology name:
 
 .. tab-set-code::
 
-  .. literalinclude:: include_morphos.yaml
+  .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
-    :lines: 9-12
-    :emphasize-lines: 3-4
+    :lines: 9-14
+    :emphasize-lines: 5-6
 
-  .. literalinclude:: include_morphos.json
+  .. literalinclude:: configs/include_morphos.json
     :language: json
     :lines: 12-22,41-61
     :emphasize-lines: 7-10,27-28
 
-  .. literalinclude:: include_morphos.py
+  .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 25-36
+    :lines: 26-37
     :emphasize-lines: 2,10
 
 
@@ -161,62 +194,45 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 
 .. tab-set-code::
 
-  .. literalinclude:: include_morphos.yaml
+  .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
     :lines: 54-62
 
-  .. literalinclude:: include_morphos.json
+  .. literalinclude:: configs/include_morphos.json
     :language: json
     :lines: 72-82
 
-  .. literalinclude:: include_morphos.py
+  .. literalinclude:: configs/include_morphos.py
     :language: python
     :lines: 43-48
 
-.. note::
-
-  If there's multiple morphologies per cell type, they'll be assigned randomly, unless you
-  specify a :ref:`MorphologyDistributor <MorphologyDistributors>`.
-
-Compile your network
---------------------
-
 Now that the configuration is prepared, we can compile our network using:
+
+Recap
+-----
 
 .. tab-set-code::
 
-  .. code-block:: bash
+  .. literalinclude:: configs/include_morphos.yaml
+    :language: yaml
 
-    bsb compile --verbosity 3
+  .. literalinclude:: configs/include_morphos.json
+    :language: json
 
-  .. literalinclude:: include_morphos.py
+  .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 50-51
 
-
-.. rubric:: What next?
+.. rubric:: What is next?
 
 .. grid:: 1 1 2 2
     :gutter: 1
 
 
     .. grid-item-card:: :octicon:`cpu;1em;sd-text-warning` Simulations
-	    :link: simulation-guide
-	    :link-type: ref
+        :link: simulation-guide
+        :link-type: ref
 
-	    Learn how to simulate your network models
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Custom components
-       :link: components
-       :link-type: ref
-
-       Learn how to write your own components to e.g. place or connect cells.
-
-    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
-	    :link: examples
-	    :link-type: ref
-
-	    Explore more examples.
+        Learn how to simulate your network models
 
     .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Components
        :link: main-components
@@ -224,17 +240,14 @@ Now that the configuration is prepared, we can compile our network using:
 
        Explore more about the main components.
 
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
+        :link: examples
+        :link-type: ref
 
-Recap
------
+        Explore more examples.
 
-.. tab-set-code::
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Custom components
+       :link: components
+       :link-type: ref
 
-  .. literalinclude:: include_morphos.yaml
-    :language: yaml
-
-  .. literalinclude:: include_morphos.json
-    :language: json
-
-  .. literalinclude:: include_morphos.py
-    :language: python
+       Learn how to write your own components to e.g. place or connect cells.

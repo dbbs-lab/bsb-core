@@ -239,11 +239,11 @@ Recap
 
 .. tab-set-code::
 
-  .. literalinclude:: guide-simulation.yaml
+  .. literalinclude:: configs/guide-simulation.yaml
     :language: yaml
 
-  .. literalinclude:: guide-simulation.json
+  .. literalinclude:: configs/guide-simulation.json
     :language: json
 
-  .. literalinclude:: guide-simulation.py
+  .. literalinclude:: configs/guide-simulation.py
     :language: python

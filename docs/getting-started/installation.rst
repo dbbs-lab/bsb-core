@@ -28,7 +28,7 @@ You can verify that the installation works with:
   # Create an empty scaffold network with the default configuration.
   scaffold = Scaffold()
 
-You have now the minimal installation to complete the :doc:`getting started <top-level-guide>` section.
+You have now the minimal installation required to complete the :doc:`getting started <top-level-guide>` section.
 
 Parallel support
 ================
@@ -39,15 +39,30 @@ simulation. To use MPI from Python the `mpi4py
 <https://mpi4py.readthedocs.io/en/stable/>`_ package is required, which in turn needs a
 working MPI implementation installed in your environment.
 
-On your local machine you can install OpenMPI:
+On your local machine, first install MPI:
 
-.. code-block:: bash
+.. tab-set-code::
 
-  sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
+  .. code-block:: bash
 
-On Windows, install `Microsoft MPI
-<https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi>`_. On
-supercomputers it is usually installed already, otherwise contact your administrator.
+        # Ubuntu
+        sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
+
+  .. code-block:: bash
+
+        # MacOS
+        # For Homebrew
+        brew install openmpi
+
+        # For MacPorts
+        port install openmpi
+
+  .. code-block:: rst
+
+        # Windows
+        go to `Microsoft MPI <https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi>`_
+
+On supercomputers it is usually installed already, otherwise contact your administrator.
 
 To then install the BSB with parallel MPI support:
 
@@ -82,3 +97,11 @@ Developer installation
 
 .. include:: ../dev/installation.rst
     :start-after: start-dev-install
+
+If you want to have more information about our development guidelines, please read our
+:doc:`developer guides</dev/dev-toc>`
+
+What is next
+============
+
+You can start learning about the BSB by reading the :doc:`Getting Started section <top-level-guide>`

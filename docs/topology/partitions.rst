@@ -5,6 +5,7 @@ Partitions
 Partitions contain shape descriptions used to define the spatial layout of the network.
 These descriptions can be represented as layers, meshes and voxelsets.
 In the BSB the following two partitions are implemented:
+
 * :ref:`Rhomboid  <rhomboid-partition>`
 * :ref:`Layers  <layer-partition>`
 * :ref:`Voxelized volumes <voxel-partition>`.

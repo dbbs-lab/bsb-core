@@ -30,7 +30,9 @@ and unittests. We are trying to improve the coverage for both and would apprecia
 The documentation, tests and code style (black, isort) is controlled for each commit on the repository, so please
 install the :doc:`pre-commit hooks <installation>` and run the following tests before pushing on the repository:
 
-To install::
+To install:
+
+.. code-block:: bash
 
   cd bsb-core
   black .

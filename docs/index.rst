@@ -50,7 +50,7 @@ human-readable, multi-scale models!
        :link: cli-guide
        :link-type: ref
 
-       Learn how to use the CLI.
+       Learn how to use the Command-Line Interface.
 
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Contributing
        :link: development-section
@@ -82,7 +82,6 @@ Content
 
    getting-started/installation
    getting-started/toc
-   guides/toc
    examples/toc
 
 .. toctree::
@@ -91,21 +90,18 @@ Content
 
   cli/cli-toc
 
+
+.. toctree::
+   :maxdepth: 2
+   :caption: BSB core
+
+   core/core-toc
+
 .. toctree::
    :maxdepth: 2
    :caption: Components
 
-   components/intro
-   components/scaffold
-   config/configuration-toc
-   topology/topology-toc
-   cells/cells-toc
-   morphologies/morphology-toc
-   placement/placement-toc
-   connectivity/connectivity-toc
-   simulation/simulation-toc
-   components/storage
-
+   components/components-toc
 
 .. toctree::
    :maxdepth: 2
@@ -125,10 +121,4 @@ Content
   :maxdepth: 2
   :caption: Developer Guides:
 
-  dev/installation
-  dev/documentation
-  dev/guidelines
-  dev/services
-  dev/plugins
-  dev/hooks
-  dev/reference
+  dev/dev-toc

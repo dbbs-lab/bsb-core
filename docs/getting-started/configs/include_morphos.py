@@ -19,19 +19,36 @@ config.regions.add(
     ],
 )
 
+config.morphologies = [
+    "neuron_A.swc",
+    dict(name="neuron_B", file="neuron2.swc"),
+]
+
 config.cell_types.add(
     "base_type",
     spatial=dict(
         radius=2.5,
         density=3.9e-4,
-        plotting=dict(display_name="Template cell", color="#E62314", opacity=0.5),
+        morphologies=["neuron_A"],
+    ),
+    plotting=dict(display_name="Template cell", color="#E62314", opacity=0.5),
+)
+
+config.morphologies.append(
+    dict(name="neuron_NM", file="nm://cell005_GroundTruth"),
+)
+config.cell_types.add(
+    "top_type",
+    spatial=dict(
+        radius=7,
+        count=40,
+        morphologies=["neuron_B", "neuron_NM"],
     ),
 )
-config.cell_types.add("top_type", spatial=dict(radius=7, count=40))
 
 config.placement.add(
     "base_placement",
-    strategy="bsb.placement.RandomPlacement",
+    strategy="bsb.placement.ParticlePlacement",
     cell_types=["base_type"],
     partitions=["base_layer"],
 )
@@ -44,7 +61,7 @@ config.placement.add(
 
 config.connectivity.add(
     "A_to_B",
-    strategy="bsb.connectivity.AllToAll",
+    strategy="bsb.connectivity.VoxelIntersection",
     presynaptic=dict(cell_types=["base_type"]),
     postsynaptic=dict(cell_types=["top_type"]),
 )
