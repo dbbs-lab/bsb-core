@@ -28,20 +28,25 @@
   "cell_types": {
     "base_type": {
       "spatial": {
-        "radius": 2,
-        "density": 1e-3
+        "radius": 2.5,
+        "density": 3.9e-4
+      },
+      "plotting": {
+        "display_name": "Template cell",
+        "color": "#E62314",
+        "opacity": 0.5
       }
     },
     "top_type": {
       "spatial": {
         "radius": 7,
-        "count": 10
+        "count": 40
       }
     }
   },
   "placement": {
-    "base_placement": {
-      "strategy": "bsb.placement.RandomPlacement",
+    "example_placement": {
+      "strategy": "bsb.placement.ParticlePlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
     },

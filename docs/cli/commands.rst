@@ -17,7 +17,7 @@ Create a project
 
 .. code-block:: bash
 
-  bsb [OPTIONS] new <project-name> <parent-folder> [--quickstart] [--exists]
+  bsb [OPTIONS] new <project-name> <parent-folder> [--quickstart] [--exists] [--json]
 
 Creates a new project directory at ``folder``. You will be prompted to fill in some
 project settings.
@@ -26,6 +26,8 @@ project settings.
 * ``parent-folder``: Filesystem location where the project folder will be created.
 * ``quickstart``: Generates an exemplary project with basic config that can be compiled.
 * ``exists``: With this flag, it is not an error for the ``parent-folder`` to exist.
+* ``json``: With this flag, the configuration file will be written in the JSON format
+  instead of YAML format used by default.
 
 .. _bsb_make_config:
 

@@ -1,3 +1,5 @@
+.. _whole-api:
+
 bsb
 ===
 
