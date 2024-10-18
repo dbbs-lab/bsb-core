@@ -200,7 +200,7 @@ this file will be used to run simulations through the CLI:
 .. code-block:: bash
 
         bsb compile -v 3 my_configuration.json
-        bsb simulate my_network.hdf5 basal_activity
+        bsb simulate my_network.hdf5 basal_activity -f simulation-results
 
 Alternatively, if you prefer to manage the simulations using Python code:
 
@@ -208,13 +208,28 @@ Alternatively, if you prefer to manage the simulations using Python code:
 
         from bsb import Scaffold
 
-        my_network = Scaffold(config)
-        my_network.compile()
-        my_network.run_simulation("basal_activity")
+        scaffold = Scaffold(config)
+        scaffold.compile(true)
+        result = scaffold.run_simulation("basal_activity")
+        result.write("simulation-results.nio", "ow")
 
 
 For more detailed information about simulation modules,
 please refer to the :doc:`simulation section </simulation/intro>`.
+
+Recap
+-----
+
+.. tab-set-code::
+
+  .. literalinclude:: configs/guide-simulation.yaml
+    :language: yaml
+
+  .. literalinclude:: configs/guide-simulation.json
+    :language: json
+
+  .. literalinclude:: configs/guide-simulation.py
+    :language: python
 
 .. rubric:: Next steps:
 
@@ -233,17 +248,3 @@ please refer to the :doc:`simulation section </simulation/intro>`.
        :link-type: ref
 
        Learn how to write your own components to e.g. place or connect cells.
-
-Recap
------
-
-.. tab-set-code::
-
-  .. literalinclude:: configs/guide-simulation.yaml
-    :language: yaml
-
-  .. literalinclude:: configs/guide-simulation.json
-    :language: json
-
-  .. literalinclude:: configs/guide-simulation.py
-    :language: python

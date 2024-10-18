@@ -1,5 +1,5 @@
-BSB CLI
-=======
+Command-Line Interface
+======================
 
 .. toctree::
    :maxdepth: 1

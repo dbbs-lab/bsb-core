@@ -76,7 +76,7 @@ directly in Python code with a ``Configuration`` object:
     from bsb import Scaffold, Configuration
 
     bsb.options.verbosity = 3
-    config = Configuration.default(storage={"engine": "hdf5", "root": "network.hdf5"})
+    config = Configuration.default(storage=dict(engine="hdf5", root="network.hdf5"))
     # Implement your code here
 
     scaffold = Scaffold(config)

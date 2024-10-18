@@ -41,26 +41,33 @@ working MPI implementation installed in your environment.
 
 On your local machine, first install MPI:
 
-.. tab-set-code::
+.. tab-set::
 
-  .. code-block:: bash
+  .. tab-item:: Ubuntu
+    :sync: bash
 
-        # Ubuntu
+      .. code-block:: bash
+
         sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
 
-  .. code-block:: bash
+  .. tab-item:: MacOS
+    :sync: bash
 
-        # MacOS
+      .. code-block:: bash
+
+        # You need to have xcode installed.
         # For Homebrew
         brew install openmpi
 
         # For MacPorts
         port install openmpi
 
-  .. code-block:: rst
 
-        # Windows
-        go to `Microsoft MPI <https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi>`_
+  .. tab-item:: Windows
+
+    For Windows, you would need to install C/C++ compiler as well as the
+    `Microsoft MPI <https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi>`_
+    program.
 
 On supercomputers it is usually installed already, otherwise contact your administrator.
 

@@ -24,7 +24,7 @@ config.cell_types.add(
     spatial=dict(
         radius=2.5,
         density=3.9e-4,
-    )
+    ),
 )
 config.cell_types.add("top_type", spatial=dict(radius=7, count=40))
 

@@ -30,7 +30,7 @@ config.cell_types.add(
         radius=2.5,
         density=3.9e-4,
         morphologies=["neuron_A"],
-    )
+    ),
 )
 
 config.morphologies.append(

@@ -6,10 +6,6 @@ network:
   x: 200
   y: 200
   z: 200
-morphologies:
-- neuron_A.swc
-- name: neuron_B
-  file: neuron2.swc
 regions:
   brain_region:
     type: stack
@@ -20,26 +16,20 @@ partitions:
   base_layer:
     type: layer
     thickness: 100
-    stack_index: 0
   top_layer:
     type: layer
     thickness: 100
-    stack_index: 1
 cell_types:
   base_type:
     spatial:
-      radius: 2
-      density: 0.0001
-      morphologies:
-      - neuron_A
+      radius: 2.5
+      density: 3.9e-4
   top_type:
     spatial:
       radius: 7
       count: 40
-      morphologies:
-      - neuron_B
 placement:
-  base_placement:
+  example_placement:
     strategy: bsb.placement.RandomPlacement
     cell_types:
     - base_type

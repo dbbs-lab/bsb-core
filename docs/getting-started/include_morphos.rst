@@ -206,7 +206,8 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
     :language: python
     :lines: 61-66
 
-Now that the configuration is prepared, we can compile our network using:
+.. tip::
+    Do not forget to compile our network if you are modifying the configuration in the file.
 
 Recap
 -----
