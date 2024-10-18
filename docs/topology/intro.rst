@@ -6,9 +6,9 @@ Layouts
 =======
 
 The topology module allows you to make abstract descriptions of the spatial layout of
-pieces of the region you are modelling. :class:`Partitions
-<.topology.partition.Partition>` define shapes such as layers, cubes, spheres, and meshes.
-:class:`Regions <.topology.region.Region>` put partitions together by arranging them
+pieces of the region you are modelling. :doc:`Partitions
+</topology/partitions>` define shapes such as layers, cubes, spheres, and meshes.
+:doc:`Regions </topology/regions>` put partitions together by arranging them
 hierarchically. The topology is formed as a tree of regions, that end downstream in a
 terminal set of partitions.
 
@@ -31,11 +31,11 @@ Example
   :figclass: only-dark
   :align: center
 
-The root :class:`Group <.topology.region.RegionGroup>` receives the network X, Y, and Z. A
+The root ``Group`` receives the network X, Y, and Z. A
 ``Group`` is an inert region and simply passes the network boundaries on to its children.
-The :class:`~.topology.partition.Voxels` loads its voxels, and positions them absolutely,
+The :ref:`Voxels <voxel-partition>` loads its voxels, and positions them absolutely,
 ignoring the network boundaries. The :class:`~.topology.region.Stack` passes the volume on
-to the :class:`Layers <.topology.partition.Layer>` who fill up the space and occupy their
+to the :ref:`Layers <layer-partition>` who fill up the space and occupy their
 thickness. They return their layout up to the parent ``Stack``, who in turn proposes
 translations to the layers in order to stack them on top of the other. The end result is
 stack beginning from the network starting corner, with 2 layers as large as the network,
