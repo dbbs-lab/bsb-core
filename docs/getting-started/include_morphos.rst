@@ -53,17 +53,17 @@ referencing it by name in :guilabel:`cell_types.base_type.spatial.morphologies`:
 
   .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
-    :lines: 28-38
+    :lines: 28-34
     :emphasize-lines: 6-7
 
   .. literalinclude:: configs/include_morphos.json
     :language: json
-    :lines: 39-51
+    :lines: 39-46
     :emphasize-lines: 6
 
   .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 27-35
+    :lines: 27-34
     :emphasize-lines: 6
 
 .. note::
@@ -172,18 +172,18 @@ NeuroMorpho morphologies by their morphology name:
 
   .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
-    :lines: 9-14
-    :emphasize-lines: 5-6
+    :lines: 9,13-14,28,35-41
+    :emphasize-lines: 3,11
 
   .. literalinclude:: configs/include_morphos.json
     :language: json
-    :lines: 12-22,41-61
-    :emphasize-lines: 7-10,27-28
+    :lines: 12-22,39,47-57
+    :emphasize-lines: 7-10,19
 
   .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 26-37
-    :emphasize-lines: 2,10
+    :lines: 36-44
+    :emphasize-lines: 2,9
 
 
 Morphology intersection
@@ -196,15 +196,15 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 
   .. literalinclude:: configs/include_morphos.yaml
     :language: yaml
-    :lines: 54-62
+    :lines: 55-63
 
   .. literalinclude:: configs/include_morphos.json
     :language: json
-    :lines: 72-82
+    :lines: 70-80
 
   .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 43-48
+    :lines: 61-66
 
 Now that the configuration is prepared, we can compile our network using:
 

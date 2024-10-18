@@ -155,11 +155,11 @@ time we want to a place 40 of these cells and their soma :guilabel:`radius` of `
 
   .. literalinclude:: configs/getting-started.json
     :language: json
-    :lines: 28-46
+    :lines: 28-41
 
   .. literalinclude:: configs/getting_started.py
     :language: python
-    :lines: 22-30
+    :lines: 22-29
 
 
 Placement
@@ -177,11 +177,11 @@ Now that we have defined our new ``top_type``, we should place it in our ``top_l
 
   .. literalinclude:: configs/getting-started.json
     :language: json
-    :lines: 47-58
+    :lines: 42-53
 
   .. literalinclude:: configs/getting_started.py
     :language: python
-    :lines: 32-43
+    :lines: 31-42
 
 We added here the ``top_placement`` that place cells soma randomly within their respective partition.
 
@@ -224,11 +224,11 @@ Here, we are going to connect all ``base_type`` cells to all ``top_type`` cells.
 
   .. literalinclude:: configs/getting-started.json
     :language: json
-    :lines: 59-69
+    :lines: 54-65
 
   .. literalinclude:: configs/getting_started.py
     :language: python
-    :lines: 45-50
+    :lines: 44-49
 
 Recompile the network once more, now it will also contain your connections! With your
 cells and connections in place, you are ready to move to the next stage.

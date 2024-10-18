@@ -4,9 +4,9 @@ from bsb import Configuration, Scaffold
 bsb.options.verbosity = 3
 config = Configuration.default(storage={"engine": "hdf5", "root": "network.hdf5"})
 
-config.network.x = 400.0
-config.network.y = 600.0
-config.network.z = 400.0
+config.network.x = 200.0
+config.network.y = 200.0
+config.network.z = 200.0
 
 config.partitions.add("base_layer", thickness=100)
 config.partitions.add("top_layer", thickness=100)
@@ -24,14 +24,13 @@ config.cell_types.add(
     spatial=dict(
         radius=2.5,
         density=3.9e-4,
-    ),
-    plotting=dict(display_name="Template cell", color="#E62314", opacity=0.5),
+    )
 )
 config.cell_types.add("top_type", spatial=dict(radius=7, count=40))
 
 config.placement.add(
     "base_placement",
-    strategy="bsb.placement.ParticlePlacement",
+    strategy="bsb.placement.RandomPlacement",
     cell_types=["base_type"],
     partitions=["base_layer"],
 )

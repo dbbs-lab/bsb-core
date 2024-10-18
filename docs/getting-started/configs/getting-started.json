@@ -5,9 +5,9 @@
     "root": "network.hdf5"
   },
   "network": {
-    "x": 400.0,
-    "y": 600.0,
-    "z": 400.0
+    "x": 200.0,
+    "y": 200.0,
+    "z": 200.0
   },
   "regions": {
     "brain_region": {
@@ -30,11 +30,6 @@
       "spatial": {
         "radius": 2.5,
         "density": 3.9e-4
-      },
-      "plotting": {
-        "display_name": "Template cell",
-        "color": "#E62314",
-        "opacity": 0.5
       }
     },
     "top_type": {
@@ -46,7 +41,7 @@
   },
   "placement": {
     "example_placement": {
-      "strategy": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.RandomPlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
     },
