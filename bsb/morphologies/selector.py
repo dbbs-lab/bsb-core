@@ -13,7 +13,6 @@ from .. import config
 from ..config import types
 from ..config._attrs import cfglist
 from ..exceptions import MissingMorphologyError, SelectorError
-from ..services import MPI
 from . import Morphology
 
 if typing.TYPE_CHECKING:
@@ -92,11 +91,11 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
             try:
                 morphos = self._scrape_nm(self.names)
             except:
-                MPI.barrier()
+                self.scaffold._comm.barrier()
                 raise
             for name, morpho in morphos.items():
                 self.scaffold.morphologies.save(name, morpho, overwrite=True)
-        MPI.barrier()
+        self.scaffold._comm.barrier()
 
     @classmethod
     def _swc_url(cls, archive, name):

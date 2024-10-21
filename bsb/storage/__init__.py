@@ -19,7 +19,7 @@ from typing import Type
 
 from .. import plugins
 from ..exceptions import UnknownStorageEngineError
-from ..services import MPI
+from ..services.mpi import MPIService
 
 if typing.TYPE_CHECKING:
     from .interfaces import (
@@ -89,7 +89,16 @@ def get_engines():
 
 
 def create_engine(name, root, comm):
-    # Create an engine from the engine's Engine interface.
+    """
+    Create an engine from the engine's Engine interface.
+
+    :param str name: The name of the engine to create.
+    :param object root: An object that uniquely describes the storage, such as a filename
+      or path. The value to be provided depends on the engine. For the hdf5 engine
+      the filename has to be provided.
+    :param bsb.services.mpi.MPIService comm: MPI communicator that shares control over the
+      Engine interface.
+    """
     return get_engine_support(name)["Engine"](root, comm)
 
 
@@ -119,7 +128,7 @@ class NotSupported:
 
 class Storage:
     """
-    Factory class that produces all of the features and shims the functionality of the
+    Factory class that produces all the features and shims the functionality of the
     underlying engine.
     """
 
@@ -143,7 +152,7 @@ class Storage:
         :type comm: mpi4py.MPI.Comm
         :param main: Rank of the MPI process that executes single-node tasks.
         """
-        self._comm = comm or MPI
+        self._comm = MPIService(comm)
         self._engine = create_engine(engine, root, self._comm)
         self._features = [
             fname for fname, supported in view_support()[engine].items() if supported
@@ -244,7 +253,7 @@ class Storage:
         """
         from ..core import Scaffold
 
-        return Scaffold(storage=self)
+        return Scaffold(storage=self, comm=self._comm._comm)
 
     def load_active_config(self):
         """
@@ -368,11 +377,11 @@ class Storage:
         return self._engine.get_chunk_stats()
 
 
-def open_storage(root):
+def open_storage(root, comm=None):
     engines = get_engines()
     for name, engine in engines.items():
         if engine.peek_exists(root) and engine.recognizes(root):
-            return Storage(name, root, missing_ok=False)
+            return Storage(name, root, comm, missing_ok=False)
     else:
         for name, engine in engines.items():
             if engine.peek_exists(root):
