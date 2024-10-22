@@ -67,7 +67,7 @@ class TestRedoCompilation(
             **{
                 "name": "test",
                 "partitions": {
-                    "layer": {"thickness": 50.0, "stack_index": 0},
+                    "layer": {"thickness": 50.0},
                 },
                 "cell_types": {
                     "cell": {

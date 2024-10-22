@@ -3,9 +3,9 @@ storage:
   engine: hdf5
   root: network.hdf5
 network:
-  x: 200
-  y: 200
-  z: 200
+  x: 200.0
+  y: 200.0
+  z: 200.0
 morphologies:
 - neuron_A.swc
 - name: neuron_B
@@ -22,16 +22,14 @@ partitions:
   base_layer:
     type: layer
     thickness: 100
-    stack_index: 0
   top_layer:
     type: layer
     thickness: 100
-    stack_index: 1
 cell_types:
   base_type:
     spatial:
-      radius: 2
-      density: 0.0001
+      radius: 2.5
+      density: 3.9e-4
       morphologies:
       - neuron_A
   top_type:
@@ -39,6 +37,7 @@ cell_types:
       radius: 7
       count: 40
       morphologies:
+      - neuron_B
       - neuron_NM
 placement:
   base_placement:

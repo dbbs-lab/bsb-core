@@ -1,3 +1,6 @@
+Command-Line Interface
+======================
+
 .. toctree::
    :maxdepth: 1
    :caption: CLI

@@ -4,8 +4,8 @@
 Introduction
 ############
 
-The command line interface is composed of a collection of `pluggable <Writing your own
-commands>`_ commands. Open up your favorite terminal and enter the ``bsb --help`` command
+The command line interface is composed of a collection of pluggable commands.
+Open up your favorite terminal and enter the ``bsb --help`` command
 to verify you correctly installed the software.
 
 Each command can give command specific arguments, options or set `global options
@@ -19,6 +19,8 @@ Each command can give command specific arguments, options or set `global options
   bsb compile my_config.json
   # Overriding the global verbosity option
   bsb compile --verbosity 4
+
+The list of BSB commands are listed in the :doc:`following section <commands>` .
 
 =========================
 Writing your own commands

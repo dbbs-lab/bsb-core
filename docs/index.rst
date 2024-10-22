@@ -6,14 +6,14 @@
 The Brain Scaffold Builder
 ==========================
 
-The BSB is a **black box component framework** for multiparadigm neural modelling: we
-provide structure, architecture and organization, and you provide the use-case specific
+The BSB is a **black box component framework** for multi-paradigm neural modelling: we
+provide structure, architecture and organization, while you provide the use-case specific
 parts of your model. In our framework, your model is described in a code-free
 configuration of **components** with parameters.
 
 For the framework to reliably use components, and make them work together in a complex
 workflow, it asks a fixed set of questions per component type: e.g. a connection component
-will be asked how to connect cells. These contracts of cooperation between you and the
+will ask how to connect cells. These contracts of cooperation between you and the
 framework are called **interfaces**. The framework executes a transparently
 parallelized workflow, and calls your components to fulfill their role.
 
@@ -50,7 +50,7 @@ human-readable, multi-scale models!
        :link: cli-guide
        :link-type: ref
 
-       Learn how to use the CLI.
+       Learn how to use the Command-Line Interface.
 
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Contributing
        :link: development-section
@@ -73,7 +73,8 @@ human-readable, multi-scale models!
        :link: faq
        :link-type: ref
 
-
+Content
+-------
 
 .. toctree::
    :maxdepth: 2
@@ -81,7 +82,6 @@ human-readable, multi-scale models!
 
    getting-started/installation
    getting-started/toc
-   guides/toc
    examples/toc
 
 .. toctree::
@@ -90,21 +90,18 @@ human-readable, multi-scale models!
 
   cli/cli-toc
 
+
+.. toctree::
+   :maxdepth: 2
+   :caption: BSB core
+
+   core/core-toc
+
 .. toctree::
    :maxdepth: 2
    :caption: Components
 
-   components/intro
-   components/scaffold
-   config/configuration-toc
-   topology/topology-toc
-   cells/cells-toc
-   morphologies/morphology-toc
-   placement/placement-toc
-   connectivity/connectivity-toc
-   simulation/simulation-toc
-   components/storage
-
+   components/components-toc
 
 .. toctree::
    :maxdepth: 2
@@ -124,10 +121,4 @@ human-readable, multi-scale models!
   :maxdepth: 2
   :caption: Developer Guides:
 
-  dev/installation
-  dev/documentation
-  dev/guidelines
-  dev/services
-  dev/plugins
-  dev/hooks
-  dev/reference
+  dev/dev-toc

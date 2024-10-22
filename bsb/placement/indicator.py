@@ -20,6 +20,7 @@ class PlacementIndications:
     density: float = config.attr(type=float)
     planar_density: float = config.attr(type=float)
     count_ratio: float = config.attr(type=float)
+    local_count_ratio: float = config.attr(type=float)
     density_ratio: float = config.attr(type=float)
     relative_to: "CellType" = config.ref(refs.cell_type_ref)
     count: int = config.attr(type=int)
@@ -87,6 +88,7 @@ class PlacementIndicator:
         relative_to = self.indication("relative_to")
         density_ratio = self.indication("density_ratio")
         count_ratio = self.indication("count_ratio")
+        local_count_ratio = self.indication("local_count_ratio")
         if count is not None:
             estimate = self._estim_for_chunk(chunk, count)
         if density is not None:
@@ -96,13 +98,26 @@ class PlacementIndicator:
         if relative_to is not None:
             relation = relative_to
             if count_ratio is not None:
+                # The total counts of cell of the current strategy is a ratio
+                # of the total number of cell placed by the target strategy.
+                # This number is uniformly distributed across the current
+                # strategy's partition(s).
+                strats = self._strat.scaffold.get_placement_of(relation)
+                estimate = self._estim_for_chunk(
+                    chunk,
+                    sum(PlacementIndicator(s, relation).guess() for s in strats)
+                    * count_ratio,
+                )
+            elif local_count_ratio is not None:
+                # This count estimate is the ratio of the number of cell of the
+                # target strategy that were placed in the current chunk.
                 strats = self._strat.scaffold.get_placement_of(relation)
                 estimate = (
                     sum(
                         PlacementIndicator(s, relation).guess(chunk, voxels)
                         for s in strats
                     )
-                    * count_ratio
+                    * local_count_ratio
                 )
             elif density_ratio is not None:
                 # Create an indicator based on this strategy for the related CT.

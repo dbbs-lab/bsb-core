@@ -1,9 +1,63 @@
-# 4.3.0
+## [v4.5.2] - 2024-10-12
+### :bug: Bug Fixes
+- [`21015c5`](https://github.com/dbbs-lab/bsb-core/commit/21015c530e340140ee424e4dbc7b18053a628d54) - targetting and add shape to ndarray *(PR [#891](https://github.com/dbbs-lab/bsb-core/pull/891) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#869](https://github.com/dbbs-lab/bsb-core/issues/869) opened by [@drodarie](https://github.com/drodarie)*
+  - :arrow_lower_right: *fixes issue [#890](https://github.com/dbbs-lab/bsb-core/issues/890) opened by [@drodarie](https://github.com/drodarie)*
+
+
+## [v4.5.1] - 2024-10-12
+### :bug: Bug Fixes
+- [`ab77c6f`](https://github.com/dbbs-lab/bsb-core/commit/ab77c6fbe14ed298c770e68fe31a64ccd6588d0c) - count_ratio on non overlapping partitions *(PR [#886](https://github.com/dbbs-lab/bsb-core/pull/886) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#885](https://github.com/dbbs-lab/bsb-core/issues/885) opened by [@drodarie](https://github.com/drodarie)*
+  - :arrow_lower_right: *fixes issue [#889](https://github.com/dbbs-lab/bsb-core/issues/889) opened by [@drodarie](https://github.com/drodarie)*
+
+
+## [v4.5.0] - 2024-09-13
+### :sparkles: New Features
+- [`9f4046a`](https://github.com/dbbs-lab/bsb-core/commit/9f4046a2b40ad40257bf7ab13297d4441d43d02f) - Stack regions and Layer partitions *(PR [#868](https://github.com/dbbs-lab/bsb-core/pull/868) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *addresses issue [#867](https://github.com/dbbs-lab/bsb-core/issues/867) opened by [@marialauradeg98](https://github.com/marialauradeg98)*
+
+
+## [v4.4.4] - 2024-09-13
+### :bug: Bug Fixes
+- [`43ef230`](https://github.com/dbbs-lab/bsb-core/commit/43ef2308e6f742f195830adddc3934d2cee59561) - update morphology introduce_point function *(PR [#884](https://github.com/dbbs-lab/bsb-core/pull/884) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#883](https://github.com/dbbs-lab/bsb-core/issues/883) opened by [@drodarie](https://github.com/drodarie)*
+
+
+## [v4.4.3] - 2024-09-02
+### :bug: Bug Fixes
+- [`903434b`](https://github.com/dbbs-lab/bsb-core/commit/903434b3c4a7b7acdb78b3f1e2dee93aea5c3062) - group chunks for placement from different partitions to avoid duplicates *(PR [#880](https://github.com/dbbs-lab/bsb-core/pull/880) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#879](https://github.com/dbbs-lab/bsb-core/issues/879) opened by [@francesshei](https://github.com/francesshei)*
+
+
+## [v4.4.2] - 2024-08-02
+### :bug: Bug Fixes
+- [`97978b4`](https://github.com/dbbs-lab/bsb-core/commit/97978b433dba579478387760010dfd7b09bfda19) - use OIDC instead of user token to publish to pypi *(PR [#877](https://github.com/dbbs-lab/bsb-core/pull/877) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#876](https://github.com/dbbs-lab/bsb-core/issues/876) opened by [@drodarie](https://github.com/drodarie)*
+
+
+## [v4.4.1] - 2024-08-02
+### :bug: Bug Fixes
+- [`e4c194c`](https://github.com/dbbs-lab/bsb-core/commit/e4c194ce9c7b4f3bc41f7589954a98d204e8d9fb) - make gha checks (docs, build, etc) triggered by main workflows *(PR [#874](https://github.com/dbbs-lab/bsb-core/pull/874) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#873](https://github.com/dbbs-lab/bsb-core/issues/873) opened by [@drodarie](https://github.com/drodarie)*
+- [`09ab71f`](https://github.com/dbbs-lab/bsb-core/commit/09ab71fb4d3301a69e51395d16d1e26d50c23591) - change bump refs to tag-release *(PR [#875](https://github.com/dbbs-lab/bsb-core/pull/875) by [@drodarie](https://github.com/drodarie))*
+
+
+## 4.4.0
+### :sparkles: New Features
+- [`f234265`](https://github.com/dbbs-lab/bsb-core/commit/f234265cbab4cd370332eb7dea794f872f6728d8) - add conventional commits and auto release *(PR #864 by @drodarie)*
+  - :arrow_lower_right: *addresses issue #860 opened by @Helveg*
+
+### :bug: Bug Fixes
+- [`32799b4`](https://github.com/dbbs-lab/bsb-core/commit/32799b4961811ac977dffafb49f3465ae9d6ab15) - use github app to bypass the main branch protections. *(PR #872 by @drodarie)*
+  - :arrow_lower_right: *fixes issue #870 opened by @drodarie*
+
+## 4.3.0
 * Introduction of a pool caching system
 * Fix run iteration values in core
 * Add FixedOutdegree
 
-# 4.2.0
+## 4.2.0
 * Created geometric shape connection strategies
 * Added support for multiple shapes for each cell type
 * Written docs for geometric shapes
@@ -11,12 +65,12 @@
 * fix readthedocs conflicts with furo package
 * Add test to check if Allen API is down and skip related tests
 
-# 4.1.1
+## 4.1.1
 * Fix reference of file_ref during configuration parsing when importing nodes.
 * Use a more strict rule for Jobs enqueuing.
 * Use certifi to fix ssl certificate issues.
 
-# 4.1.0
+## 4.1.0
 * Added `ParsesReferences` mixin from bsb-json to allow reference and import in configuration files.
   This includes also a recursive parsing of the configuration files.
 * Added `swap_axes` function in morphologies
@@ -412,3 +466,10 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 * Complete rework of the codebase to ensure flexibility, scalability and
   adoption by the community.
 * First steps of distribution as a Python package.
+[v4.4.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.0...v4.4.1
+[v4.4.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.1...v4.4.2
+[v4.4.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.2...v4.4.3
+[v4.4.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.3...v4.4.4
+[v4.5.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.4...v4.5.0
+[v4.5.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.0...v4.5.1
+[v4.5.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.1...v4.5.2

@@ -1,7 +1,0 @@
-.. _main-components:
-
-============
-Introduction
-============
-
-

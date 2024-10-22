@@ -15,7 +15,7 @@ Storage
 
 .. note::
 
-	Storage nodes host plugins and can contain plugin-specific configuration.
+    Storage nodes host plugins and can contain plugin-specific configuration.
 
 .. autoconfig:: bsb.storage.interfaces.StorageNode
 
@@ -49,7 +49,7 @@ Regions
 
 .. note::
 
-	Region nodes are components and can contain additional component-specific attributes.
+    Region nodes are components and can contain additional component-specific attributes.
 
 .. autoconfig:: bsb.topology.Region
 
@@ -63,7 +63,7 @@ Partitions
 
 .. note::
 
-	Partition nodes are components and can contain additional component-specific attributes.
+    Partition nodes are components and can contain additional component-specific attributes.
 
 .. autoconfig:: bsb.topology.Partition
 
@@ -118,7 +118,7 @@ Placement
 
 .. note::
 
-	Placement nodes are components and can contain additional component-specific attributes.
+    Placement nodes are components and can contain additional component-specific attributes.
 
 .. autoconfig:: bsb.placement.PlacementStrategy
 
@@ -149,8 +149,8 @@ Connectivity
 
 .. note::
 
-	Connectivity nodes are components and can contain additional component-specific
-	attributes.
+    Connectivity nodes are components and can contain additional component-specific
+    attributes.
 
 .. autoconfig:: bsb.connectivity.ConnectionStrategy
 
