@@ -1,3 +1,5 @@
+    .. _get-started:
+
 ===============
 Top Level Guide
 ===============
@@ -10,46 +12,46 @@ Top Level Guide
   :figwidth: 90%
   :figclass: only-dark
 
-The Brain **Scaffold** Builder revolves around the :class:`~.core.Scaffold` object. A
-scaffold ties together all the information in the :class:`~.config.Configuration` with the
-:class:`~.storage.Storage`. The configuration contains your model description, while the
+The Brain **Scaffold** Builder revolves around the :doc:`Scaffold </core/scaffold>` object. A
+scaffold ties together all the information in the :doc:`Configuration </config/files>` with the
+:doc:`Storage </core/storage>`. The configuration contains your model description, while the
 storage contains your model data, like concrete cell positions or connections.
 
-Using the scaffold object one can turn the abstract model configuration into a concrete
-storage object full of neuroscience. For it to do so, the configuration needs to describe
-which steps to take to place cells, called ``Placement``, which steps to take to connect
-cells, called ``Connectivity``, and what representations to use during ``Simulation`` for
-those cells and connections. All of these configurable objects can be accessed from the
-scaffold object, under ``network.placement``, ``network.connectivity``,
-``network.simulations``, ...
+Using the scaffold object, one can turn the abstract model configuration into a concrete
+storage object full of neuroscience.
 
-Using the scaffold object, you can inspect the data in the storage by using the
-:class:`~.storage.interfaces.PlacementSet` and
-:class:`~.storage.interfaces.ConnectivitySet` APIs. PlacementSets can be obtained with
-:meth:`scaffold.get_placement_set <.core.Scaffold.get_placement_set>`, and
-ConnectivitySets with :meth:`scaffold.get_connectivity_set
-<.core.Scaffold.get_placement_set>`.
+To do so, the configuration leverages configurable objects to describe the underlying neural network,
+called **components**. Components defines which methods and parameters should be used to reconstruct and
+simulate the network. The ones that you would probably employ the most are:
 
-Ultimately this is the goal of the entire framework: To let you explicitly define every
-component and parameter that is a part of your model, and all its parameters, in such a
-way that a single CLI command, ``bsb compile``, can turn your configuration into a
-reconstructed biophysically detailed large scale neural network.
+* :guilabel:`Topology` defines the shape and volume of your network,
+  (it is composed of :guilabel:`Regions` and :guilabel:`Partitions`),
+* :guilabel:`Cell Types` allows you to estimate the cellular composition
+  (and attach :guilabel:`Morphologies` when needed),
+* :guilabel:`Placement` places cells,
+* :guilabel:`Connectivity` connect cells,
+* :guilabel:`Simulation` simulates the resulting network.
 
-Workflow
-========
+Assembled together these components form a linear workflow that will build your network from scratch.
 
-.. figure:: /images/workflow.png
-  :figwidth: 90%
-  :figclass: only-light
-
-.. figure:: /images/workflow_dark.png
-  :figwidth: 90%
-  :figclass: only-dark
+| Through this interface, lies the ultimate goal of the entire framework:
+| To let you explicitly define every component that is a part of your model, and all its related parameters,
+  in such a way that a single CLI command, ``bsb compile``, can turn your configuration into a reconstructed
+  biophysically detailed large scale neural network.
 
 .. _config:
 
 Configuration
 =============
+
+The ``Configuration`` object is organized as a hierarchical tree.
+From the root, the main blocks branch off, consisting of nine main components: :guilabel:`network`,
+:guilabel:`storage`, :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`morphologies`, :guilabel:`cell_types`,
+:guilabel:`placement`, :guilabel:`connectivity`, and :guilabel:`simulation`.
+These blocks contain nested sub-blocks that form the network.
+Additionally, there are two optional components: :guilabel:`after_placement` and :guilabel:`after_connectivity`,
+where users can define specific hooks to run within the workflow.
+All these components will be described in more details in the following sections.
 
 .. figure:: /images/configuration.png
   :figwidth: 90%
@@ -58,3 +60,12 @@ Configuration
 .. figure:: /images/configuration_dark.png
   :figwidth: 90%
   :figclass: only-dark
+
+The configuration object contains only the description of the model, not its implementation (python code)
+nor its data (stored in the storage object).
+It can therefore be stored in a separate file (usually Json or Yaml) that can be easily interpreted by BSB.
+
+What is next?
+=============
+We are now going to introduce the different components through a tutorial, explaining how to build
+:doc:`your first network <getting-started_reconstruction>` .

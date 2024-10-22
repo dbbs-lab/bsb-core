@@ -51,7 +51,7 @@ class ProjectNewCommand(BaseCommand, name="new"):
                 input(f"Config filename [network_configuration.{ext}]: ")
                 or f"network_configuration.{ext}"
             )
-        config.copy_template(template, output=root / output)
+        config.copy_configuration_template(template, output=root / output)
         with open(root / "pyproject.toml", "w") as f:
             toml.dump(
                 {

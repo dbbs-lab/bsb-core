@@ -5,21 +5,10 @@
     "root": "network.hdf5"
   },
   "network": {
-    "x": 400.0,
-    "y": 600.0,
-    "z": 400.0
+    "x": 200.0,
+    "y": 200.0,
+    "z": 200.0
   },
-  "morphologies": [
-    "neuron_A.swc",
-    {
-      "name": "neuron_B",
-      "file": "neuron2.swc"
-    },
-    {
-       "name": "neuron_NM",
-       "file": "nm://cell005_GroundTruth"
-    }
-  ],
   "regions": {
     "brain_region": {
       "type": "stack",
@@ -39,26 +28,19 @@
   "cell_types": {
     "base_type": {
       "spatial": {
-        "radius": 2,
-        "density": 1e-3,
-        "morphologies": [
-          "neuron_A"
-        ]
+        "radius": 2.5,
+        "density": 3.9e-4
       }
     },
     "top_type": {
       "spatial": {
         "radius": 7,
-        "count": 10,
-        "morphologies": [
-          "neuron_B",
-          "neuron_NM"
-        ]
+        "count": 40
       }
     }
   },
   "placement": {
-    "base_placement": {
+    "example_placement": {
       "strategy": "bsb.placement.RandomPlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
@@ -71,7 +53,7 @@
   },
   "connectivity": {
     "A_to_B": {
-      "strategy": "bsb.connectivity.VoxelIntersection",
+      "strategy": "bsb.connectivity.AllToAll",
       "presynaptic": {
         "cell_types": ["base_type"]
       },
