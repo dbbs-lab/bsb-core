@@ -25,14 +25,14 @@ Any package in the BSB ecosystem can be installed from PyPI through `pip`. Most 
 will want to install the main [bsb](https://pypi.org/project/bsb/) framework:
 
 ```
-pip install "bsb~=4.1"
+pip install "bsb"
 ```
 
 Advanced users looking to control install an unconventional combination of plugins might
 be better of installing just this package, and the desired plugins:
 
 ```
-pip install "bsb-core~=4.1"
+pip install "bsb-core"
 ```
 
 Note that installing `bsb-core` does not come with any plugins installed and the usually
@@ -71,10 +71,10 @@ You can use your project to create reconstructions of your model, generating cel
 and connections:
 
 ```
-bsb compile -p
+bsb compile 
 ```
 
-This creates a [network file](bsb.readthedocs.io/getting-started/networks.html) and plots the network.
+This creates a [network file](bsb.readthedocs.io/getting-started/networks.html).
 
 ### Simulating a network
 
