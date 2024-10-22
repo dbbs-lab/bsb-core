@@ -14,10 +14,6 @@
     {
       "name": "neuron_B",
       "file": "neuron2.swc"
-    },
-    {
-       "name": "neuron_NM",
-       "file": "nm://cell005_GroundTruth"
     }
   ],
   "regions": {
@@ -53,8 +49,7 @@
         "radius": 7,
         "count": 40,
         "morphologies": [
-          "neuron_B",
-          "neuron_NM"
+          "neuron_B"
         ]
       }
     }

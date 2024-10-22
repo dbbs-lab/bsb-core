@@ -22,16 +22,13 @@ config.morphologies = [
 
 config.cell_types.base_type.spatial.morphologies = ["neuron_A"]
 
-config.morphologies.append(
-    {"name": "neuron_NM", "file": "nm://cell005_GroundTruth"},
-)
 
 config.cell_types.add(
     "top_type",
     spatial=dict(
         radius=7,
         count=10,
-        morphologies=["neuron_B", "neuron_NM"],
+        morphologies=["neuron_B"],
     ),
 )
 config.placement.add(
