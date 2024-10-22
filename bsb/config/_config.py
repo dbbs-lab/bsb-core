@@ -148,6 +148,7 @@ class Configuration:
         default_args = dict(
             storage={"engine": "fs"},
             network={"x": 200, "y": 200, "z": 200},
+            morphologies=[],
             partitions={},
             cell_types={},
             placement={},
