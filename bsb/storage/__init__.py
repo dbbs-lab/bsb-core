@@ -253,7 +253,7 @@ class Storage:
         """
         from ..core import Scaffold
 
-        return Scaffold(storage=self, comm=self._comm._comm)
+        return Scaffold(storage=self, comm=self._comm.get_communicator())
 
     def load_active_config(self):
         """
@@ -378,6 +378,15 @@ class Storage:
 
 
 def open_storage(root, comm=None):
+    """
+    Load a Storage object from its root.
+
+    :param root: Root (usually path) pointing to the storage object.
+    :param mpi4py.MPI.Comm comm: MPI communicator that shares control
+      over the Storage.
+    :returns: A network scaffold
+    :rtype: :class:`Storage`
+    """
     engines = get_engines()
     for name, engine in engines.items():
         if engine.peek_exists(root) and engine.recognizes(root):

@@ -180,7 +180,7 @@ class Scaffold:
             # No storage given, create one.
             report("Creating storage from config.", level=4)
             storage = Storage(
-                config.storage.engine, config.storage.root, self._comm._comm
+                config.storage.engine, config.storage.root, self._comm.get_communicator()
             )
         else:
             # Override MPI comm of storage to match the scaffold's
