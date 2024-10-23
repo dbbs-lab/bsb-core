@@ -182,6 +182,9 @@ class Scaffold:
             storage = Storage(
                 config.storage.engine, config.storage.root, self._comm._comm
             )
+        else:
+            # Override MPI comm of storage to match the scaffold's
+            storage._comm = self._comm
         if clear:
             # Storage given, but asked to clear it before use.
             storage.remove()
