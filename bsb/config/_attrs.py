@@ -14,7 +14,6 @@ from ..exceptions import (
     NoReferenceAttributeSignal,
     RequirementError,
 )
-from ..services import MPI
 from ._compile import _wrap_reserved
 from ._hooks import run_hook
 from ._make import (
@@ -396,7 +395,7 @@ def _boot_nodes(top_node, scaffold):
         except Exception as e:
             errr.wrap(BootError, e, prepend=f"Failed to boot {node}:")
     # fixme: why is this here? Will deadlock in case of BootError on specific node only.
-    MPI.barrier()
+    scaffold._comm.barrier()
 
 
 def _unset_nodes(top_node):

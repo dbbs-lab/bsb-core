@@ -1,8 +1,10 @@
+import os
 import unittest
 
-from bsb_test import NetworkFixture, RandomStorageFixture
+from bsb_test import NetworkFixture, RandomStorageFixture, skip_serial
+from mpi4py import MPI
 
-from bsb import Configuration, PlacementSet, core
+from bsb import Configuration, PlacementSet, Scaffold, Storage, core, get_engine_node
 
 
 class TestCore(
@@ -96,6 +98,37 @@ class TestCore(
         self.assertIn('cell1[label="cell1 (3 cell1)"]', storage_diagram)
         self.assertIn('cell2[label="cell2 (3 cell2)"]', storage_diagram)
         self.assertIn('cell1 -> cell2[label="a_to_b (9)"]', storage_diagram)
+
+    @skip_serial
+    def test_mpi_from_storage(self):
+        self.network.compile(clear=True)
+        world = MPI.COMM_WORLD
+        if world.Get_rank() != 1:
+            # we make rank 1 skip while the others would load the network
+            group = world.group.Excl([1])
+            comm = world.Create_group(group)
+            core.from_storage(self.network.storage.root, comm)
+
+    @skip_serial
+    def test_mpi_compile(self):
+        world = MPI.COMM_WORLD
+        if world.Get_rank() != 1:
+            # we make rank 1 skip while the others would load the network
+            group = world.group.Excl([1])
+            comm = world.Create_group(group)
+            # Test compile with no storage
+            Scaffold(
+                Configuration.default(
+                    storage=dict(engine="hdf5", root="test_network.hdf5")
+                ),
+                comm=comm,
+            ).compile(clear=True)
+            if world.Get_rank() == 0:
+                os.remove("test_network.hdf5")
+            # Test compile with external storage
+            s = Storage("hdf5", get_engine_node("hdf5")(engine="hdf5").root, comm=comm)
+            Scaffold(Configuration.default(), storage=s, comm=comm).compile(clear=True)
+            s.remove()
 
 
 class TestProfiling(
