@@ -555,6 +555,7 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
         self.network.placement.withcache.cache_something.cache_clear()
         self.id_cache = _cache_hash("{root}.placement.withcache.cache_something")
 
+    @timeout(3)
     def test_cache_registration(self):
         """Test that when a cache is hit, it is registered in the scaffold"""
         self.network.placement.withcache.place(None, None)
@@ -563,6 +564,7 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
             [*self.network._pool_cache.keys()],
         )
 
+    @timeout(3)
     def test_method_detection(self):
         """Test that we can detect which jobs need which items"""
         self.assertEqual(
@@ -570,6 +572,7 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
             get_node_cache_items(self.network.placement.withcache),
         )
 
+    @timeout(3)
     def test_pool_required_cache(self):
         """Test that the pool knows which cache items are required"""
         with self.network.create_job_pool() as pool:
