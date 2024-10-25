@@ -10,6 +10,7 @@ from bsb_test import (
     NumpyTestCase,
     RandomStorageFixture,
     skip_parallel,
+    skip_serial,
     timeout,
 )
 
@@ -251,7 +252,7 @@ class TestSerialAndParallelScheduler(
         self.assertClose([[0, 0, 0]], ps.load_positions())
 
 
-@unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
+@skip_serial
 class TestParallelScheduler(
     RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
 ):
@@ -579,6 +580,7 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
                 pool.get_required_cache_items(),
             )
 
+    @timeout(3)
     @patch(
         "bsb.services.pool.free_stale_pool_cache",
         lambda scaffold, required_cache_items: mock_free_cache(

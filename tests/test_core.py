@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from bsb_test import NetworkFixture, RandomStorageFixture, skip_serial
+from bsb_test import NetworkFixture, RandomStorageFixture, skip_serial, timeout
 from mpi4py import MPI
 
 from bsb import Configuration, PlacementSet, Scaffold, Storage, core, get_engine_node
@@ -100,6 +100,7 @@ class TestCore(
         self.assertIn('cell1 -> cell2[label="a_to_b (9)"]', storage_diagram)
 
     @skip_serial
+    @timeout(3)
     def test_mpi_from_storage(self):
         self.network.compile(clear=True)
         world = MPI.COMM_WORLD
@@ -110,6 +111,7 @@ class TestCore(
             core.from_storage(self.network.storage.root, comm)
 
     @skip_serial
+    @timeout(3)
     def test_mpi_compile(self):
         world = MPI.COMM_WORLD
         if world.Get_rank() != 1:
