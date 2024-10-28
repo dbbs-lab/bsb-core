@@ -583,7 +583,6 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
                 pool.get_required_cache_items(),
             )
 
-    @timeout(3)
     @patch(
         "bsb.services.pool.free_stale_pool_cache",
         lambda scaffold, required_cache_items: mock_free_cache(
@@ -594,6 +593,7 @@ class TestPoolCache(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
         "bsb.services.pool.JobPool._read_required_cache_items",
         lambda self: mock_read_required_cache_items(self),
     )
+    @timeout(3)
     def test_cache_survival(self):
         """Test that the required cache items survive until the jobs are done."""
 

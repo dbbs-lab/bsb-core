@@ -129,7 +129,9 @@ class TestCore(
                 os.remove("test_network.hdf5")
             # Test compile with external storage
             s = Storage("hdf5", get_engine_node("hdf5")(engine="hdf5").root, comm=comm)
-            Scaffold(Configuration.default(), storage=s, comm=comm).compile(clear=True)
+            # self.cfg was modified when creating self.network but should update to match
+            # the new storage
+            Scaffold(self.cfg, storage=s, comm=comm).compile(clear=True)
             s.remove()
 
 
