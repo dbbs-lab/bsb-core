@@ -35,8 +35,8 @@ The project now contains a couple of important files:
 
 The configuration contains already a :guilabel:`partition` ``base_layer``, a :guilabel:`cell_type`
 ``base_type`` and a :guilabel:`placement` strategy ``example_placement``.
-These minimal components are enough to *compile* your first network. You can do this from the CLI
-or Python:
+These minimal components are enough to *compile* your first network. You can do this from the terminal
+or with Python:
 
 .. tab-set-code::
 

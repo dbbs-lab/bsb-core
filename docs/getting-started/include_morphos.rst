@@ -58,7 +58,7 @@ referencing it by name in :guilabel:`cell_types.base_type.spatial.morphologies`:
 
   .. literalinclude:: configs/include_morphos.json
     :language: json
-    :lines: 39-46
+    :lines: 35-42
     :emphasize-lines: 6
 
   .. literalinclude:: configs/include_morphos.py
@@ -171,11 +171,11 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 
   .. literalinclude:: configs/include_morphos.json
     :language: json
-    :lines: 70-80
+    :lines: 65-75
 
   .. literalinclude:: configs/include_morphos.py
     :language: python
-    :lines: 61-66
+    :lines: 59-64
 
 .. tip::
     Do not forget to compile our network if you are modifying the configuration in the file.

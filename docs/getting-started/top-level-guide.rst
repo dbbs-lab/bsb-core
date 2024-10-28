@@ -1,8 +1,41 @@
-    .. _get-started:
+.. _get-started:
 
 ===============
 Top Level Guide
 ===============
+
+The Brain Scaffold Builder is a **framework** that allows you to create workflows to
+reconstruct and simulate neural network models.
+
+.. figure:: /images/workflow.png
+  :figwidth: 90%
+  :figclass: only-light
+
+.. figure:: /images/workflow_dark.png
+  :figwidth: 90%
+  :figclass: only-dark
+
+A typical BSB workflow works as follows:
+
+1. The user provides a configuration that describes the network they want to reconstruct
+   and simulate.
+
+   It is interpreted by BSB as a list of tasks to perform.
+2. BSB creates the topology of the network (i.e., its shape and size).
+3. BSB places cells within the network, following a defined strategy.
+4. BSB connects the aforementioned cells according to connectivity rules.
+5. The final circuit is simulated with an external simulator, with BSB serving as an
+   intermediate to deal with the model.
+
+For each step of this workflow, BSB also provides a list of predefined strategies and
+tools to create your own with as little difficulty as possible. Hence, for most of
+your reconstructions, you may not have to code!
+
+BSB acts here as a **black box** with an extended interface to allow you to properly
+parametrize it.
+
+Scaffold
+========
 
 .. figure:: /images/bsb_toplevel.png
   :figwidth: 90%

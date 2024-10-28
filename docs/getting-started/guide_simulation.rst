@@ -1,16 +1,27 @@
-   .. _simulation-guide:
+.. _simulation-guide:
 
 #########################
 Run your first simulation
 #########################
 
-This section assumes you are already familiar with network construction. It will guide you through configuring
-a simulation for your network. If you need assistance with network setup,
-please refer to the :doc:`getting started guide </getting-started/getting-started_reconstruction>`.
+.. note::
 
-Once the network is built, the next step is to configure the simulation parameters.
-Start by specifying the :guilabel:`simulator` to be used. Here we presents the `NEST <https://nest-simulator.readthedocs.io/en/stable/installation/index.html>`_
-simulator but other simulators can also be selected. Additionally, you need to define the :guilabel:`resolution` (the time step of the simulation in milliseconds)
+    This guide is a continuation of the
+    :doc:`Getting Started guide </getting-started/getting-started_reconstruction>`.
+
+In this tutorial, we assume that you have successfully reconstructed a network with BSB.
+We will now guide you through the process of configuring a simulation with BSB for your network.
+
+Let's start by configuring the global simulation parameters.
+These include the :guilabel:`simulator` to be used. BSB supports the following simulators:
+
+- `NEST simulator <https://nest-simulator.readthedocs.io/en/stable/>`_
+- `NEURON simulator <https://www.neuron.yale.edu/neuron/>`_
+- `ARBOR simulator <https://arbor-sim.org/>`_
+
+In this example, we are going to present how to configure a point neuron simulation with NEST in BSB.
+
+Additionally, you need to define the :guilabel:`resolution` (the time step of the simulation in milliseconds)
 and the :guilabel:`duration` (the total length of the simulation in milliseconds).
 Therefore, your simulation block should be structured as follows:
 
@@ -50,11 +61,18 @@ Therefore, your simulation block should be structured as follows:
 
 Cells Models
 ------------
-The simulator needs a model to determine how cells will behave during the simulation.
-The keys given in the :guilabel:`cell_models` should correspond to a ``cell type`` in the
-network. If a certain ``cell type`` does not have a corresponding ``cell model`` then no
-cells of that type will be instantiated in the network. For our case we choose one
-of the simplest NEST models, the `simple leaky integrate-and-fire neuron model <https://nest-simulator.readthedocs.io/en/v3.8/models/iaf_cond_alpha.html>`_:
+For each **cell type population** of your network, you will need to assign a **point neuron model** to
+determine how these cells will behave during the simulation (i.e., their inner equations).
+The keys given in the :guilabel:`cell_models` should correspond to one of the :guilabel:`cell_types` of your
+configuration.
+
+.. note::
+
+    If a certain ``cell_type`` does not have a corresponding ``cell_model`` then no cells of that type will be
+    instantiated in the network.
+
+Here, we choose one of the simplest NEST models, the
+`Integrate-and-Fire neuron model <https://nest-simulator.readthedocs.io/en/v3.8/models/iaf_cond_alpha.html>`_:
 
 .. tab-set-code::
 
@@ -76,12 +94,36 @@ of the simplest NEST models, the `simple leaky integrate-and-fire neuron model <
           top_type={"model":"iaf_cond_alpha"}
         )
 
+NEST provides default parameters for each point neuron model, so we do not need to add anything.
+Still, you can modify certain parameters, by setting its :guilabel:`constants` dictionary:
+
+.. tab-set-code::
+
+    .. code-block:: json
+
+      "cell_models": {
+            "base_type": {
+              "model": "iaf_cond_alpha"
+                "constants": {
+                  "t_ref": 1.5,
+                  "V_m": -62.0,
+                }
+            },
+
+    .. code-block:: python
+
+        config.simulations["basal_activity"].cell_models=dict(
+          base_type={"model":"iaf_cond_alpha", dict(t_ref=1.5, V_m=-62.0)},
+        )
+
+
 Connection Models
 -----------------
 
-The simulator also requires information about the types of connections to use.
-Similar to the cell model block, each connection model you define should use a key that corresponds to a ``connectivity set`` present in the network.
-In this example, we add a ``static_synapse`` connection to the connectivity :guilabel:`A_to_B`.
+For each connection type of your network, you also need to define a model describing its synapses' dynamics.
+Similar to the :guilabel:`cell_models` block, each :guilabel:`connection_model` you define should use a key
+that corresponds to a ``connectivity set`` created during reconstruction.
+In this example, we assign the ``static_synapse`` model to the connections :guilabel:`A_to_B`.
 
 .. tab-set-code::
 
@@ -109,13 +151,14 @@ In this example, we add a ``static_synapse`` connection to the connectivity :gui
           )
         )
 
-In this case the synapse model needs ``weight`` and ``delay`` parameters that are set to 100 and 1, rispectively.
+For this model, the synapse model needs ``weight`` and ``delay`` parameters that are set to 100 and 1 ms,
+respectively.
 
 Devices
 -------
 
-In the devices block, include all interfaces you wish to use for interacting with the network,
-referencing devices typically used in experiments, such as stimulators and measurement instruments.
+In the :guilabel:`devices` block, include all interfaces you wish to use for interacting with the network.
+These devices corresponds typically to stimulators and measurement instruments.
 
 .. tab-set-code::
 
@@ -127,8 +170,7 @@ referencing devices typically used in experiments, such as stimulators and measu
                       "rate": 20,
                       "targetting": {
                         "strategy": "cell_model",
-                        "cell_models": [
-                          "top_type"]
+                        "cell_models": ["top_type"]
                       },
                       "weight": 40,
                       "delay": 1
@@ -138,9 +180,7 @@ referencing devices typically used in experiments, such as stimulators and measu
                       "delay": 0.1,
                       "targetting": {
                         "strategy": "cell_model",
-                        "cell_models": [
-                          "base_type"
-                        ]
+                        "cell_models": ["base_type"]
                       }
                     },
                     "top_layer_record": {
@@ -148,9 +188,7 @@ referencing devices typically used in experiments, such as stimulators and measu
                       "delay": 0.1,
                       "targetting": {
                         "strategy": "cell_model",
-                        "cell_models": [
-                          "top_type"
-                        ]
+                        "cell_models": ["top_type"]
                       }
                     }
             }
@@ -186,15 +224,17 @@ referencing devices typically used in experiments, such as stimulators and measu
               )
             )
 
-
 Using the :guilabel:`device` key, you select the type of device to use, and with :guilabel:`targetting`,
 you specify the target objects of the device.
-In our example, we add a ``poisson_generator`` to stimulate the top layer cells and use a ``spike_recorder`` to record the activity of the base layer cells.
+In our example, we add a ``poisson_generator`` that simulates cells spiking at ``20`` Hz.
+These latter "cells" are each connected one ``top_type`` cell and transmit their spike events with a delay
+of `1` ms and the weight of the connection is ``40``.
+We also introduce a ``spike_recorder`` to store the spike events of the cell populations.
 
 Running the Simulation
 ----------------------
 
-Once the configuration file is complete it should be compiled producing a HDF5 network file,
+Once the configuration file is complete, it should be compiled producing a HDF5 network file,
 this file will be used to run simulations through the CLI:
 
 .. code-block:: bash
