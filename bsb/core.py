@@ -201,6 +201,8 @@ class Scaffold:
         # Then, `storage` is initiated for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
         self.storage = storage
+        # Synchronize the JobPool static variable so that each core use the same ids.
+        JobPool._next_pool_id = self._comm.bcast(JobPool._next_pool_id, root=0)
 
     storage_cfg = _config_property("storage")
     for attr in _cfg_props:
