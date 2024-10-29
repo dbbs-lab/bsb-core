@@ -198,7 +198,7 @@ class Scaffold:
         self._storage = storage
         # First, the scaffold is passed to each config node, and their boot methods called
         self._configuration._bootstrap(self)
-        # Then, `storage` is initiated for the scaffold, and `config` is stored (happens
+        # Then, `storage` is initialized for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
         self.storage = storage
         # Synchronize the JobPool static variable so that each core use the same ids.
