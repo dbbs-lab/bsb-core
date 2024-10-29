@@ -1,3 +1,9 @@
+## [v4.5.3] - 2024-10-29
+### :bug: Bug Fixes
+- [`0dac469`](https://github.com/dbbs-lab/bsb-core/commit/0dac46937c26a078b8b92864321919d8ed2ccac7) - mpi comm *(PR [#896](https://github.com/dbbs-lab/bsb-core/pull/896) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#894](https://github.com/dbbs-lab/bsb-core/issues/894) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v4.5.2] - 2024-10-12
 ### :bug: Bug Fixes
 - [`21015c5`](https://github.com/dbbs-lab/bsb-core/commit/21015c530e340140ee424e4dbc7b18053a628d54) - targetting and add shape to ndarray *(PR [#891](https://github.com/dbbs-lab/bsb-core/pull/891) by [@drodarie](https://github.com/drodarie))*
@@ -473,3 +479,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.5.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.4.4...v4.5.0
 [v4.5.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.0...v4.5.1
 [v4.5.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.1...v4.5.2
+[v4.5.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.2...v4.5.3
