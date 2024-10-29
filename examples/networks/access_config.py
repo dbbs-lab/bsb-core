@@ -1,12 +1,12 @@
 # How to access the configuration of a network
 from bsb import from_storage
 
-network = from_storage("network.hdf5")
-print("My network was configured with", network.configuration)
-print("My network has", len(network.configuration.cell_types), "cell types")
+scaffold = from_storage("network.hdf5")
+print("My network was configured with", scaffold.configuration)
+print("My network has", len(scaffold.cell_types), "cell types")
 (
     # But to avoid some needless typing and repetition,
-    network.cell_types is network.configuration.cell_types
-    and network.placement is network.configuration.placement
+    scaffold.cell_types is scaffold.configuration.cell_types
+    and scaffold.placement is scaffold.configuration.placement
     and "so on"
 )

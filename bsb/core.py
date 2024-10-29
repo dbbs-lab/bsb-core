@@ -17,8 +17,9 @@ from .exceptions import (
 from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report
-from .services import MPI, JobPool
+from .services import JobPool
 from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
+from .services.mpi import MPIService
 from .services.pool import Job, Workflow
 from .simulation import get_simulation_adapter
 from .storage import Storage, open_storage
@@ -39,15 +40,17 @@ if typing.TYPE_CHECKING:
 
 
 @meter()
-def from_storage(root):
+def from_storage(root, comm=None):
     """
     Load :class:`.core.Scaffold` from a storage object.
 
     :param root: Root (usually path) pointing to the storage object.
+    :param mpi4py.MPI.Comm comm: MPI communicator that shares control
+      over the Storage.
     :returns: A network scaffold
     :rtype: :class:`Scaffold`
     """
-    return open_storage(root).load()
+    return open_storage(root, comm).load()
 
 
 _cfg_props = (
@@ -128,6 +131,8 @@ class Scaffold:
         :type storage: :class:`~.storage.Storage`
         :param clear: Start with a new network, clearing any previously stored information
         :type clear: bool
+        :param comm: MPI communicator that shares control over the Storage.
+        :type comm: mpi4py.MPI.Comm
         :returns: A network object
         :rtype: :class:`~.core.Scaffold`
         """
@@ -137,7 +142,7 @@ class Scaffold:
         )
         self._configuration = None
         self._storage = None
-        self._comm = comm or MPI
+        self._comm = MPIService(comm)
         self._bootstrap(config, storage, clear=clear)
 
     def __contains__(self, component):
@@ -151,10 +156,10 @@ class Scaffold:
         return f"'{file}' with {cells_placed} cell types, and {n_types} connection_types"
 
     def is_main_process(self) -> bool:
-        return not MPI.get_rank()
+        return not self._comm.get_rank()
 
     def is_worker_process(self) -> bool:
-        return bool(MPI.get_rank())
+        return bool(self._comm.get_rank())
 
     def _bootstrap(self, config, storage, clear=False):
         if config is None:
@@ -174,7 +179,12 @@ class Scaffold:
         if not storage:
             # No storage given, create one.
             report("Creating storage from config.", level=4)
-            storage = Storage(config.storage.engine, config.storage.root)
+            storage = Storage(
+                config.storage.engine, config.storage.root, self._comm.get_communicator()
+            )
+        else:
+            # Override MPI comm of storage to match the scaffold's
+            storage._comm = self._comm
         if clear:
             # Storage given, but asked to clear it before use.
             storage.remove()
@@ -183,14 +193,16 @@ class Scaffold:
         self._configuration = config
         # Make sure the storage config node reflects the storage we are using
         config._update_storage_node(storage)
-        # Give the scaffold access to the unitialized storage object (for use during
+        # Give the scaffold access to the uninitialized storage object (for use during
         # config bootstrapping).
         self._storage = storage
         # First, the scaffold is passed to each config node, and their boot methods called
         self._configuration._bootstrap(self)
-        # Then, `storage` is initted for the scaffold, and `config` is stored (happens
+        # Then, `storage` is initialized for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
         self.storage = storage
+        # Synchronize the JobPool static variable so that each core use the same ids.
+        JobPool._next_pool_id = self._comm.bcast(JobPool._next_pool_id, root=0)
 
     storage_cfg = _config_property("storage")
     for attr in _cfg_props:

@@ -4,8 +4,9 @@ Accessing network data
 Configuration
 -------------
 
-The configuration of a network is available as ``network.configuration``, the root nodes
-such as ``cell_types``, ``placement`` and others are available on ``network`` as well.
+The Configuration of a Scaffold is available as ``scaffold.configuration``.
+The root components such as ``cell_types``, ``placement`` and others are available on
+``scaffold`` as well.
 
 .. literalinclude:: /../examples/networks/access_config.py
    :language: python

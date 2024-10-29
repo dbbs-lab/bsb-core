@@ -7,7 +7,6 @@ Examples
   :maxdepth: 2
   :caption: Basics
 
-  networks/create
   networks/load
   networks/data
 

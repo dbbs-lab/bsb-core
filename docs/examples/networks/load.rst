@@ -1,7 +1,7 @@
 Loading a network from file
 ===========================
 
-You can load a stored network from file using :meth:`bsb.core.from_storage`:
+You can load a stored network from file using :meth:`from_storage <bsb.core.from_storage>`:
 
 .. literalinclude:: /../examples/networks/load.py
    :language: python

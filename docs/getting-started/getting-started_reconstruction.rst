@@ -57,6 +57,9 @@ or with Python:
 Here, the ``verbosity`` flag increases the amount of output (logs) that is generated when BSB is running,
 to follow along or troubleshoot.
 
+When BSB compiles a `Scaffold`, it extracts and runs the reconstruction pipeline defined in the `Configuration` and
+stores each step's results into the `Storage` (as explained in the `previous section`).
+
 The compile command (or python script) should produce a file ``"network.hdf5"`` located in your project
 folder if BSB could parse the configuration file and complete the reconstruction. This file should
 contain your network (configuration and storage) after reconstruction.
@@ -208,13 +211,16 @@ You should now try to compile your network to check if you did no mistake:
   We pass the ``clear`` flag to indicate that existing data may be overwritten. See
   :ref:`storage_control` for more flags to deal with existing data.
 
+Each placement strategy generates a `PlacementSet` in the `Storage` that you can access from the `Scaffold` object
+(see `this section` for more info).
+
 
 Connectivity
 ------------
 
 The :doc:`connectivity </connectivity/defining>` component contains the blocks that specify
 connections between systems of cell types.
-For each connectivity component, you should specify the connection :guilabel:`strategy` and
+For each :guilabel:`connectivity` component, you should specify the connection :guilabel:`strategy` and
 for both :guilabel:`presynaptic` (source) and :guilabel:`postsynaptic` (target) groups, provide the
 list of :guilabel:`cell_types` names to connect.
 
@@ -237,8 +243,17 @@ cells and connections in place, you are ready to move to the next stage.
   For Python, the `compile` function should be called (only once) at the end of your script,
   once the configuration is complete.
 
-Recap
------
+Each connection strategy generates a `ConnectivitySet` in the `Storage` for each pair of neurons
+that you can access from the `Scaffold` object (see `this section` for more info).
+Here, the name of the `ConnectivitySet` corresponds to the connection component (``A_to_B``) because
+there is only one pair of :guilabel:`cell_type`.
+
+.. warning::
+  If you have more than one pair of cell types connected through the same connection strategy, then the name of
+  the `ConnectivitySet` is ``NameOfTheComponent`` _ ``NameOfPreType`` _ ``NameOfPostType`` (learn more `here`).
+
+Final configuration file
+------------------------
 
 .. tab-set-code::
 

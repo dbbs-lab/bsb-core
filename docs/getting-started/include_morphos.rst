@@ -180,8 +180,8 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 .. tip::
     Do not forget to compile our network if you are modifying the configuration in the file.
 
-Recap
------
+Final configuration file
+------------------------
 
 .. tab-set-code::
 

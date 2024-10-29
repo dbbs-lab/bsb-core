@@ -55,9 +55,13 @@ Therefore, your simulation block should be structured as follows:
 
 .. note::
 
-    If you are using Python code, we assume that all network blocks are already
-    configured within a ``Configuration`` object named  :guilabel:`config`.
+    If you are using Python code, we assume that you load your Scaffold and Configuration
+    from your compiled network file:
 
+    .. code-block:: python
+
+        scaffold = from_storage("network.hdf5")
+        config = scaffold.configuration
 
 Cells Models
 ------------
@@ -122,7 +126,7 @@ Connection Models
 
 For each connection type of your network, you also need to define a model describing its synapses' dynamics.
 Similar to the :guilabel:`cell_models` block, each :guilabel:`connection_model` you define should use a key
-that corresponds to a ``connectivity set`` created during reconstruction.
+that corresponds to a ``ConnectivitySet`` created during reconstruction (as explained in the previous `section`).
 In this example, we assign the ``static_synapse`` model to the connections :guilabel:`A_to_B`.
 
 .. tab-set-code::
@@ -158,7 +162,7 @@ Devices
 -------
 
 In the :guilabel:`devices` block, include all interfaces you wish to use for interacting with the network.
-These devices corresponds typically to stimulators and measurement instruments.
+These devices correspond typically to stimulators and measurement instruments.
 
 .. tab-set-code::
 
@@ -231,34 +235,8 @@ These latter "cells" are each connected one ``top_type`` cell and transmit their
 of `1` ms and the weight of the connection is ``40``.
 We also introduce a ``spike_recorder`` to store the spike events of the cell populations.
 
-Running the Simulation
-----------------------
-
-Once the configuration file is complete, it should be compiled producing a HDF5 network file,
-this file will be used to run simulations through the CLI:
-
-.. code-block:: bash
-
-        bsb compile -v 3 my_configuration.json
-        bsb simulate my_network.hdf5 basal_activity -f simulation-results
-
-Alternatively, if you prefer to manage the simulations using Python code:
-
-.. code-block:: python
-
-        from bsb import Scaffold
-
-        scaffold = Scaffold(config)
-        scaffold.compile(true)
-        result = scaffold.run_simulation("basal_activity")
-        result.write("simulation-results.nio", "ow")
-
-
-For more detailed information about simulation modules,
-please refer to the :doc:`simulation section </simulation/intro>`.
-
-Recap
------
+Final configuration file
+------------------------
 
 .. tab-set-code::
 
@@ -268,8 +246,59 @@ Recap
   .. literalinclude:: configs/guide-simulation.json
     :language: json
 
-  .. literalinclude:: configs/guide-simulation.py
+  .. literalinclude:: /../examples/simulation/nest/guide-simulation.py
     :language: python
+
+
+Running the Simulation
+----------------------
+
+Simulations are separated from the reconstruction pipeline (see the `top level guide`),
+which means you do not need to recompile your network to add a simulation to your stored Configuration.
+In this example, we only modified the `Configuration` in the `simulation` block but this updates were
+not been saved in the network file.
+So, you need to update your file, using either the `reconfigure` command or the
+
+.. tab-set-code::
+
+  .. code-block:: bash
+
+    bsb reconfigure network.hdf5 network_configuration.json
+
+  .. code-block:: python
+
+    storage = scaffold.storage
+    storage.store_active_config(config)
+
+Once this is done, create a folder in which to store your simulation results:
+
+.. code-block:: bash
+
+    mkdir simulation-results
+
+You can now run your simulation:
+
+.. tab-set-code::
+
+  .. code-block:: bash
+
+    bsb simulate my_network.hdf5 basal_activity -f simulation-results
+
+  .. code-block:: python
+
+        from bsb import from_storage
+
+        scaffold = from_storage("my_network.hdf5")
+        result = scaffold.run_simulation("basal_activity")
+        result.write("simulation-results/basal_activity.nio", "ow")
+
+The results of the simulation will be stored in the ``"simulation-results"`` folder.
+
+.. note::
+    If you run the simulation with the command line interface, the name of the output nio file is randomized by BSB.
+
+For more detailed information about simulation modules,
+please refer to the :doc:`simulation section </simulation/intro>`.
 
 .. rubric:: Next steps:
 
