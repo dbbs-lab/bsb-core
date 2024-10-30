@@ -9,3 +9,4 @@ Connectivity
    component
    connection-strategies
    geometric
+   connectivity-set

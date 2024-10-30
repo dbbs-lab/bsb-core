@@ -58,7 +58,7 @@ Here, the ``verbosity`` flag increases the amount of output (logs) that is gener
 to follow along or troubleshoot.
 
 When BSB compiles a `Scaffold`, it extracts and runs the reconstruction pipeline defined in the `Configuration` and
-stores each step's results into the `Storage` (as explained in the `previous section`).
+stores each step's results into the `Storage` (as explained in the :ref:`previous section <get-started>`).
 
 The compile command (or python script) should produce a file ``"network.hdf5"`` located in your project
 folder if BSB could parse the configuration file and complete the reconstruction. This file should
@@ -212,7 +212,7 @@ You should now try to compile your network to check if you did no mistake:
   :ref:`storage_control` for more flags to deal with existing data.
 
 Each placement strategy generates a `PlacementSet` in the `Storage` that you can access from the `Scaffold` object
-(see `this section` for more info).
+(see :doc:`this section </placement/placement-set>` for more info).
 
 
 Connectivity
@@ -244,7 +244,7 @@ cells and connections in place, you are ready to move to the next stage.
   once the configuration is complete.
 
 Each connection strategy generates a `ConnectivitySet` in the `Storage` for each pair of neurons
-that you can access from the `Scaffold` object (see `this section` for more info).
+that you can access from the `Scaffold` object (see :doc:`this section </connectivity/connectivity-set>` for more info).
 Here, the name of the `ConnectivitySet` corresponds to the connection component (``A_to_B``) because
 there is only one pair of :guilabel:`cell_type`.
 

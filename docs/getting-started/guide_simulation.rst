@@ -126,7 +126,7 @@ Connection Models
 
 For each connection type of your network, you also need to define a model describing its synapses' dynamics.
 Similar to the :guilabel:`cell_models` block, each :guilabel:`connection_model` you define should use a key
-that corresponds to a ``ConnectivitySet`` created during reconstruction (as explained in the previous `section`).
+that corresponds to a ``ConnectivitySet`` created during reconstruction (as explained in the previous :doc:`section </getting-started/getting-started_reconstruction>`).
 In this example, we assign the ``static_synapse`` model to the connections :guilabel:`A_to_B`.
 
 .. tab-set-code::
