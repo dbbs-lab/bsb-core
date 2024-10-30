@@ -27,14 +27,20 @@ same :class:`~.storage.interfaces.PlacementSet`. If the placement set does not e
   # Alternatives to obtain the same placement set:
   ps = network.get_placement_set(network.cell_types.my_cell)
   ps = network.cell_types.my_cell.get_placement_set()
-  ps = network.storage.get_placement_set(network.cell_types.my_cell)
 
+  print (ps.tag)    # Name of the placement set
 
 Identifiers
 ===========
 
 Cells have no global identifiers, instead you use the indices of their data, i.e. the
 n-th position belongs to cell n, and so will the n-th rotation.
+To easily retrieve the cells' IDs make use of the method :meth:`~.storage.interfaces.PlacementSet.load_ids`.
+
+.. code-block:: python
+
+    list_of_ids = ps.load_ids()
+
 
 Positions
 =========
@@ -44,21 +50,23 @@ The positions of the cells can be retrieved using the
 
 .. code-block:: python
 
-  for n, position in enumerate(ps.positions):
+  for n, position in enumerate(ps.load_positions()):
     print("I am", ps.tag, "number", n)
     print("My position is", position)
 
 Morphologies
 ============
 
-The positions of the cells can be retrieved using the
+The morphology of the cells can be retrieved using the
 :meth:`~.storage.interfaces.PlacementSet.load_morphologies` method.
 
 .. code-block:: python
 
   for n, (pos, morpho) in enumerate(zip(ps.load_positions(), ps.load_morphologies())):
     print("I am", ps.tag, "number", n)
-    print("My position is", position)
+    print("My position is", pos)
+    print("My morphology is", morpho)
+
 
 .. warning::
 
