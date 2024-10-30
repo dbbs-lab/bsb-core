@@ -103,7 +103,7 @@ including its size along the three dimensions :guilabel:`x`, :guilabel:`y`, :gui
     :language: json
     :lines: 7-11
 
-  .. literalinclude:: configs/getting_started.py
+  .. literalinclude:: /../examples/tutorials/getting_started.py
     :language: python
     :lines: 7-9
 
@@ -125,7 +125,7 @@ To get started, we will add a second layer ``top_layer``, and a region ``brain_r
     :language: json
     :lines: 12-27
 
-  .. literalinclude:: configs/getting_started.py
+  .. literalinclude:: /../examples/tutorials/getting_started.py
     :language: python
     :lines: 11-20
 
@@ -160,7 +160,7 @@ time we want to a place 40 of these cells and their soma :guilabel:`radius` of `
     :language: json
     :lines: 28-41
 
-  .. literalinclude:: configs/getting_started.py
+  .. literalinclude:: /../examples/tutorials/getting_started.py
     :language: python
     :lines: 22-29
 
@@ -182,7 +182,7 @@ Now that we have defined our new ``top_type``, we should place it in our ``top_l
     :language: json
     :lines: 42-53
 
-  .. literalinclude:: configs/getting_started.py
+  .. literalinclude:: /../examples/tutorials/getting_started.py
     :language: python
     :lines: 31-42
 
@@ -232,7 +232,7 @@ Here, we are going to connect all ``base_type`` cells to all ``top_type`` cells.
     :language: json
     :lines: 54-65
 
-  .. literalinclude:: configs/getting_started.py
+  .. literalinclude:: /../examples/tutorials/getting_started.py
     :language: python
     :lines: 44-49
 
@@ -260,5 +260,9 @@ Final configuration file
   .. literalinclude:: configs/getting-started.json
     :language: json
 
-  .. literalinclude:: configs/getting_started.py
+  .. literalinclude:: /../examples/tutorials/getting_started.py
     :language: python
+
+What is next?
+=============
+Learn how to extract the data from your produced `Scaffold` through :doc:`this tutorial <basics>`.

@@ -36,3 +36,34 @@ and an array of the IDs of spiking cells, accessible through the annotations att
         print(name, size, cell_list)
         print(spike_t)                              # Print the spiketrain
 
+
+
+.. rubric:: Next steps:
+
+.. grid:: 1 1 1 2
+    :gutter: 1
+
+
+    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Make your own python project
+        :link: projects
+        :link-type: ref
+
+        Learn how to configure your python project for BSB.
+
+    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
+       :link: main-components
+       :link-type: ref
+
+       Explore more about the main components.
+
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
+        :link: examples
+        :link-type: ref
+
+        Explore more advanced examples
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
+       :link: components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.

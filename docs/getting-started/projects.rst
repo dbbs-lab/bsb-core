@@ -1,3 +1,5 @@
+.. _projects:
+
 ########
 Projects
 ########
@@ -108,3 +110,32 @@ stored as a version, and backed up in the cloud.
 
 Projects come with a ``.gitignore`` file, where you can exclude files from being backed
 up. Cloud providers won't let neuroscientists upload 100GB network files |:innocent:|
+
+.. rubric:: Next steps:
+
+.. grid:: 1 1 1 2
+    :gutter: 1
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Command-Line Interface
+       :link: cli-guide
+       :link-type: ref
+
+       Familiarize yourself with BSB's CLI.
+
+    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
+       :link: main-components
+       :link-type: ref
+
+       Explore more about the main components.
+
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
+        :link: examples
+        :link-type: ref
+
+        Explore more advanced examples
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
+       :link: components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.

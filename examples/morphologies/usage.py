@@ -1,3 +1,5 @@
+import numpy as np
+
 from bsb import from_storage
 
 # Load the morphology

@@ -5,13 +5,7 @@ Examples
 
 .. toctree::
   :maxdepth: 2
-  :caption: Basics
-
-  networks/load
-  networks/data
-
-.. toctree::
-  :maxdepth: 2
   :caption: Atlas
 
+  label_cells
   atlas/atlas_placement

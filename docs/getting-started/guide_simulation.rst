@@ -246,7 +246,7 @@ Final configuration file
   .. literalinclude:: configs/guide-simulation.json
     :language: json
 
-  .. literalinclude:: /../examples/simulation/nest/guide-simulation.py
+  .. literalinclude:: /../examples/tutorials/nest-simulation.py
     :language: python
 
 
@@ -282,7 +282,7 @@ You can now run your simulation:
 
   .. code-block:: bash
 
-    bsb simulate my_network.hdf5 basal_activity -f simulation-results
+    bsb simulate my_network.hdf5 basal_activity -o simulation-results
 
   .. code-block:: python
 
@@ -306,13 +306,25 @@ please refer to the :doc:`simulation section </simulation/intro>`.
     :gutter: 1
 
 
-    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Analyze Results
-	    :link: guide_analyze_results
-	    :link-type: ref
+    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Analyze your Results
+        :link: guide_analyze_results
+        :link-type: ref
 
-	    How to extract your data.
+        How to extract your data.
 
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Custom components
+    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
+       :link: main-components
+       :link-type: ref
+
+       Explore more about the main components.
+
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
+        :link: examples
+        :link-type: ref
+
+        Explore more advanced examples
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
        :link: components
        :link-type: ref
 

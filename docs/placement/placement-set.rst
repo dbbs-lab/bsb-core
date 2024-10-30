@@ -22,13 +22,13 @@ same :class:`~.storage.interfaces.PlacementSet`. If the placement set does not e
 
   from bsb import from_storage
 
-  network = from_storage("my_network.hdf5")
-  ps = network.get_placement_set("my_cell")
+  scaffold = from_storage("my_network.hdf5")
+  ps = scaffold.get_placement_set("my_cell")
   # Alternatives to obtain the same placement set:
-  ps = network.get_placement_set(network.cell_types.my_cell)
-  ps = network.cell_types.my_cell.get_placement_set()
+  ps = scaffold.get_placement_set(network.cell_types.my_cell)
+  ps = scaffold.cell_types.my_cell.get_placement_set()
 
-  print (ps.tag)    # Name of the placement set
+  print(ps.tag)  # Name of the placement set
 
 Identifiers
 ===========
@@ -51,8 +51,7 @@ The positions of the cells can be retrieved using the
 .. code-block:: python
 
   for n, position in enumerate(ps.load_positions()):
-    print("I am", ps.tag, "number", n)
-    print("My position is", position)
+    print(f"Cell {n}, position: {pos}")
 
 Morphologies
 ============
@@ -63,24 +62,31 @@ The morphology of the cells can be retrieved using the
 .. code-block:: python
 
   for n, (pos, morpho) in enumerate(zip(ps.load_positions(), ps.load_morphologies())):
-    print("I am", ps.tag, "number", n)
-    print("My position is", pos)
-    print("My morphology is", morpho)
-
+    print(f"Cell {n}, position: {pos}, morpho: {morpho}")
 
 .. warning::
 
-	Loading morphologies is especially expensive.
-
-  :meth:`~.storage.interfaces.PlacementSet.load_morphologies` returns a
-  :class:`~.morphologies.MorphologySet`. There are better ways to iterate over it using
-  either **soft caching** or **hard caching**.
+   | Loading morphologies is especially expensive.
+   | :meth:`~.storage.interfaces.PlacementSet.load_morphologies` returns a
+     :class:`~.morphologies.MorphologySet`.
+   | There are better ways to iterate over it using either **soft caching** or **hard caching**.
 
 Rotations
 =========
 
 The positions of the cells can be retrieved using the
 :meth:`~.storage.interfaces.PlacementSet.load_rotations` method.
+
+.. code-block:: python
+
+  for n, rotation in enumerate(ps.load_rotations()):
+    print(f"Cell {n}, rotation: ", rotation)
+
+Labeling
+========
+
+You can label cells and/or their attached morphologies using the
+:meth:`~.storage.interfaces.PlacementSet.load_rotations`
 
 Additional datasets
 ===================

@@ -61,7 +61,7 @@ referencing it by name in :guilabel:`cell_types.base_type.spatial.morphologies`:
     :lines: 35-42
     :emphasize-lines: 6
 
-  .. literalinclude:: configs/include_morphos.py
+  .. literalinclude:: /../examples/tutorials/include_morphos.py
     :language: python
     :lines: 27-34
     :emphasize-lines: 6
@@ -86,7 +86,7 @@ containing the attributes :guilabel:`name` and :guilabel:`file`:
     :lines: 12-17
     :emphasize-lines: 3-6
 
-  .. literalinclude:: configs/include_morphos.py
+  .. literalinclude:: /../examples/tutorials/include_morphos.py
     :language: python
     :lines: 22-25
     :emphasize-lines: 3
@@ -173,7 +173,7 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
     :language: json
     :lines: 65-75
 
-  .. literalinclude:: configs/include_morphos.py
+  .. literalinclude:: /../examples/tutorials/include_morphos.py
     :language: python
     :lines: 59-64
 
@@ -191,7 +191,7 @@ Final configuration file
   .. literalinclude:: configs/include_morphos.json
     :language: json
 
-  .. literalinclude:: configs/include_morphos.py
+  .. literalinclude:: /../examples/tutorials/include_morphos.py
     :language: python
 
 .. rubric:: What is next?
@@ -200,13 +200,13 @@ Final configuration file
     :gutter: 1
 
 
-    .. grid-item-card:: :octicon:`cpu;1em;sd-text-warning` Simulations
+    .. grid-item-card:: :octicon:`cpu;1em;sd-text-warning` Run your first simulation
         :link: simulation-guide
         :link-type: ref
 
         Learn how to simulate your network models
 
-    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Components
+    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
        :link: main-components
        :link-type: ref
 
@@ -216,9 +216,9 @@ Final configuration file
         :link: examples
         :link-type: ref
 
-        Explore more examples.
+        Explore more advanced examples.
 
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Custom components
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
        :link: components
        :link-type: ref
 
