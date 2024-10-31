@@ -61,10 +61,14 @@ class CellModelFilter:
 
 class CellTypeFilter:
     cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=False)
+    only_local: bool = config.attr(type=bool, default=True)
 
     def get_targets(self, adapter, simulation, simdata):
+        chunks = simdata.chunks
+        if not self.only_local:
+            chunks = None
         return {
-            cell_name: cell_type.get_placement_set(chunks=simdata.chunks)
+            cell_name: cell_type.get_placement_set(chunks=chunks)
             for cell_name, cell_type in simulation.scaffold.cell_types.items()
             if not self.cell_types or cell_type in self.cell_types
         }
