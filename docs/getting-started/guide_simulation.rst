@@ -248,16 +248,17 @@ Final configuration file
 
   .. literalinclude:: /../examples/tutorials/nest-simulation.py
     :language: python
+    :lines: 1-44
 
 
 Running the Simulation
 ----------------------
 
-Simulations are separated from the reconstruction pipeline (see the `top level guide`),
+Simulations are separated from the reconstruction pipeline (see the :doc:`top level guide <top-level-guide>`),
 which means you do not need to recompile your network to add a simulation to your stored Configuration.
-In this example, we only modified the `Configuration` in the `simulation` block but this updates were
+In this example, we only modified the ``Configuration`` in the :guilabel:`simulations` block but this updates were
 not been saved in the network file.
-So, you need to update your file, using either the `reconfigure` command or the
+So, you need to update your file, using either the ``reconfigure`` command or the
 
 .. tab-set-code::
 

@@ -1,8 +1,8 @@
 .. _projects:
 
-########
-Projects
-########
+####################################
+Configuring your BSB Python Projects
+####################################
 
 Projects help you keep your models organized, safe, and neat! A project is a folder
 containing:
@@ -48,9 +48,9 @@ Project settings are contained in the ``pyproject.toml`` file.
 File links
 ==========
 
-Storage objects can keep copies of configuration and morphologies. These copies might
-become outdated during development. To automatically update it, you can specify file
-links.
+Remember that the `Storage` keeps copies of configuration and morphologies.
+These copies might become outdated during development.
+To automatically update it, you can specify file links.
 
 It is recommended that you only specify links for models that you are actively developing,
 to avoid overwriting and losing any unique configs or morphologies of a model.

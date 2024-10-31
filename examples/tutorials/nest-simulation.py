@@ -42,3 +42,6 @@ config.simulations["basal_activity"].devices = dict(
         targetting={"strategy": "cell_model", "cell_models": ["top_type"]},
     ),
 )
+
+result = scaffold.run_simulation("basal_activity")
+result.write("simulation-results/basal_activity.nio", "ow")

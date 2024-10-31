@@ -1,7 +1,7 @@
 # Create an After placement hook that will label cells according to their position
 import numpy as np
 
-from bsb import AfterPlacementHook, config, refs
+from bsb import AfterPlacementHook, config, refs, types
 
 
 class LabelCellA(AfterPlacementHook):
@@ -13,7 +13,7 @@ class LabelCellA(AfterPlacementHook):
     cell_type: str = config.ref(refs.cell_type_ref, required=True)
     """Reference to the cell type."""
 
-    axis: int = config.attr(type=int, default=0)
+    axis: int = config.attr(type=types.int(min=0, max=2), default=0)
     """Axis along which to subdivide the population."""
 
     def postprocess(self):

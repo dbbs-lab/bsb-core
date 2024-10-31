@@ -194,32 +194,7 @@ Final configuration file
   .. literalinclude:: /../examples/tutorials/include_morphos.py
     :language: python
 
-.. rubric:: What is next?
+What is next?
+=============
 
-.. grid:: 1 1 2 2
-    :gutter: 1
-
-
-    .. grid-item-card:: :octicon:`cpu;1em;sd-text-warning` Run your first simulation
-        :link: simulation-guide
-        :link-type: ref
-
-        Learn how to simulate your network models
-
-    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
-       :link: main-components
-       :link-type: ref
-
-       Explore more about the main components.
-
-    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
-        :link: examples
-        :link-type: ref
-
-        Explore more advanced examples.
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
-       :link: components
-       :link-type: ref
-
-       Learn how to write your own components to e.g. place or connect cells.
+Next tutorial is on :doc:`running a simulation <guide_simulation>` of your network.
