@@ -83,7 +83,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                     cells[(i * len(x)) : ((i + 1) * len(x)), 1] = y
                     cells[(i * len(x)) : ((i + 1) * len(x)), 2] = z
                 # Place all the cells in 1 batch (more efficient)
-                positions = cells[cells[:, 0] < width - radius]
+                positions = cells[cells[:, 0] < prt.data.ldc[0] + width - radius]
 
                 # Determine in which chunks the cells must be placed
                 cs = self.scaffold.configuration.network.chunk_size

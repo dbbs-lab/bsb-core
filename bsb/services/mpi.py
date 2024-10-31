@@ -6,9 +6,14 @@ from ._util import MockModule
 
 
 class MPIService:
-    def __init__(self):
+    """
+    Interface for MPI Communication context.
+    This class will also emulate MPI Communication context in single node context.
+    """
+
+    def __init__(self, comm=None):
         self._mpi = MPIModule("mpi4py.MPI")
-        self._comm = self._mpi.COMM_WORLD
+        self._comm = comm or self._mpi.COMM_WORLD
 
     def get_communicator(self):
         return self._comm
