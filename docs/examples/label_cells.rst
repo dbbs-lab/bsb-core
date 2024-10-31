@@ -25,8 +25,8 @@ name, e.g. "Labels":
 For more information on linking your Python classes to the configuration file see
 :doc:`this section </config/nodes>`.
 
-Example of a Python class for labeling neurons.
------------------------------------------------
+Example of a Python class for labeling neurons
+----------------------------------------------
 
 .. literalinclude:: /../examples/cells/label_cells.py
   :language: python

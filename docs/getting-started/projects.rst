@@ -10,14 +10,12 @@ containing:
 * The ``pyproject.toml`` Python project settings file:
   This file uses the TOML syntax to set configuration values for the BSB and any other
   python tools your project uses.
-
 * One or more configuration files.
-
 * One or more network files.
-
 * Your component code.
 
-You can create projects using the :ref:`bsb.new <bsb_new>` command.
+Remember that you can create an empty Python project for BSB using the
+:ref:`bsb.new <bsb_new>` command.
 
 Settings
 ========
@@ -48,18 +46,20 @@ Project settings are contained in the ``pyproject.toml`` file.
 File links
 ==========
 
-Remember that the `Storage` keeps copies of configuration and morphologies.
-These copies might become outdated during development.
-To automatically update it, you can specify file links.
+Remember that the `Storage` keeps copies of your `Configuration` and any data attached to it.
+For instance, a copy of each unique `Morphology` attached to your cell types is stored within
+your Storage. Now, these copies might become outdated during development.
+Fortunately, you can automatically update them, using file links.
 
-It is recommended that you only specify links for models that you are actively developing,
-to avoid overwriting and losing any unique configs or morphologies of a model.
+.. warning::
+    It is recommended that you only specify links for models that you are actively developing,
+    to avoid overwriting and losing any unique configs or morphologies of a model.
 
 Config links
 ------------
 
 Configuration links (``config =``) can be either *fixed* or *automatic*. Fixed config
-links will always overwrite the configuration of the model with the contents of the file,
+links will always overwrite the stored data of your `Scaffold` with the contents of the file,
 if it exists. Automatic config links do the same, but keep track of the path of the last
 saved config file, and stay linked with that file.
 
@@ -82,7 +82,7 @@ when to update, but is unused! For automatic config links you can simply pass th
 Component code
 ==============
 
-It's best practice to keep all of your component code in a subfolder with the same name as
+It's best practice to keep your component code in a subfolder with the same name as
 your model. For example, if you're modelling the cerebellum, create a folder called
 ``cerebellum``. Inside place an ``__init__.py`` file, so that Python can import code from
 it. Then you best subdivide your code based on component type, e.g. keep placement
@@ -93,10 +93,11 @@ easy to distribute your code as a package!
 Version control
 ===============
 
-An often overlooked aspect is version control! Version control helps you track every
-change you make as a version of your code, backs up your code, and lets you switch between
-versions. The ``git`` protocol is currently the most popular version control, combined
-with providers like GitHub or GitLab.
+An often overlooked aspect of a code project management is its version control!
+Version control helps you track every change you make as a version of your code, backs up
+your code, and lets you switch between versions.
+The ``git`` protocol is currently the most popular version control, combined
+with providers like `GitHub <https://github.com/>`_ or `GitLab <https://gitlab.com/>`_.
 
 .. code-block:: diff
 
@@ -108,8 +109,14 @@ This example shows how version control can track every change you make, to undo 
 try experimental changes, or to work on multiple conflicting features. Every change can be
 stored as a version, and backed up in the cloud.
 
-Projects come with a ``.gitignore`` file, where you can exclude files from being backed
-up. Cloud providers won't let neuroscientists upload 100GB network files |:innocent:|
+.. tip::
+    If it is not the case already, we highly recommend that your familiarize yourself with
+    ``git`` and Github (see `this tutorial <https://github.com/git-guides>`_).
+
+Git projects come with a ``.gitignore`` file, where you can exclude files from being backed
+up. Usually, only code should be pushed online and `a contrario` large files (e.g. your
+network HDF5 file) should be excluded. Please note that most cloud providers won't let
+neuroscientists upload their 100GB network files |:innocent:|
 
 .. rubric:: Next steps:
 

@@ -1,8 +1,8 @@
 .. _guide_analyze_results:
 
-###################
-Analyze the results
-###################
+##############################
+Analyze spike activity results
+##############################
 
 .. note::
 

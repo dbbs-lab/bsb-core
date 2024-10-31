@@ -8,4 +8,5 @@ Examples
   :caption: Atlas
 
   label_cells
+  plot_morpho
   atlas/atlas_placement

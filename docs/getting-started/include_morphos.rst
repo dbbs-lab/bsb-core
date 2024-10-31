@@ -1,7 +1,8 @@
 .. _include_morphos:
 
+###################
 Adding morphologies
-===================
+###################
 
 .. note::
 
@@ -23,7 +24,7 @@ from remote sources, like NeuroMorpho, using BSB.
 
 
 Using local files
------------------
+=================
 
 :guilabel:`morphologies` is a list component of the BSB configuration responsible
 to fetch and load morphology files. Here is the minimal configuration example to add a
@@ -158,7 +159,7 @@ In this case, we created a pipeline of 3 steps:
 
 
 Morphology intersection
------------------------
+=======================
 
 Now that we have assigned morphologies to our cell types, we can use morphology-based
 connection strategies such as :doc:`VoxelIntersection </connectivity/connection-strategies>`:
@@ -181,7 +182,7 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
     Do not forget to compile our network if you are modifying the configuration in the file.
 
 Final configuration file
-------------------------
+========================
 
 .. tab-set-code::
 
