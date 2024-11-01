@@ -11,10 +11,10 @@ print(f"My network was configured with {config}")
 print(f"My network has {len(scaffold.cell_types)} cell types")
 
 # Load placement information from the storage.
-for cell_type in scaffold.cell_types:
-    ps = cell_type.get_placement_set()
+for cell_type in scaffold.cell_types.items():
+    ps = cell_type[1].get_placement_set()
     pos = ps.load_positions()
-    print(f"{len(pos)} {cell_type.name} placed")
+    print(f"{len(pos)} {cell_type[1].name} placed")
     # The positions are a (Nx3) numpy array
     print("The median cell is located at", np.median(pos, axis=0))
 
