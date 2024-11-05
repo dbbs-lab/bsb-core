@@ -314,6 +314,12 @@ please refer to the :doc:`simulation section </simulation/intro>`.
 
         How to extract your data.
 
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
+       :link: guide_components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.
+
     .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
        :link: main-components
        :link-type: ref
@@ -325,9 +331,3 @@ please refer to the :doc:`simulation section </simulation/intro>`.
         :link-type: ref
 
         Explore more advanced examples
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
-       :link: components
-       :link-type: ref
-
-       Learn how to write your own components to e.g. place or connect cells.

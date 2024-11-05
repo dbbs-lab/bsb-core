@@ -56,6 +56,12 @@ and the `Neuronal Dynamics <https://neuronaldynamics.epfl.ch/index.html>`_ books
     :gutter: 1
 
 
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
+       :link: guide_components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.
+
     .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Make your own python project
         :link: projects
         :link-type: ref
@@ -73,9 +79,3 @@ and the `Neuronal Dynamics <https://neuronaldynamics.epfl.ch/index.html>`_ books
         :link-type: ref
 
         Explore more advanced examples
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
-       :link: components
-       :link-type: ref
-
-       Learn how to write your own components to e.g. place or connect cells.

@@ -11,4 +11,5 @@ Getting Started
   include_morphos
   guide_simulation
   analyze_results
+  guide_components
   projects

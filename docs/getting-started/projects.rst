@@ -131,6 +131,12 @@ neuroscientists upload their 100GB network files |:innocent:|
 .. grid:: 1 1 1 2
     :gutter: 1
 
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
+       :link: components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.
+
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Command-Line Interface
        :link: cli-guide
        :link-type: ref
@@ -148,9 +154,3 @@ neuroscientists upload their 100GB network files |:innocent:|
         :link-type: ref
 
         Explore more advanced examples
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
-       :link: components
-       :link-type: ref
-
-       Learn how to write your own components to e.g. place or connect cells.

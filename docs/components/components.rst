@@ -4,42 +4,18 @@
 Writing components
 ==================
 
-.. todo::
-
-  * Write this skeleton out to a full guide.
-  * Start this out in a Getting Started style, where a toy problem is tackled.
-  * Then, for each possible component type, write an example that covers the interface and
-    common problems and important to know things.
-
-The architecture of the framework organizes your model into reusable components. It offers
+The architecture of the BSB framework organizes your model into reusable components. It offers
 out of the box components for basic operations, but often you'll need to write your own.
 
-.. rubric:: Importing
+If you want to read a step by step tutorial on how to make your own component, check this
+:doc:`page </getting-started/guide_components>`
 
-To use --> needs to be importable --> local code, package or plugin
+For each component, BSB provides interfaces, each with a set of functions that you must
+implement. If these functions are present, the framework knows how to use your class.
 
-.. rubric:: Structure
+Hence, the framework allows you to plug in user code pretty much anywhere. Neat.
 
-* Decorate with ``@config.node``
-* Inherit from interface
-* Parametrize with config attributes
-* Implement interface functions
-
-.. rubric:: Parametrization
-
-Parameters defined as class attributes --> can be specified in config/init. Make things
-explicitly visible and settable.
-
-Type handling, validation, requirements
-
-.. rubric:: Interface & implementation
-
-Interface gives you a set of functions you must implement. If these functions are present,
-framework knows how to use your class.
-
-The framework allows you to plug in user code pretty much anywhere. Neat.
-
-Here's how you do it (theoretically):
+Here is how you do it (theoretically):
 
 #. Identify which **interface** you need to extend. An interface is a programming concept
    that lets you take one of the objects of the framework and define some functions on it.
@@ -91,36 +67,3 @@ you can now access:
 
 Share your code with the whole world and become an author of a :ref:`plugin <plugins>`!
 |:heart_eyes:|
-
-Main components
-===============
-
-Region
-------
-
-Partition
----------
-
-PlacementStrategy
------------------
-
-ConnectivityStrategy
---------------------
-
-Placement components
-====================
-
-MorphologySelector
-------------------
-
-MorphologyDistributor
----------------------
-
-RotationDistributor
--------------------
-
-Distributor
------------
-
-Indicator
----------
