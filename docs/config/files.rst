@@ -58,7 +58,7 @@ and handle the values:
     value1 = config.attr(type=int)
     thingy2 = config.list(type=int, size=2, required=True)
 
-For more information on creating your own configuration nodes see :doc:`nodes`.
+For more information on creating your own configuration nodes see :doc:`/config/nodes`.
 
 JSON
 ####

@@ -20,7 +20,10 @@ Remember that you can create an empty Python project for BSB using the
 Settings
 ========
 
-Project settings are contained in the ``pyproject.toml`` file.
+Python project settings are contained in the ``pyproject.toml`` file.
+A lot of Python options can be configured with your ``toml`` file such as the python
+libraries necessary to deploy it. If you want to learn more this configuration tool,
+check out `this tutorial <https://realpython.com/python-toml/>`
 
 * ``[tools.bsb]``: The root configuration section:
   You can set the values of any :doc:`/cli/options` here.
@@ -48,7 +51,7 @@ File links
 
 Remember that the `Storage` keeps copies of your `Configuration` and any data attached to it.
 For instance, a copy of each unique `Morphology` attached to your cell types is stored within
-your Storage. Now, these copies might become outdated during development.
+your `Storage`. Now, these copies might become outdated during development.
 Fortunately, you can automatically update them, using file links.
 
 .. warning::
@@ -58,19 +61,24 @@ Fortunately, you can automatically update them, using file links.
 Config links
 ------------
 
-Configuration links (``config =``) can be either *fixed* or *automatic*. Fixed config
-links will always overwrite the stored data of your `Scaffold` with the contents of the file,
-if it exists. Automatic config links do the same, but keep track of the path of the last
-saved config file, and stay linked with that file.
+Configuration links (``config =``) can be either *fixed* or *automatic*.
+
+- Fixed config links will always overwrite the stored data of your `Scaffold` with the
+  contents of the file, if it exists.
+- Automatic config links do the same, but keep track of the path of the last saved config
+  file, and stay linked with that file.
 
 Syntax
 ------
 
-The first argument is the *provider* of the link: ``sys`` for the filesystem (your folder)
-``fs`` for the file store of the storage engine (storage engines may have their own way of
-storing files). The second argument is the path to the file, and the third argument is
-when to update, but is unused! For automatic config links you can simply pass the
-``"auto"`` string.
+For each file to link, you need to provide a list of 3 parameters:
+
+- The first argument is the *provider* of the link (i.e., the engine to access the file):
+  Most of the time, your will use ``sys`` for the file system (your folder). Note that you
+  can also specify any of the BSB :doc:`storage engines </core/storage>` such as ``fs``.
+- The second argument is the path to the file,
+- the third argument is when to update, but is unused! For automatic config links you can
+  simply pass the ``"auto"`` string.
 
 .. note::
 
@@ -82,8 +90,8 @@ when to update, but is unused! For automatic config links you can simply pass th
 Component code
 ==============
 
-It's best practice to keep your component code in a subfolder with the same name as
-your model. For example, if you're modelling the cerebellum, create a folder called
+It is best practice to keep your component code in a subfolder with the same name as
+your model. For example, if you are modelling the cerebellum, create a folder called
 ``cerebellum``. Inside place an ``__init__.py`` file, so that Python can import code from
 it. Then you best subdivide your code based on component type, e.g. keep placement
 strategies in a file called ``placement.py``. That way, your placement components are
