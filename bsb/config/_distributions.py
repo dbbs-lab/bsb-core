@@ -27,7 +27,9 @@ class Distribution:
     distribution: str = config.attr(
         type=types.in_(_available_distributions), required=True
     )
+    """Name of the scipy.stats distribution function"""
     parameters: dict[str, typing.Any] = config.catch_all(type=types.any_())
+    """parameters to pass to the distribution"""
 
     def __init__(self, **kwargs):
         if self.distribution == "constant":
@@ -42,6 +44,7 @@ class Distribution:
             )
 
     def draw(self, n):
+        """Draw n random samples from the distribution"""
         return self._distr.rvs(size=n)
 
     def __getattr__(self, attr):

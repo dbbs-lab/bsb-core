@@ -12,6 +12,7 @@ from ..exceptions import ConnectivityError
 from ..mixins import HasDependencies
 from ..profiling import node_meter
 from ..reporting import warn
+from ..storage._chunks import Chunk
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
@@ -82,7 +83,12 @@ class Hemitype:
 
 
 class HemitypeCollection:
-    def __init__(self, hemitype, roi):
+    """
+    Class used to iterate over an ``Hemitype`` placement sets within a list of chunks,
+    and over its cell types.
+    """
+
+    def __init__(self, hemitype: Hemitype, roi: typing.List[Chunk]):
         self.hemitype = hemitype
         self.roi = roi
 
@@ -91,6 +97,13 @@ class HemitypeCollection:
 
     @property
     def placement(self):
+        """
+        List the placement sets for each cell type, filtered according to the class
+        morphology labels and list of chunks.
+
+
+        :rtype: List[bsb.storage.interfaces.PlacementSet]
+        """
         return [
             ct.get_placement_set(
                 chunks=self.roi,
@@ -151,6 +164,17 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
 
     @abc.abstractmethod
     def connect(self, presyn_collection, postsyn_collection):
+        """
+        Central method of each connection strategy. Given a pair of
+        ``HemitypeCollection`` (one for each connection side), should connect
+        cell population using the scaffold's (available as ``self.scaffold``)
+        :func:`~bsb.core.Scaffold.connect_cells` method.
+
+        :param bsb.connectivity.strategy.HemitypeCollection presyn_collection:
+          presynaptic filtered cell population.
+        :param bsb.connectivity.strategy.HemitypeCollection postsyn_collection:
+          postsynaptic filtered cell population.
+        """
         pass
 
     def get_deps(self):
@@ -162,6 +186,19 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
+        """
+        Connect cells from a presynaptic placement set to cells of a postsynaptic placement set,
+        and produce a unique name to describe their connectivity set.
+        The description of the hemitype (source or target cell population) `connection location`
+        is stored as a list of 3 ids: the cell index (in the placement set), morphology branch
+        index, and the morphology branch section index.
+        If no morphology is attached to the hemitype, then the morphology indexes can be set to -1.
+
+        :param bsb.storage.interfaces.PlacementSet pre_set: presynaptic placement set
+        :param bsb.storage.interfaces.PlacementSet post_set: postsynaptic placement set
+        :param List[List[int, int, int]] src_locs: list of the presynaptic `connection location`.
+        :param List[List[int, int, int]] dest_locs: list of the postsynaptic `connection location`.
+        """
         names = self.get_output_names(pre_set.cell_type, post_set.cell_type)
         between_msg = f"between {pre_set.cell_type.name} and {post_set.cell_type.name}"
         if len(names) == 0:
@@ -187,10 +224,7 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
             else:
                 name = tag
 
-        cs = self.scaffold.require_connectivity_set(
-            pre_set.cell_type, post_set.cell_type, name
-        )
-        cs.connect(pre_set, post_set, src_locs, dest_locs)
+        self.scaffold.connect_cells(pre_set, post_set, src_locs, dest_locs, name)
 
     def get_region_of_interest(self, chunk):
         """
