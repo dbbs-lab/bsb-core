@@ -47,10 +47,10 @@ or with Python:
   .. code-block:: python
 
     import bsb.options
-    from bsb import Scaffold, parse_from_file
+    from bsb import Scaffold, parse_configuration_file
 
     bsb.options.verbosity = 3
-    config = parse_from_file("network_configuration.json", parser="json")
+    config = parse_configuration_file("network_configuration.json", parser="json")
     scaffold = Scaffold(config)
     scaffold.compile()
 
@@ -243,7 +243,7 @@ cells and connections in place, you are ready to move to the next stage.
   For Python, the `compile` function should be called (only once) at the end of your script,
   once the configuration is complete.
 
-Each connection strategy generates a `ConnectivitySet` in the `Storage` for each pair of neurons
+Each connection strategy generates a `ConnectivitySet` in the `Storage` for each pair of cell types
 that you can access from the `Scaffold` object (see :doc:`this section </connectivity/connectivity-set>` for more info).
 Here, the name of the `ConnectivitySet` corresponds to the connection component (``A_to_B``) because
 there is only one pair of :guilabel:`cell_type`.

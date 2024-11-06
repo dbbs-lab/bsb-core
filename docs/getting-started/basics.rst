@@ -22,9 +22,12 @@ You can load a stored network from file using :meth:`from_storage <bsb.core.from
 
 Once you have loaded the `Scaffold` object, you have access to its `Configuration`
 and `Storage`.
-Remember that the storage is filled with the data produced during the reconstruction
-while the configuration describes the process to obtain the data
-(read again :doc:`this section <top-level-guide>` if it is not clear to you).
+
+.. tip::
+
+    Remember that the storage is filled with the data produced during the reconstruction
+    while the configuration describes the process to obtain the data
+    (read again :doc:`this section <top-level-guide>` if it is not clear to you).
 
 Accessing Scaffold data
 =======================

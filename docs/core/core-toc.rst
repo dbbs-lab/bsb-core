@@ -8,3 +8,4 @@ BSB core
    /core/scaffold
    /config/configuration-toc
    /core/storage
+   /core/job-distribution

@@ -47,6 +47,17 @@ class Distribution:
         """Draw n random samples from the distribution"""
         return self._distr.rvs(size=n)
 
+    def definition_interval(self, epsilon=0):
+        """
+        Returns the `epsilon` and 1 - `epsilon` values of
+        the distribution Percent point function.
+
+        :param float epsilon: ratio of the interval to ignore
+        """
+        if epsilon < 0 or epsilon > 1:
+            raise ValueError("Epsilon must be between 0 and 1")
+        return self._distr.ppf(epsilon), self._distr.ppf(1 - epsilon)
+
     def __getattr__(self, attr):
         if "_distr" not in self.__dict__:
             raise AttributeError("No underlying _distr found for distribution node.")

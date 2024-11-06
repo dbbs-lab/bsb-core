@@ -38,10 +38,10 @@ For the connectivity, we will consider that the cells ``A`` can connect to all `
 within a sphere of ``radius`` ``400`` um. You can consider this as a simplified model of
 distance based connectivity.
 
-Bootstrap your components
--------------------------
+Components boiler plate
+-----------------------
 
-Most BSB components are written as Python classes. When BSB parse your Configuration
+BSB components are written as Python classes. When the BSB parses your `Configuration`
 component, it resolves the path to its class or function and import it. Hence, your
 components should be written as
 `importable modules <https://docs.python.org/3/tutorial/modules.html>`_.
@@ -129,7 +129,7 @@ This translates into 3 configuration attributes that you can add to your class:
 
         distribution = config.attr(type=types.distribution(), required=True)
         axis: int = config.attr(type=types.int(min=0, max=2), required=False, default=2)
-        direction: str = config.attr(type=types.in_["positive", "negative"],
+        direction: str = config.attr(type=types.in_(["positive", "negative"]),
                                      required=False, default="positive")
 
         def place(self, chunk, indicators):
@@ -167,12 +167,12 @@ Finally, to import our classes in our configuration file, we will modify the
 .. code-block:: json
 
   "placement": {
-    "my_radial_placement": {
+    "expon_placement": {
       "strategy": "placement.DistributionPlacement",
       "distribution": {
         "distribution": "expon",
-        "parameter":
-      }
+        "scale": 0.5
+      },
       "axis": 2,
       "direction": "negative",
       "cell_types": ["base_type"],
@@ -199,10 +199,25 @@ Finally, to import our classes in our configuration file, we will modify the
 
 Implement the python methods
 ----------------------------
+Starting from now, we introduce the term of `Chunk` which is a volume unit used to decompose
+your circuit topology into independent pieces to parallelize the circuit reconstruction
+(see :doc:`this section</core/job-distribution>` for more details).
 
 .. rubric:: Placement Strategy
 
-The `place`
+The `place` function will be used here to produce and store a
+:class:`PlacementSet <.storage.interfaces.PlacementSet>` for each `cell type` population
+to place in the selected `Partition`.
+BSB is parallelizing placement jobs for each `Chunk` concerned.
+
+The parameters of `place` includes a dictionary linking each cell type name to its
+:class:`PlacementIndicator <.placement.indicator.PlacementIndicator>`, and the `Chunk`
+in which to place the cells.
+
+We are done with the Placement! Here is how the full strategy looks like:
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
 
 .. rubric:: Connection Strategy
 
@@ -211,11 +226,11 @@ Here, we are going to use the `connect` function to produce and store
 First some definition:
 
 | The presynaptic and postsynaptic populations to connect (each can have multiple cell type
-  populations) are called :class:`Hemitype <.connectivity.strategy.Hemitype>`. An ``Hemitype``
+  populations) are called :class:`Hemitype <.connectivity.strategy.Hemitype>`. An `Hemitype`
   corresponds to the interface to define a connection population and its parameters in the
   Configuration.
 | The class :class:`HemitypeCollection <.connectivity.strategy.HemitypeCollection>` allows
-  you to filter the cells of an ``Hemitype`` according to a list of ``Chunk``.
+  you to filter the cells of an `Hemitype` according to a list of `Chunk`.
 | As for the `place` function, the `connect` method deals with connecting cells, and split
   the task into Chunks (by default as here, each chunk containing a presynaptic cell).
 
@@ -258,7 +273,7 @@ This function requires for each individual pair of cell, their `connection locat
 
 - the index of the cell within its ``PlacementSet``
 - the index of the morphology branch
-- the index of the morphology branch section.
+- the index of the morphology branch point.
 
 Because we are not using morphologies here the second and third indexes should be set to ``-1``:
 
@@ -279,19 +294,19 @@ Because we are not using morphologies here the second and third indexes should b
 
         self.connect_cells(pre_ps, post_ps, pre_locs, post_locs)
 
-You have done it ! Congrats ! Here is the final complete
+You have done it! Congrats! Your final `connectome.py` should look like this:
 
 .. literalinclude:: /../examples/tutorials/dist_connection.py
     :language: python
 
 .. tip::
-    Comment your code ! If not for you (because you are going to forget about it in a month,
+    Comment your code! If not for you (because you are going to forget about it in a month),
     at least for the other people that will read it afterwards. |:wink:|
 
 Enjoy
 -----
 
-You have done the hardest part ! Now, you should be able to run the reconstruction once again
+You have done the hardest part! Now, you should be able to run the reconstruction once again
 with your brand new components.
 
 .. code-block:: bash

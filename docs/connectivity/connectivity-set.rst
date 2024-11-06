@@ -56,8 +56,8 @@ Here, ``src_locs`` and ``dest_locs`` contains for each ``pair``:
 
 - the cell id
 - the cell morphology branch id
-- the cell morphology branch section id
+- the cell morphology branch point id
 
 .. note::
     If the pre-/post-synaptic neuron does not have a morphology then
-    their branch and section id in the connection is ``-1``
+    their branch and point id in the connection is ``-1``
