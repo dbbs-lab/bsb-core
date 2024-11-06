@@ -1,6 +1,6 @@
 import numpy as np
 
-from bsb import PlacementStrategy, VoxelSet, config, pool_cache, types
+from bsb import PlacementStrategy, config, types
 
 
 @config.node
@@ -11,32 +11,56 @@ class DistributionPlacement(PlacementStrategy):
         type=types.in_(["positive", "negative"]), required=False, default="positive"
     )
 
-    @pool_cache
-    def draw_all_positions(self, indicator):
-        all_positions = np.empty((0, 3))
-        for p in indicator.get_partitions():
-            num_to_place = indicator.guess(voxels=p.to_voxels())
-            rand_nums = self.distribution.draw(num_to_place)
-            distrib_interval = self.distribution.definition_interval(1e-9)
-            rand_nums[rand_nums < distrib_interval[0]] = distrib_interval[0]
-            rand_nums[rand_nums > distrib_interval[1]] = distrib_interval[1]
+    def draw_interval(self, n, lower, upper):
+        distrib_interval = self.distribution.definition_interval(1e-9)
+        selected_lt = self.distribution.cdf(
+            upper * np.diff(distrib_interval) + distrib_interval[0]
+        )
+        selected_gt = self.distribution.sf(
+            lower * np.diff(distrib_interval) + distrib_interval[0]
+        )
+        random_numbers = np.random.rand(n)
+        selected = random_numbers <= selected_lt * selected_gt
+        return np.count_nonzero(selected)
 
-            normed_rand = (rand_nums - distrib_interval[0]) / np.diff(distrib_interval)
-            positions = np.random.rand(num_to_place, 2)
-            positions = np.hstack([positions, normed_rand[..., np.newaxis]])
-            bounds = [p._data.ldc, p._data.mdc]
-            positions *= np.diff(bounds, axis=0)
-            if self.direction == "positive":
-                positions += bounds[0]
-            else:
-                positions = bounds[1] - positions
-            all_positions = np.concatenate([all_positions, positions])
-        return all_positions
+    def draw_random_numbers(self, num_to_draw):
+        rand_nums = self.distribution.draw(num_to_draw)
+        distrib_interval = self.distribution.definition_interval(1e-9)
+        rand_nums[rand_nums < distrib_interval[0]] = distrib_interval[0]
+        rand_nums[rand_nums > distrib_interval[1]] = distrib_interval[1]
+        normed_rand = (rand_nums - distrib_interval[0]) / np.diff(distrib_interval)
+        return normed_rand
 
     def place(self, chunk, indicators):
-        voxelset = VoxelSet([chunk], chunk.dimensions)
-
         for name_indic, indicator in indicators.items():
-            positions = self.draw_all_positions(indicator)
-            inside_chunk = voxelset.inside(positions)
-            self.place_cells(indicator, positions[inside_chunk], chunk)
+            all_positions = np.empty((0, 3))
+            for p in indicator.partitions:
+                num_to_place = indicator.guess(voxels=p.to_voxels())
+                partition_size = (p._data.mdc - p._data.ldc)[self.axis]
+                chunk_borders = np.array([chunk.ldc[self.axis], chunk.mdc[self.axis]])
+                ratios = chunk_borders / partition_size
+                if self.direction == "negative":
+                    ratios = 1 - ratios
+                    ratios = ratios[::-1]
+
+                num_selected = self.draw_interval(num_to_place, *ratios)
+                if num_selected > 0:
+                    positions = np.random.rand(num_selected, 2)
+                    positions = positions * np.delete(
+                        chunk.dimensions, self.axis
+                    ) + np.delete(chunk.ldc, self.axis)
+
+                    pos_on_axis = np.zeros(num_selected)
+                    remaining = np.ones(num_selected, dtype=bool)
+                    while np.any(remaining) > 0:
+                        drawn = self.draw_random_numbers(np.count_nonzero(remaining))
+                        filter_in_chunk = (drawn >= ratios[0]) * (drawn < ratios[1])
+                        if np.any(filter_in_chunk):
+                            if self.direction == "negative":
+                                drawn = 1 - drawn
+                            pos_on_axis[remaining] = drawn * partition_size
+                            remaining[remaining] = ~filter_in_chunk
+                    positions = np.hstack([positions, pos_on_axis[..., np.newaxis]])
+
+                    all_positions = np.concatenate([all_positions, positions])
+            self.place_cells(indicator, all_positions, chunk)

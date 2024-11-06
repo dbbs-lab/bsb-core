@@ -58,6 +58,22 @@ class Distribution:
             raise ValueError("Epsilon must be between 0 and 1")
         return self._distr.ppf(epsilon), self._distr.ppf(1 - epsilon)
 
+    def cdf(self, value):
+        """
+        Returns the result of the cumulative distribution function for `value`
+
+        :param float value: value to evaluate
+        """
+        return self._distr.cdf(value)
+
+    def sf(self, value):
+        """
+        Returns the result of the Survival function for `value`
+
+        :param float value: value to evaluate
+        """
+        return self._distr.sf(value)
+
     def __getattr__(self, attr):
         if "_distr" not in self.__dict__:
             raise AttributeError("No underlying _distr found for distribution node.")

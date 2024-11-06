@@ -25,7 +25,7 @@ Description of the strategies to implement
 We want here to implement a distribution placement strategy: cells will be placed within
 their `Partition` following a probability ``distribution`` along a certain ``axis`` and
 ``direction``. For instance, let us use the
-:doc:`exponential random distribution <scipy:reference/generated/scipy.stats.expon>`.
+:doc:`alpha random distribution <scipy:reference/generated/scipy.stats.alpha>`.
 The ``distribution`` should be a density function that produces random numbers, according
 to the distance along the ``axis`` to the border of the Partition.
 
@@ -35,7 +35,7 @@ to be placed closer to the border with the ``top_layer``.
 .. rubric:: Connectivity
 
 For the connectivity, we will consider that the cells ``A`` can connect to all ``B`` cells
-within a sphere of ``radius`` ``400`` um. You can consider this as a simplified model of
+within a sphere of ``radius`` ``100`` um. You can consider this as a simplified model of
 distance based connectivity.
 
 Components boiler plate
@@ -167,13 +167,13 @@ Finally, to import our classes in our configuration file, we will modify the
 .. code-block:: json
 
   "placement": {
-    "expon_placement": {
+    "alpha_placement": {
       "strategy": "placement.DistributionPlacement",
       "distribution": {
-        "distribution": "expon",
-        "scale": 0.5
+        "distribution": "alpha",
+        "a": 8
       },
-      "axis": 2,
+      "axis": 0,
       "direction": "negative",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
@@ -187,7 +187,7 @@ Finally, to import our classes in our configuration file, we will modify the
   "connectivity": {
     "A_to_B": {
       "strategy": "connectivity.DistanceConnectivity",
-      "radius": 400,
+      "radius": 100,
       "presynaptic": {
         "cell_types": ["base_type"]
       },

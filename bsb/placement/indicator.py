@@ -47,7 +47,7 @@ class PlacementIndicator:
         return self.assert_indication("radius")
 
     @property
-    def get_partitions(self):
+    def partitions(self):
         return self._strat.partitions
 
     def use_morphologies(self):
