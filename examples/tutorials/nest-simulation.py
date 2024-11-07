@@ -16,7 +16,8 @@ config.simulations.add(
     devices={},
 )
 config.simulations["basal_activity"].cell_models = dict(
-    base_type={"model": "iaf_cond_alpha"}, top_type={"model": "iaf_cond_alpha"}
+    base_type={"model": "iaf_cond_alpha"},
+    top_type={"model": "iaf_cond_alpha", "constants": {"t_ref": 1.5, "V_m": -62.0}},
 )
 
 config.simulations["basal_activity"].connection_models = dict(
@@ -27,7 +28,7 @@ config.simulations["basal_activity"].devices = dict(
     general_noise=dict(
         device="poisson_generator",
         rate=20,
-        targetting={"strategy": "cell_model", "cell_models": ["top_type"]},
+        targetting={"strategy": "cell_model", "cell_models": ["base_type"]},
         weight=40,
         delay=1,
     ),

@@ -13,9 +13,9 @@ Previously, we constructed a stacked double layer topology, with 2 cell types. W
 connected these cell type populations in an all-to-all fashion.
 
 In this tutorial, we are going to assign :doc:`morphologies </morphologies/intro>` to our
-cells, and connects the cells based on the intersection of their morphologies !
+cells, and connects the cells based on the intersection of their morphologies!
 You will learn how to load morphologies from local files or to fetch
-from remote sources, like NeuroMorpho, using BSB.
+from remote sources, like NeuroMorpho, using the BSB.
 
 | But first, we need actual morphology files.
 | Download your 2 favorite morphologies from `NeuroMorpho <https://neuromorpho.org/>`_
@@ -178,8 +178,29 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
     :language: python
     :lines: 59-64
 
+Note also that with Voxel Intersection,
+you can specify which parts of the morphologies should create contacts (e.g, dendrites and axons):
+
+.. code-block:: json
+
+    "connectivity": {
+    "A_to_B": {
+      "strategy": "bsb.connectivity.VoxelIntersection",
+      "presynaptic": {
+        "cell_types": ["base_type"],
+        "morphology_labels": ["dendrites"]
+      },
+      "postsynaptic": {
+          "cell_types": ["top_type"],
+          "morphology_labels": ["axon"]
+      }
+    }
+  }
+
+This happens thanks to the labels that are attached to your morphology points.
+
 .. tip::
-    Do not forget to compile our network if you are modifying the configuration in the file.
+    Do not forget to recompile your network if you are modifying the configuration file.
 
 Final configuration file
 ========================

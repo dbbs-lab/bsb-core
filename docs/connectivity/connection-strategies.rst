@@ -59,8 +59,8 @@ postsynaptic neurons.
 
 This strategy voxelizes morphologies into collections of cubes, thereby reducing the
 spatial specificity of the provided traced morphologies by grouping multiple compartments
-into larger cubic voxels. Intersections are found not between the seperate compartments
-but between the voxels and random compartments of matching voxels are connected to eachother.
+into larger cubic voxels. Intersections are found not between the separate compartments
+but between the voxels and random compartments of matching voxels are connected to each other.
 This means that the connections that are made are less specific to the exact morphology
 and can be very useful when only 1 or a few morphologies are available to represent each
 cell type.

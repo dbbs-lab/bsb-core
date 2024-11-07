@@ -20,6 +20,6 @@ for type_name, cell_type in scaffold.cell_types.items():
 
 # Load the connection information from the storage
 # for a specific connection set
-cs = scaffold.get_connectivity_set("my_CS")
+cs = scaffold.get_connectivity_set("A_to_B")
 for src_locs, dest_locs in cs.load_connections():
     print(f"Cell id: {src_locs[0]} connects to cell {dest_locs[0]}")

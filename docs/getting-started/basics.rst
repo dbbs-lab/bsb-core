@@ -13,7 +13,10 @@ In this guide, you will learn how to access the data stored in your produced net
 Loading a scaffold from file
 ============================
 
-You can load a stored network from file using :meth:`from_storage <bsb.core.from_storage>`:
+To retrieve the information from your network file, you need to open it with Python.
+To follow this tutorial, either create a new python file ``"load_data.py"`` in your project
+folder. You can load a stored network from file using the method
+:meth:`from_storage <bsb.core.from_storage>`:
 
 .. literalinclude:: /../examples/tutorials/load_data.py
    :language: python
@@ -68,7 +71,7 @@ The connectivity data is available through the
 Remember that connection sets are labelled by default according to the connection strategy
 used to obtain them (and the pre and postsynaptic cell types in case their are more than one).
 
-Here we are going to retrieve one connection set using its name (``"my_CS"``) and print the neuron
+Here we are going to retrieve one connection set using its name (``"A_to_B"``) and print the neuron
 id of each connected pair.
 
 .. literalinclude:: /../examples/tutorials/load_data.py

@@ -15,23 +15,23 @@ reconstruct and simulate neural network models.
   :figwidth: 90%
   :figclass: only-dark
 
-A typical BSB workflow works as follows:
+A typical workflow of the BSB works as follows:
 
 1. The user provides a configuration that describes the network they want to reconstruct
    and simulate.
 
    It is interpreted by BSB as a list of tasks to perform.
-2. BSB creates the topology of the network (i.e., its shape and size).
-3. BSB places cells within the network, following a defined strategy.
-4. BSB connects the aforementioned cells according to connectivity rules.
-5. The final circuit is simulated with an external simulator, with BSB serving as an
+2. The BSB creates the topology of the network (i.e., its shape and size).
+3. The BSB places cells within the network, following a defined strategy.
+4. The BSB connects the aforementioned cells according to connectivity rules.
+5. The final circuit is simulated with an external simulator, with the BSB serving as an
    intermediate to deal with the model.
 
-For each step of this workflow, BSB also provides a list of predefined strategies and
-tools to create your own with as little difficulty as possible. Hence, for most of
-your reconstructions, you may not have to code!
+For each step of this workflow, the BSB also provides a list of predefined strategies and
+tools to create your own with as little difficulty as possible. Hence, for most of your
+reconstructions, you may not have to code!
 
-BSB acts here as a **black box** with an extended interface to allow you to properly
+The BSB acts here as a **black box** with an extended interface to allow you to properly
 parametrize it.
 
 Scaffold
@@ -54,7 +54,7 @@ Using the scaffold object, one can turn the abstract model configuration into a 
 storage object full of neuroscience.
 
 To do so, the configuration leverages configurable objects to describe the underlying neural network,
-called **components**. Components defines which methods and parameters should be used to reconstruct and
+called **components**. Components define which methods and parameters should be used to reconstruct and
 simulate the network. The ones that you would probably employ the most are:
 
 * :guilabel:`Topology` defines the shape and volume of your network,
@@ -84,7 +84,7 @@ From the root, the main blocks branch off, consisting of nine main components: :
 These blocks contain nested sub-blocks that form the network.
 Additionally, there are two optional components: :guilabel:`after_placement` and :guilabel:`after_connectivity`,
 where users can define specific hooks to run within the workflow.
-All these components will be described in more details in the following sections.
+All these components will be described in more detail in the following sections.
 
 .. figure:: /images/configuration.png
   :figwidth: 90%

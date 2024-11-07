@@ -4,7 +4,7 @@ Morphologies
 
 Morphologies are the 3D representation of a cell. A morphology consists of head-to-tail
 connected branches, and branches consist of a series of points with radii. Points can be
-labelled and can have multiple user-defined properties per point.
+labeled and can have multiple user-defined properties per point.
 
 .. figure:: /images/morphology.png
   :figclass: only-light

@@ -106,13 +106,13 @@ Still, you can modify certain parameters, by setting its :guilabel:`constants` d
     .. code-block:: json
 
       "cell_models": {
-            "base_type": {
-              "model": "iaf_cond_alpha"
-                "constants": {
-                  "t_ref": 1.5,
-                  "V_m": -62.0,
-                }
-            },
+        "base_type": {
+          "model": "iaf_cond_alpha",
+          "constants": {
+            "t_ref": 1.5,
+            "V_m": -62.0
+          }
+        },
 
     .. code-block:: python
 
@@ -175,7 +175,7 @@ These devices correspond typically to stimulators and measurement instruments.
                       "rate": 20,
                       "targetting": {
                         "strategy": "cell_model",
-                        "cell_models": ["top_type"]
+                        "cell_models": ["base_type"]
                       },
                       "weight": 40,
                       "delay": 1
@@ -206,7 +206,7 @@ These devices correspond typically to stimulators and measurement instruments.
                       rate= 20,
                       targetting= {
                         "strategy": "cell_model",
-                        "cell_models": ["top_type"]
+                        "cell_models": ["base_type"]
                       },
                       weight= 40,
                       delay= 1
@@ -259,7 +259,7 @@ Simulations are separated from the reconstruction pipeline (see the :doc:`top le
 which means you do not need to recompile your network to add a simulation to your stored Configuration.
 In this example, we only modified the ``Configuration`` in the :guilabel:`simulations` block but this updates were
 not been saved in the network file.
-So, you need to update your file, using either the ``reconfigure`` command or the
+So, you need to update your file, using either the ``reconfigure`` command or the ``store_active_config`` method.
 
 .. tab-set-code::
 

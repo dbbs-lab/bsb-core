@@ -54,14 +54,15 @@ or with Python:
     scaffold = Scaffold(config)
     scaffold.compile()
 
-Here, the ``verbosity`` flag increases the amount of output (logs) that is generated when BSB is running,
-to follow along or troubleshoot.
+Here, the ``verbosity`` flag increases the amount of output (logs) that is generated when the BSB is
+running, to follow along or troubleshoot.
 
-When BSB compiles a `Scaffold`, it extracts and runs the reconstruction pipeline defined in the `Configuration` and
-stores each step's results into the `Storage` (as explained in the :ref:`previous section <get-started>`).
+When the BSB compiles a `Scaffold`, it extracts and runs the reconstruction pipeline defined in the
+`Configuration` and stores each step's results into the `Storage` (as explained in the
+:ref:`previous section <get-started>`).
 
 The compile command (or python script) should produce a file ``"network.hdf5"`` located in your project
-folder if BSB could parse the configuration file and complete the reconstruction. This file should
+folder if the BSB could parse the configuration file and complete the reconstruction. This file should
 contain your network (configuration and storage) after reconstruction.
 
 .. note::
@@ -136,7 +137,7 @@ dimensions. See the :doc:`topology section</topology/intro>` for more explanatio
 these components.
 
 .. warning::
-    BSB checks the configuration for errors each time the latter is modified. Now, in the
+    The BSB checks the configuration for errors each time the latter is modified. Now, in the
     Python code implementation, we are adding components one by one. This means that if
     one component refers to another, this latter should already in the configuration.
     That is why, in the python code implementation, we created the partitions before the
@@ -145,7 +146,7 @@ these components.
 Cell types
 ----------
 
-The :doc:`Cell Types </cells/intro>` defines of populations of cells.
+The :doc:`Cell Types </cells/intro>` define populations of cells.
 In the simplest case, you can define a ``cell type`` by its soma :guilabel:`radius` and
 the number of cells to place using either a :guilabel:`density` value, or a fixed
 :guilabel:`count`, or another
@@ -168,7 +169,7 @@ time we want to a place 40 of these cells and their soma :guilabel:`radius` of `
 Placement
 ---------
 
-The :doc:`placement </placement/intro>` blocks is in charge of placing cells in the
+The :doc:`placement </placement/intro>` blocks are in charge of placing cells in the
 partitions using the cell type indications. For each placement component, you should
 specify the placement :guilabel:`strategy` to use, the list of :guilabel:`cell_types`
 names to place and the list of :guilabel:`partitions` in which you want the placement
@@ -186,7 +187,10 @@ Now that we have defined our new ``top_type``, we should place it in our ``top_l
     :language: python
     :lines: 31-42
 
-We added here the ``top_placement`` that place cells soma randomly within their respective partition.
+We added here the ``top_placement`` strategy.
+``top_placement`` and ``example_placement`` are both following a ``RandomPlacement``
+strategy from the BSB, which assigns a random position to the cells' soma within their
+respective partition.
 
 You should now try to compile your network to check if you did no mistake:
 

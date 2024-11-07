@@ -72,7 +72,11 @@
           "model": "iaf_cond_alpha"
         },
         "top_type": {
-          "model": "aeif_cond_alpha"
+          "model": "iaf_cond_alpha",
+          "constants": {
+            "t_ref": 1.5,
+            "V_m": -62.0
+          }
         }
       },
       "connection_models": {
