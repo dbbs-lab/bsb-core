@@ -1,3 +1,5 @@
+.. _development-section:
+
 ####################
 Developer Guidelines
 ####################
@@ -7,9 +9,6 @@ the communication with its maintainer and smoothen the process of integration an
 
 Please, read first our `code of conduct <https://github.com/dbbs-lab/bsb-core/blob/main/CODE_OF_CONDUCT.md>`_  to
 understand how to interact with the BSB community |:heart:|
-
-Development process
--------------------
 
 Raise issue on Github
 ~~~~~~~~~~~~~~~~~~~~~

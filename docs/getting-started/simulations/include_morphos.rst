@@ -32,7 +32,7 @@ morphology to the scaffold:
 
 .. tab-set-code::
 
-  .. literalinclude:: configs/include_morphos.yaml
+  .. literalinclude:: ../configs/include_morphos.yaml
     :language: yaml
     :lines: 9-10
 
@@ -52,12 +52,12 @@ referencing it by name in :guilabel:`cell_types.base_type.spatial.morphologies`:
 
 .. tab-set-code::
 
-  .. literalinclude:: configs/include_morphos.yaml
+  .. literalinclude:: ../configs/include_morphos.yaml
     :language: yaml
     :lines: 28-34
     :emphasize-lines: 6-7
 
-  .. literalinclude:: configs/include_morphos.json
+  .. literalinclude:: ../configs/include_morphos.json
     :language: json
     :lines: 35-42
     :emphasize-lines: 6
@@ -77,12 +77,12 @@ containing the attributes :guilabel:`name` and :guilabel:`file`:
 
 .. tab-set-code::
 
-  .. literalinclude:: configs/include_morphos.yaml
+  .. literalinclude:: ../configs/include_morphos.yaml
     :language: yaml
     :lines: 9-12
     :emphasize-lines: 3-4
 
-  .. literalinclude:: configs/include_morphos.json
+  .. literalinclude:: ../configs/include_morphos.json
     :language: json
     :lines: 12-17
     :emphasize-lines: 3-6
@@ -166,11 +166,11 @@ connection strategies such as :doc:`VoxelIntersection </connectivity/connection-
 
 .. tab-set-code::
 
-  .. literalinclude:: configs/include_morphos.yaml
+  .. literalinclude:: ../configs/include_morphos.yaml
     :language: yaml
     :lines: 55-63
 
-  .. literalinclude:: configs/include_morphos.json
+  .. literalinclude:: ../configs/include_morphos.json
     :language: json
     :lines: 65-75
 
@@ -207,10 +207,10 @@ Final configuration file
 
 .. tab-set-code::
 
-  .. literalinclude:: configs/include_morphos.yaml
+  .. literalinclude:: ../configs/include_morphos.yaml
     :language: yaml
 
-  .. literalinclude:: configs/include_morphos.json
+  .. literalinclude:: ../configs/include_morphos.json
     :language: json
 
   .. literalinclude:: /../examples/tutorials/include_morphos.py
@@ -219,4 +219,4 @@ Final configuration file
 What is next?
 =============
 
-Next tutorial is on :doc:`running a simulation <guide_simulation>` of your network.
+Next tutorial is on :doc:`running a simulation <guide_neuron>` of your network.

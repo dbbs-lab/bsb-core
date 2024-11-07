@@ -7,7 +7,7 @@ Analyze spike activity results
 .. note::
 
     This guide is a continuation of the
-    :doc:`Simulation guide </getting-started/guide_simulation>`.
+    :doc:`Simulation guide <guide_nest>`.
 
 After a simulation, BSB will write its outcomes in ``.nio`` files. These files leverage the HDF5
 (Hierarchical Data Format version 5) format, which is widely employed in scientific computing,
@@ -62,11 +62,11 @@ and the `Neuronal Dynamics <https://neuronaldynamics.epfl.ch/index.html>`_ books
 
        Learn how to write your own components to e.g. place or connect cells.
 
-    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Make your own python project
-        :link: projects
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Command-Line Interface
+        :link: cli-guide
         :link-type: ref
 
-        Learn how to configure your python project for BSB.
+        Familiarize yourself with BSB's CLI.
 
     .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
        :link: main-components

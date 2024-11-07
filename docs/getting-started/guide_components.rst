@@ -313,21 +313,24 @@ with your brand new components.
 
     bsb compile --verbosity 3
 
-Remember that if you plan to create a bunch of components, it is best practice to keep your
-component code in a subfolder with the same name as your model.
-For example, if you are modelling the cerebellum, create a folder called ``cerebellum``.
-Inside place an ``__init__.py`` file, so that Python can import code from it.
+It is best practice to keep your component code in a subfolder with the same name as
+your model. For example, if you are modelling the cerebellum, create a folder called
+``cerebellum``. Inside place an ``__init__.py`` file, so that Python can import code from
+it. Then you best subdivide your code based on component type, e.g. keep placement
+strategies in a file called ``placement.py``. That way, your placement components are
+available in your model as ``cerebellum.placement.MyComponent``. It will also make it
+easy to distribute your code as a package!
 
 .. rubric:: Next steps:
 
 .. grid:: 1 1 1 2
     :gutter: 1
 
-    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Make your own python project
-        :link: projects
+    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Start contributing!
+        :link: development-section
         :link-type: ref
 
-        Learn how to configure your python project for BSB.
+        Help out the project by contributing code.
 
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Command-Line Interface
        :link: cli-guide

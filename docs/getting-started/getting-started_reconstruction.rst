@@ -19,19 +19,26 @@ of configuration coding!
 Create a project
 ================
 
-Use the command below to create a new project directory and some starter files:
+Use the command below to create a new BSB project directory and some starter files:
 
 .. code-block:: bash
 
     bsb new my_first_model --quickstart --json
     cd my_first_model
 
-The project now contains a couple of important files:
+Projects help you keep your models organized, safe, and neat! Your folder should
+contain:
 
 * ``network_configuration.json``: your configuration file. The components are declared and
   parametrized here.
-* A ``pyproject.toml`` file: your project settings are declared here.
-* A ``placement.py`` and ``connectome.py`` file to put your code in.
+* A ``pyproject.toml`` file: This file uses the TOML syntax to set configuration values for
+  the BSB and any other python tools your project uses.
+* A ``placement.py`` and ``connectome.py`` files if you want to make your own components.
+
+Python project settings are contained in the ``pyproject.toml`` file.
+A lot of Python options can be configured with your ``toml`` file such as the python
+libraries necessary to deploy it. If you want to learn more this configuration tool,
+check out `this tutorial <https://realpython.com/python-toml/>`_ .
 
 The configuration contains already a :guilabel:`partition` ``base_layer``, a :guilabel:`cell_type`
 ``base_type`` and a :guilabel:`placement` strategy ``example_placement``.

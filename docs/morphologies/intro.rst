@@ -23,7 +23,7 @@ labeled and can have multiple user-defined properties per point.
 
 Network configurations can contain a :guilabel:`morphologies` key to define
 the morphologies that should be processed and assigned to cells. See
-:doc:`../getting-started/include_morphos` for a guide on the possibilities.
+:doc:`/getting-started/simulations/include_morphos` for a guide on the possibilities.
 Morphologies can be stored in a network in the
 :class:`~.storage.interfaces.MorphologyRepository`.
 
@@ -176,8 +176,8 @@ Subtrees can be selected using label(s) on the morphology.
 
 .. warning::
 
-	Branches will be selected as soon as they have one or more points labelled with a
-	selected label.
+    Branches will be selected as soon as they have one or more points labelled with a
+    selected label.
 
 Selections will always include all the branches emanating (downtree) from the selection as
 well:
@@ -330,13 +330,13 @@ Subtree gaps between parent and child branches can be closed:
 
 .. note::
 
-	The gaps between any subtree branch and its parent will be closed, even if the parent is
-	not part of the subtree. This means that gaps of roots of a subtree may be closed as
-	well. Gaps _between_ roots are never collapsed.
+    The gaps between any subtree branch and its parent will be closed, even if the parent is
+    not part of the subtree. This means that gaps of roots of a subtree may be closed as
+    well. Gaps _between_ roots are never collapsed.
 
 .. seealso::
 
-	 `Collapsing`_
+    `Collapsing`_
 
 Collapsing
 ----------
@@ -476,9 +476,9 @@ a :class:`~.morphologies.RotationSet`.
 
 .. warning::
 
-	The rotations returned by a morphology distributor may be overruled when a
-	:class:`~.placement.distributor.RotationDistributor` is defined for the same placement
-	block.
+    The rotations returned by a morphology distributor may be overruled when a
+    :class:`~.placement.distributor.RotationDistributor` is defined for the same placement
+    block.
 
 Distributor configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -557,8 +557,8 @@ can put and assign any morphology you like.
       ]
       return MorphologySet(loaders, np.arange(len(loaders)))
 
-  This is cumbersome, so if you plan on generating new morphologies, use a `morphology
-  generator`_ instead.
+  This is cumbersome, so if you plan on generating new morphologies, use a
+  `morphology generator`_ instead.
 
 Finally, each morphology distributor is allowed to return an additional argument to assign
 rotations to each cell as well. The return value must be a

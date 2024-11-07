@@ -83,6 +83,6 @@ See more info on how to manipulate `ConnectivitySet` :doc:`here </connectivity/c
 
 What is next?
 =============
-Learn how to :doc:`assign morphologies to your neurons <include_morphos>` or check out this
-tutorial on :doc:`how to run a simulation <guide_simulation>` with your network.
+At this stage, you can either learn about modeling :doc:`multi-compartment networks <simulations/include_morphos>`
+or :doc:`point-neuron networks <simulations/guide_nest>` .
 

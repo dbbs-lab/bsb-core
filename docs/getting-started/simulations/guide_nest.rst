@@ -1,8 +1,8 @@
 .. _simulation-guide:
 
-#########################
-Run your first simulation
-#########################
+##############################
+Run your first NEST simulation
+##############################
 
 .. note::
 
@@ -241,10 +241,10 @@ Final configuration file
 
 .. tab-set-code::
 
-  .. literalinclude:: configs/guide-simulation.yaml
+  .. literalinclude:: ../configs/guide-nest.yaml
     :language: yaml
 
-  .. literalinclude:: configs/guide-simulation.json
+  .. literalinclude:: ../configs/guide-nest.json
     :language: json
 
   .. literalinclude:: /../examples/tutorials/nest-simulation.py
@@ -255,7 +255,8 @@ Final configuration file
 Running the Simulation
 ----------------------
 
-Simulations are separated from the reconstruction pipeline (see the :doc:`top level guide <top-level-guide>`),
+Simulations are separated from the reconstruction pipeline (see the
+:doc:`top level guide </getting-started/top-level-guide>`),
 which means you do not need to recompile your network to add a simulation to your stored Configuration.
 In this example, we only modified the ``Configuration`` in the :guilabel:`simulations` block but this updates were
 not been saved in the network file.

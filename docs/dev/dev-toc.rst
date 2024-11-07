@@ -1,5 +1,3 @@
-.. _development-section:
-
 Developer guides
 ================
 
@@ -7,10 +5,11 @@ Developer guides
    :maxdepth: 2
    :caption: Developer guides
 
+   guidelines
    installation
    documentation
-   guidelines
    services
+   projects
    plugins
    hooks
    reference

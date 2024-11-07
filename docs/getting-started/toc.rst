@@ -8,8 +8,6 @@ Getting Started
   top-level-guide
   getting-started_reconstruction
   basics
-  include_morphos
-  guide_simulation
-  analyze_results
+  simulations/toc_multi_comp
+  simulations/toc_point_neurons
   guide_components
-  projects
