@@ -37,8 +37,9 @@ contain:
 
 Python project settings are contained in the ``pyproject.toml`` file.
 A lot of Python options can be configured with your ``toml`` file such as the python
-libraries necessary to deploy it. If you want to learn more this configuration tool,
-check out `this tutorial <https://realpython.com/python-toml/>`_ .
+libraries necessary to deploy it. If you want to learn more about this configuration tool,
+check out `this tutorial <https://realpython.com/python-toml/>`_  and the
+:doc:`bsb related options </dev/projects>`.
 
 The configuration contains already a :guilabel:`partition` ``base_layer``, a :guilabel:`cell_type`
 ``base_type`` and a :guilabel:`placement` strategy ``example_placement``.

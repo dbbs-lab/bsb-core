@@ -23,14 +23,6 @@ class DistributionPlacement(PlacementStrategy):
         selected = random_numbers <= selected_lt * selected_gt
         return np.count_nonzero(selected)
 
-    def draw_random_numbers(self, num_to_draw):
-        rand_nums = self.distribution.draw(num_to_draw)
-        distrib_interval = self.distribution.definition_interval(1e-9)
-        rand_nums[rand_nums < distrib_interval[0]] = distrib_interval[0]
-        rand_nums[rand_nums > distrib_interval[1]] = distrib_interval[1]
-        normed_rand = (rand_nums - distrib_interval[0]) / np.diff(distrib_interval)
-        return normed_rand
-
     def place(self, chunk, indicators):
         for name_indic, indicator in indicators.items():
             all_positions = np.empty((0, 3))
@@ -45,22 +37,8 @@ class DistributionPlacement(PlacementStrategy):
 
                 num_selected = self.draw_interval(num_to_place, *ratios)
                 if num_selected > 0:
-                    positions = np.random.rand(num_selected, 2)
-                    positions = positions * np.delete(
-                        chunk.dimensions, self.axis
-                    ) + np.delete(chunk.ldc, self.axis)
-
-                    pos_on_axis = np.zeros(num_selected)
-                    remaining = np.ones(num_selected, dtype=bool)
-                    while np.any(remaining) > 0:
-                        drawn = self.draw_random_numbers(np.count_nonzero(remaining))
-                        filter_in_chunk = (drawn >= ratios[0]) * (drawn < ratios[1])
-                        if np.any(filter_in_chunk):
-                            if self.direction == "negative":
-                                drawn = 1 - drawn
-                            pos_on_axis[remaining] = drawn * partition_size
-                            remaining[remaining] = ~filter_in_chunk
-                    positions = np.hstack([positions, pos_on_axis[..., np.newaxis]])
-
+                    positions = (
+                        np.random.rand(num_selected, 3) * chunk.dimensions + chunk.ldc
+                    )
                     all_positions = np.concatenate([all_positions, positions])
             self.place_cells(indicator, all_positions, chunk)
