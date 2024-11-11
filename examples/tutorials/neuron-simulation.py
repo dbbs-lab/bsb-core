@@ -59,7 +59,50 @@ config.simulations.add(
     resolution=0.025,
     duration=100,
     temperature=32,
-    cell_models={},
-    connection_models={},
-    devices={},
+    cell_models=dict(
+        stellate_cell=dict(model="Stellate.definitionStellate", parameters=[])
+    ),
+    connection_models=dict(
+        stellate_to_stellate=dict(
+            synapses=[
+                {"synapse": "AMPA", "weight": 0.001, "delay": 1},
+                {"synapse": "GABA", "weight": 0.001, "delay": 1},
+                {"synapse": "NMDA", "weight": 0.001, "delay": 1},
+            ]
+        )
+    ),
+    devices=dict(
+        spike_generator=dict(
+            device="spike_generator",
+            start=9,
+            number=1,
+            interval=0,
+            noise=0,
+            delay=1,
+            weight=0.01,
+            targetting={"strategy": "by_id", "ids": {"stellate_cell": [0]}},
+            locations={"strategy": "branch", "labels": ["dendrites"]},
+            synapses=["AMPA", "NMDA"],
+        ),
+        vrecorder=dict(
+            device="voltage_recorder",
+            targetting={
+                "strategy": "sphere",
+                "radius": 600,
+                "origin": [50, 150, 50],
+                "cell_models": ["stellate_cell"],
+            },
+        ),
+        synapses_rec=dict(
+            device="synapse_recorder",
+            synapse_types=["AMPA", "NMDA"],
+            targetting={
+                "strategy": "sphere",
+                "radius": 600,
+                "origin": [50, 150, 50],
+                "cell_models": ["stellate_cell"],
+            },
+            locations={"strategy": "branch", "labels": ["dendrites"]},
+        ),
+    ),
 )

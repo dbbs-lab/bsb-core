@@ -1,0 +1,138 @@
+{
+  "name": "DBBS test stellate rand circuit v4.0",
+  "storage": {
+    "engine": "hdf5",
+    "root": "my_network.hdf5"
+  },
+  "network": {
+    "x": 100.0,
+    "y": 200.0,
+    "z": 300.0,
+    "chunk_size": [100, 300, 100]
+  },
+  "partitions": {
+    "stellate_layer": {
+    "thickness": 300.0,
+  }
+},
+"regions": {
+  "example_cortex": {
+    "type": "stack",
+    "children": ["stellate_layer"]
+  }
+},
+  "morphologies": [
+    {
+      "file": "StellateCell.swc",
+      "parser":{
+        "tags": {
+            16: ["dendrites", "proximal_dendrites"],
+            17: ["dendrites", "distal_dendrites"],
+            18: ["axon", "axon_initial_segment"],
+            }      
+        }
+    }
+    ],
+    "cell_types": {
+      "stellate_cell": {
+        "spatial": {
+          "radius": 4.0,
+          "density": 0.000005,
+          "morphologies": [
+            {
+              "names": ["StellateCell"]
+            }
+          ]
+        }
+      }
+  },
+    "placement": {
+      "stellate_placement": {
+        "strategy": "bsb.placement.RandomPlacement",
+        "partitions": ["stellate_layer"],
+        "cell_types": ["stellate_cell"]
+      }
+    },
+    "connectivity": { 
+      "stellate_to_stellate": {
+        "strategy": "bsb.connectivity.VoxelIntersection",
+        "presynaptic": {
+          "cell_types": ["stellate_cell"],
+          "morphology_labels" : ["axon"]
+        },
+        "postsynaptic": {
+          "cell_types": ["stellate_cell"],
+          "morphology_labels" : ["dendrites"]
+          }
+      }
+      },
+  "after_placement": {  },
+  "simulations": {
+
+    "neuronsim": {
+      "simulator": "neuron",
+      "duration": 100,
+      "resolution": 0.025,
+      "temperature": 32,
+      "cell_models": {
+        
+        "stellate_cell": {
+          "model": "Stellate.definitionStellate",
+          "parameters": []
+        }    
+      },
+      "connection_models": {
+        "stellate_to_stellate": 
+        {
+          "synapses": [{"synapse" : "AMPA", "weight": 0.001, "delay":1},
+                       {"synapse" : "GABA", "weight": 0.001, "delay":1},
+                       {"synapse" : "NMDA", "weight": 0.001, "delay":1}]
+        }
+      },
+      "devices": {
+          "spike_generator": {
+              "device": "spike_generator",
+              "start": 9,
+              "number": 1,
+              "interval": 0,
+              "noise" : 0,
+              "delay": 1,
+              "weight": 0.01,
+              "targetting": {
+                "strategy": "by_id",
+                "ids": {"stellate_cell": [0]}
+              },
+              "locations": {
+                "strategy": "branch",
+                "labels": ["dendrites"]
+              },
+              "synapses" : ["AMPA", "NMDA"]
+            },
+        "vrecorder": {
+          "device": "voltage_recorder",
+          "targetting": {
+            "strategy": "sphere",
+            "radius" : 600,
+            "origin" : [50,150,50],
+            "cell_models" : ["stellate_cell"]
+          }
+        },
+        "synapses_rec":{
+          "device": "synapse_recorder",
+          "synapse_types": ["AMPA", "NMDA"],
+          "targetting": {
+            "strategy": "sphere",
+            "radius" : 600,
+            "origin" : [50,150,50],
+            "cell_models" : ["stellate_cell"]
+          },
+         "locations":{
+            "strategy": "branch",
+            "labels": ["dendrites"]
+          }
+        }
+      }
+    }
+  }
+}
+
