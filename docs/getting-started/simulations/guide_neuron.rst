@@ -26,6 +26,25 @@ The network configuration should be as follows:
       :language: python
       :lines: 1-54
 
+The configuration should be compiled:
+
+.. tab-set-code::
+
+  .. code-block:: bash
+
+    bsb compile --verbosity 3 network_configuration.json
+
+
+  .. code-block:: python
+
+    import bsb.options
+    from bsb import Scaffold
+
+    bsb.options.verbosity = 3
+
+    scaffold = Scaffold(config)
+    scaffold.compile()
+
 Now we have to configure the simulation block.
 Let's start by configuring the global simulation parameters: first of all
 define a :guilabel:`simulator`, then you need to define the :guilabel:`resolution`
@@ -175,6 +194,36 @@ The results of the simulation will be stored in the ``"simulation-results"`` fol
 
 For more detailed information about simulation modules,
 please refer to the :doc:`simulation section </simulation/intro>`.
+
+.. rubric:: Next steps:
+
+.. grid:: 1 1 1 2
+    :gutter: 1
+
+
+    .. grid-item-card:: :octicon:`fold-up;1em;sd-text-warning` Analyze your Results
+        :link: analyze_analog_signals
+        :link-type: doc
+
+        How to extract your data.
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
+       :link: guide_components
+       :link-type: ref
+
+       Learn how to write your own components to e.g. place or connect cells.
+
+    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
+       :link: main-components
+       :link-type: ref
+
+       Explore more about the main components.
+
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
+        :link: examples
+        :link-type: ref
+
+        Explore more advanced examples
 
 
 
