@@ -64,11 +64,7 @@ config.simulations.add(
     ),
     connection_models=dict(
         stellate_to_stellate=dict(
-            synapses=[
-                {"synapse": "AMPA", "weight": 0.001, "delay": 1},
-                {"synapse": "GABA", "weight": 0.001, "delay": 1},
-                {"synapse": "NMDA", "weight": 0.001, "delay": 1},
-            ]
+            synapses=[{"synapse": "GABA", "weight": 0.001, "delay": 1}]
         )
     ),
     devices=dict(
@@ -88,8 +84,8 @@ config.simulations.add(
             device="voltage_recorder",
             targetting={
                 "strategy": "sphere",
-                "radius": 600,
-                "origin": [50, 150, 50],
+                "radius": 100,
+                "origin": [50, 100, 150],
                 "cell_models": ["stellate_cell"],
             },
         ),
@@ -98,11 +94,14 @@ config.simulations.add(
             synapse_types=["AMPA", "NMDA"],
             targetting={
                 "strategy": "sphere",
-                "radius": 600,
-                "origin": [50, 150, 50],
+                "radius": 100,
+                "origin": [50, 100, 150],
                 "cell_models": ["stellate_cell"],
             },
             locations={"strategy": "branch", "labels": ["dendrites"]},
         ),
     ),
 )
+
+scaffold = Scaffold(config)
+scaffold.compile(clear=True)

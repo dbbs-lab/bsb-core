@@ -12,7 +12,7 @@
   },
   "partitions": {
     "stellate_layer": {
-    "thickness": 300.0,
+    "thickness": 300.0
   }
 },
 "regions": {
@@ -28,7 +28,7 @@
         "tags": {
             16: ["dendrites", "proximal_dendrites"],
             17: ["dendrites", "distal_dendrites"],
-            18: ["axon", "axon_initial_segment"],
+            18: ["axon", "axon_initial_segment"]
             }      
         }
     }
@@ -84,9 +84,7 @@
       "connection_models": {
         "stellate_to_stellate": 
         {
-          "synapses": [{"synapse" : "AMPA", "weight": 0.001, "delay":1},
-                       {"synapse" : "GABA", "weight": 0.001, "delay":1},
-                       {"synapse" : "NMDA", "weight": 0.001, "delay":1}]
+          "synapses": [{"synapse": "GABA", "weight": 0.001, "delay": 1}]
         }
       },
       "devices": {
@@ -112,8 +110,8 @@
           "device": "voltage_recorder",
           "targetting": {
             "strategy": "sphere",
-            "radius" : 600,
-            "origin" : [50,150,50],
+            "radius" : 100,
+            "origin" : [50, 100, 150],
             "cell_models" : ["stellate_cell"]
           }
         },
@@ -122,8 +120,8 @@
           "synapse_types": ["AMPA", "NMDA"],
           "targetting": {
             "strategy": "sphere",
-            "radius" : 600,
-            "origin" : [50,150,50],
+            "radius" : 100,
+            "origin" : [50, 100, 150],
             "cell_models" : ["stellate_cell"]
           },
          "locations":{

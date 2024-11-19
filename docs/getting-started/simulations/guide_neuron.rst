@@ -2,17 +2,42 @@
 Run your first NEURON simulation
 ################################
 
-In this example we are going to present how to configure a simulation of a multi-compartment neurons network.
-To proceed, please install the following additional packages:
+.. note::
+
+    This guide uses notions on the BSB reconstructions that are explained in
+    :doc:`Getting Started guide </getting-started/getting-started_reconstruction>`.
+
+In this tutorial, we present how to configure a NEURON simulation for a multi-compartment
+neuron network.
+
+Install requirements
+====================
+
+`NEURON <https://www.neuron.yale.edu/neuron/>`_ is one of the supported simulators of the
+BSB. As for the other simulator, its adapter code is stored in a separate repository:
+`bsb-neuron <https://github.com/dbbs-lab/bsb-neuron>`_
+
+So, you would need to install it with pip:
 
 .. code-block:: bash
 
     pip install bsb-neuron[parallel]
+
+We will also need some model files for NEURON which you can obtain and link to bsb like so:
+
+.. code-block:: bash
+
     pip install dbbs-catalogue
 
-For this example, we will build a network consisting of a layer of mouse
-stellate cells connected through axon-dendrite overlap, using the strategy :doc:`VoxelIntersection </connectivity/connection-strategies>`.
-The morphology of a custom stellate cell is provided :download:`here </getting-started/data/StellateCell.swc>`.
+BSB reconstruction for this tutorial
+====================================
+
+For this example, we will build a network consisting of a single ``layer`` of
+``stellate_cells`` connected through axon-dendrite overlap, using the strategy
+:doc:`VoxelIntersection </connectivity/connection-strategies>`.
+The morphology of a custom stellate cell is provided
+:download:`here </getting-started/data/StellateCell.swc>`.
+Please save this file in your project folder as ``StellateCell.swc``.
 
 The network configuration should be as follows:
 
@@ -26,31 +51,25 @@ The network configuration should be as follows:
       :language: python
       :lines: 1-54
 
-The configuration should be compiled:
+Copy the configuration in you favorite format and put it in the project folder
+as ``neuron-simulation.json`` or  as ``neuron-simulation.py``
 
-.. tab-set-code::
+Then, the configuration should be compiled:
 
-  .. code-block:: bash
+.. code-block:: bash
 
-    bsb compile --verbosity 3 network_configuration.json
-
-
-  .. code-block:: python
-
-    import bsb.options
-    from bsb import Scaffold
-
-    bsb.options.verbosity = 3
-
-    scaffold = Scaffold(config)
-    scaffold.compile()
+    bsb compile --verbosity 3 neuron-simulation.json
+    # or
+    python neuron-simulation.py
 
 Now we have to configure the simulation block.
-Let's start by configuring the global simulation parameters: first of all
-define a :guilabel:`simulator`, then you need to define the :guilabel:`resolution`
-(the time step of the simulation in milliseconds),
-the :guilabel:`duration` (the total length of the simulation in milliseconds) and
-the :guilabel:`temperature` (celsius unit).
+
+Let's start by configuring the global simulation parameters: first of all,
+define a :guilabel:`simulator`; in our example, we are setting it to
+use NEURON.
+Then you need to define the :guilabel:`resolution` (the time step of the simulation in
+milliseconds), the :guilabel:`duration` (the total length of the simulation in
+milliseconds) and the :guilabel:`temperature` (celsius unit).
 
 .. tab-set-code::
 
@@ -65,17 +84,20 @@ the :guilabel:`temperature` (celsius unit).
 Cell Models
 -----------
 
-For each **cell type** population in your network, you must assign a **NEURON model** to define the cell's behavior. This model
-encapsulates all the specifications for ion channels and synapses covering all components of the cell..
-Within a model the synapse parameters are defined in the :guilabel:`synapse_types` attribute, while the
-parameters for ion channel mechanisms are defined in :guilabel:`cable_types`. A detailed discussion of model
-characteristics is beyond the scope of this guide; therefore, a ready-to-use Stellate model is provided
-:download:`here </getting-started/data/Stellate.py>`.
+For each **cell type** population in your network, you must assign a **NEURON model**
+to define the cell's behavior.
 
-Save the Stellate.py file in your project folder and review its contents.
-Inside, you will find a model definition called
-:guilabel:`definitionStellate`, which includes all the customized parameters.
-This is the object you will reference in your configuration.
+In short, these models encapsulate all the specifications for ion channels and synapses
+covering all compartments of the neuron. Discussing NEURON model characteristics is
+beyond the scope of this guide; therefore, a ready-to-use Stellate model is provided
+:download:`here </../examples/tutorials/Stellate.py>`. Save it as a ``Stellate.py``
+file in your project folder and review its contents.
+
+Within the model file, you will find a model definition called
+:guilabel:`definitionStellate`, which includes all the customized parameters. This is
+the object you will refer to in your configuration. Note also that the parameters for
+the ion channel mechanisms are in the attribute :guilabel:`cable_types`.
+
 
 .. tab-set-code::
 
@@ -90,37 +112,38 @@ This is the object you will reference in your configuration.
 Connection Models
 -----------------
 
-For each connection type of your network, you also need to define a model describing its synapses' dynamics.
-Similar to the :guilabel:`cell_models` block, each :guilabel:`connection_model` you define should use a key
-that corresponds to a ``ConnectivitySet`` created during reconstruction (as explained in the previous
+For each connection type of your network, you also need to provide a NEURON model
+describing its synapses' dynamics. Similar to the :guilabel:`cell_models` block, for
+each :guilabel:`connection_model` you should use a key that corresponds to a
+``ConnectivitySet`` created during reconstruction (as explained in the previous
 :doc:`section </getting-started/getting-started_reconstruction>`).
-In this example we have only the :guilabel:`stellate_to_stellate` connection, where we assign the synapses
-defined in the model file, namely :guilabel:`AMPA`, :guilabel:`GABA`, and :guilabel:`NMDA`.
+In this example, to the :guilabel:`stellate_to_stellate` connection is assigned a
+reference to one of the :guilabel:`synapse_types`, defined in the ``Stellate.py``
+model file: :guilabel:`GABA`.
 
 .. tab-set-code::
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 84-91
+      :lines: 84-89
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
-      :lines: 65-73
+      :lines: 65-69
 
-At all the synapses is assigned a :guilabel:`weight` of 0.001 and a :guilabel:`delay` (ms) of 1.
+To each synapse is assigned a :guilabel:`weight` of 0.001 and a :guilabel:`delay` (ms) of 1.
 
 Devices
 -------
 
-In the :guilabel:`devices` block, include all interfaces you wish to use for interacting with the network.
+In the :guilabel:`devices` block, include all interfaces you wish to use for interacting with
+the network.
 These devices correspond typically to stimulators and measurement instruments.
 
-In this example, a :guilabel:`spike_generator` is used to stimulate the cell with ID 0,
-starting at 9 ms, with 1 spike. The stimulus targets the dendrites through AMPA and NMDA synapses.
-The membrane potential is recorded using a :guilabel:`voltage_recorder`, which collects the
-signal from within a 600 µm radius sphere. Synapse activity is monitored with a :guilabel:`synapse_recorder`
-for the :guilabel:`AMPA` and :guilabel:`NMDA` synapses on the cell's dendrites,
-within the same spherical region.
+Use the :guilabel:`device` key to select the type of device.
+We also introduce here the :guilabel:`targetting` concept for the devices: This configuration
+node allows you to filter elements of your neuron circuit to which you want to link your
+devices (see the targetting section on :doc:`this page </simulation/intro>` for more details).
 
 .. tab-set-code::
 
@@ -131,6 +154,19 @@ within the same spherical region.
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
       :lines: 74-107
+
+In this example, a :guilabel:`spike_generator` is used to produce ``1`` spike (attribute
+:guilabel:`number`) at ``9`` ms and send it to the cell with ID ``0`` (using the
+:guilabel:`targetting`) after ``1`` ms of delay and a :guilabel:`weight` of ``0.01``.
+The stimulus targets the ``AMPA`` and ``NMDA`` synapses located on the ``dendrites`` of the cell.
+
+The membrane potential is recorded using a :guilabel:`voltage_recorder`, which collects the
+signal from within a ``100`` µm radius sphere at the center of the circuit. Hence, not all cells
+might be recorded.
+
+Synapse activity is monitored with a :guilabel:`synapse_recorder`
+for the :guilabel:`AMPA` and :guilabel:`NMDA` synapses on the cell's dendrites, within the same
+spherical region. Here too, not all synapses might be recorded.
 
 Final configuration file
 ------------------------

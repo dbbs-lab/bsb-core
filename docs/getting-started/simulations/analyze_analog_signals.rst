@@ -39,20 +39,20 @@ Additional information is available through the annotations attribute.
     :language: python
     :lines: 10-49
 
-This code generates one plot for each analog signal recorded, meaning one plot per device for each
-cell or synapse recorded. The resulting figures are saved in the ``simulation-results`` folder.
+This code generates 2 plots: one for an analog signal recorded at the synapse and one for the membrane
+potential. The resulting figures are saved in the ``simulation-results`` folder.
 
 Here are some example of the figures that are produced:
 
-.. figure:: /getting-started/data/vrecorder_example.png
+.. figure:: /images/vrecorder_example.png
   :figwidth: 90%
 
-  Example of the membrane potential recorded for the cell with 0 ID.
+  Example of the membrane potential recorded.
 
-.. figure:: /getting-started/data/synapse_recorder_example.png
+.. figure:: /images/synapse_recorder_example.png
   :figwidth: 90%
 
-  Example of the AMPA synapse current recoded for the cell with 2 ID.
+  Example of the AMPA synapse current recoded.
 
 .. rubric:: Next steps:
 

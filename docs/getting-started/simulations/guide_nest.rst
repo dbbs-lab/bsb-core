@@ -9,18 +9,41 @@ Run your first NEST simulation
     This guide is a continuation of the
     :doc:`Getting Started guide </getting-started/getting-started_reconstruction>`.
 
+Install requirements
+====================
+
+`NEST <https://nest-simulator.readthedocs.io/en/stable/>`_ is one of the supported
+simulators of the BSB.
+As for the other simulator, its adapter code is stored in a separate repository:
+`bsb-neuron <https://github.com/dbbs-lab/bsb-nest>`_
+
+So, you would need to install it with pip:
+
+.. code-block:: bash
+
+    pip install bsb-nest
+
+Unfortunately, the NEST simulator at the moment can not be installed directly by pip, but
+fortunately NEST provides
+`tutorials <https://nest-simulator.readthedocs.io/en/stable/installation/index.html>`_
+to install it in your python environment.
+
+Make sure that you can both load BSB and NEST before continuing any further:
+
+.. code-block:: python
+
+    import nest
+    import bsb
+
+Configuration of the simulation
+===============================
+
 In this tutorial, we assume that you have successfully reconstructed a network with BSB.
 We will now guide you through the process of configuring a simulation with BSB for your network.
 
 Let's start by configuring the global simulation parameters.
-These include the :guilabel:`simulator` to be used. BSB supports the following simulators:
-
-- `NEST simulator <https://nest-simulator.readthedocs.io/en/stable/>`_
-- `NEURON simulator <https://www.neuron.yale.edu/neuron/>`_
-- `ARBOR simulator <https://arbor-sim.org/>`_
-
-In this example, we are going to present how to configure a point neuron simulation with NEST in BSB.
-
+These include the :guilabel:`simulator` to be used; in our example, we are setting it to
+use NEST.
 Additionally, you need to define the :guilabel:`resolution` (the time step of the simulation in milliseconds)
 and the :guilabel:`duration` (the total length of the simulation in milliseconds).
 Therefore, your simulation block should be structured as follows:
@@ -125,7 +148,7 @@ Connection Models
 -----------------
 
 For each connection type of your network, you also need to define a model describing its synapses' dynamics.
-Similar to the :guilabel:`cell_models` block, each :guilabel:`connection_model` you define should use a key
+Similar to the :guilabel:`cell_models` block, for each :guilabel:`connection_model` you should use a key
 that corresponds to a ``ConnectivitySet`` created during reconstruction (as explained in the previous
 :doc:`section </getting-started/getting-started_reconstruction>`).
 In this example, we assign the ``static_synapse`` model to the connections :guilabel:`A_to_B`.
@@ -164,6 +187,11 @@ Devices
 
 In the :guilabel:`devices` block, include all interfaces you wish to use for interacting with the network.
 These devices correspond typically to stimulators and measurement instruments.
+
+Use the :guilabel:`device` key to select the type of device.
+We also introduce here the :guilabel:`targetting` concept for the devices: This configuration node allows you to
+filter elements of your neuron circuit to which you want to link your devices (see the targetting section on
+:doc:`this page </simulation/intro>` for more details).
 
 .. tab-set-code::
 
@@ -229,8 +257,6 @@ These devices correspond typically to stimulators and measurement instruments.
               )
             )
 
-Using the :guilabel:`device` key, you select the type of device to use, and with :guilabel:`targetting`,
-you specify the target objects of the device.
 In our example, we add a ``poisson_generator`` that simulates cells spiking at ``20`` Hz.
 These latter "cells" are each connected one ``top_type`` cell and transmit their spike events with a delay
 of `1` ms and the weight of the connection is ``40``.
@@ -253,7 +279,7 @@ Final configuration file
 
 
 Running the Simulation
-----------------------
+======================
 
 Simulations are separated from the reconstruction pipeline (see the
 :doc:`top level guide </getting-started/top-level-guide>`),
