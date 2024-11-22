@@ -45,7 +45,7 @@ The network configuration should be as follows:
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 1-71
+      :lines: 1-68
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
@@ -75,7 +75,7 @@ milliseconds) and the :guilabel:`temperature` (celsius unit).
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 72-76
+      :lines: 70-76
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
@@ -149,11 +149,11 @@ devices (see the targetting section on :doc:`this page </simulation/intro>` for 
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 92-136
+      :lines: 90-134
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
-      :lines: 74-107
+      :lines: 70-104
 
 In this example, a :guilabel:`spike_generator` is used to produce ``1`` spike (attribute
 :guilabel:`number`) at ``9`` ms and send it to the cell with ID ``0`` (using the
