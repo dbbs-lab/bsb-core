@@ -75,7 +75,7 @@ milliseconds) and the :guilabel:`temperature` (celsius unit).
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 70-76
+      :lines: 69-74
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
@@ -103,7 +103,7 @@ the ion channel mechanisms are in the attribute :guilabel:`cable_types`.
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 79-83
+      :lines: 75-80
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
@@ -125,7 +125,7 @@ model file: :guilabel:`GABA`.
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 84-89
+      :lines: 81-86
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
@@ -149,7 +149,7 @@ devices (see the targetting section on :doc:`this page </simulation/intro>` for 
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 90-134
+      :lines: 87-129
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python

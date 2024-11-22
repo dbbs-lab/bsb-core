@@ -12,15 +12,15 @@
   },
   "partitions": {
     "stellate_layer": {
-    "thickness": 300.0
-  }
-},
-"regions": {
-  "example_cortex": {
-    "type": "stack",
-    "children": ["stellate_layer"]
-  }
-},
+      "thickness": 300.0
+    }
+  },
+  "regions": {
+    "example_cortex": {
+      "type": "stack",
+      "children": ["stellate_layer"]
+    }
+  },
   "morphologies": [
     {
       "file": "StellateCell.swc",
@@ -32,50 +32,47 @@
             }      
         }
     }
-    ],
-    "cell_types": {
-      "stellate_cell": {
-        "spatial": {
-          "radius": 4.0,
-          "density": 0.000005,
-          "morphologies": [
-            {
-              "names": ["StellateCell"]
-            }
-          ]
-        }
-      }
-  },
-    "placement": {
-      "stellate_placement": {
-        "strategy": "bsb.placement.RandomPlacement",
-        "partitions": ["stellate_layer"],
-        "cell_types": ["stellate_cell"]
-      }
-    },
-    "connectivity": { 
-      "stellate_to_stellate": {
-        "strategy": "bsb.connectivity.VoxelIntersection",
-        "presynaptic": {
-          "cell_types": ["stellate_cell"],
-          "morphology_labels" : ["axon"]
-        },
-        "postsynaptic": {
-          "cell_types": ["stellate_cell"],
-          "morphology_labels" : ["dendrites"]
+  ],
+  "cell_types": {
+    "stellate_cell": {
+      "spatial": {
+        "radius": 4.0,
+        "density": 0.000005,
+        "morphologies": [
+          {
+            "names": ["StellateCell"]
           }
+        ]
       }
+    }
+  },
+  "placement": {
+    "stellate_placement": {
+      "strategy": "bsb.placement.RandomPlacement",
+      "partitions": ["stellate_layer"],
+      "cell_types": ["stellate_cell"]
+    }
+  },
+  "connectivity": {
+    "stellate_to_stellate": {
+      "strategy": "bsb.connectivity.VoxelIntersection",
+      "presynaptic": {
+        "cell_types": ["stellate_cell"],
+        "morphology_labels" : ["axon"]
       },
-  "after_placement": {  },
+      "postsynaptic": {
+        "cell_types": ["stellate_cell"],
+        "morphology_labels" : ["dendrites"]
+      }
+    }
+  },
   "simulations": {
-
     "neuronsim": {
       "simulator": "neuron",
       "duration": 100,
       "resolution": 0.025,
       "temperature": 32,
       "cell_models": {
-        
         "stellate_cell": {
           "model": "Stellate.definitionStellate",
           "parameters": []
@@ -133,4 +130,3 @@
     }
   }
 }
-
