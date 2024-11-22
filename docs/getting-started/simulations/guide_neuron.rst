@@ -194,7 +194,7 @@ So, you need to update your file, using either the ``reconfigure`` command or th
 
   .. code-block:: bash
 
-    bsb reconfigure network.hdf5 network_configuration.json
+    bsb reconfigure my_network.hdf5 network_configuration.json
 
   .. code-block:: python
 
@@ -213,15 +213,15 @@ You can now run your simulation:
 
   .. code-block:: bash
 
-    bsb simulate my_network.hdf5 basal_activity -o simulation-results
+    bsb simulate my_network.hdf5 neuronsim -o simulation-results
 
   .. code-block:: python
 
         from bsb import from_storage
 
         scaffold = from_storage("my_network.hdf5")
-        result = scaffold.run_simulation("basal_activity")
-        result.write("simulation-results/basal_activity.nio", "ow")
+        result = scaffold.run_simulation("neuronsim")
+        result.write("simulation-results/neuronsimulation.nio", "ow")
 
 The results of the simulation will be stored in the ``"simulation-results"`` folder.
 
