@@ -139,3 +139,74 @@ The user must provide two attributes:
 * ``origin``: A *list* of *float* that defines the center of the sphere.
 * ``radius``: A *float* representing the radius of the sphere.
 
+Simulation results
+==================
+
+The results of a simulation are stored in ``.nio`` files.
+These files are read and written using the :doc:`Neo Python package <neo:index>`, which is specifically
+designed for managing electrophysiology data. The files utilize the HDF5 (Hierarchical Data Format version 5)
+structure, which organizes data in a hierarchical manner, similar to a dictionary.
+The data is organized into blocks, where each block represents a recording session (i.e., a simulation block).
+Each block is further subdivided into segments, with each segment representing a specific timeframe within the session.
+To retrieve the blocks from a ``.nio`` file:
+
+.. code-block:: python
+
+  from neo import io
+
+  neo_obj = io.NixIO("NAME_OF_YOUR_NEO_FILE.nio", mode="ro")
+  blocks = neo_obj.read_all_blocks()
+
+  for block in blocks:
+    list_of_segments = blocks.segments
+
+
+For more information, please refer to the :doc:`Neo documentation <neo:read_and_analyze>`.
+
+Spike Trains
+------------
+
+Within a segment, you can access all the :class:`SpikeTrain <neo.core.SpikeTrain>` objects recorded during
+that particular timeframe. A ``SpikeTrain`` represents the collection of spikes emitted by the target population,
+and it includes metadata about the device name, the size of the cell population, and the IDs of the spiking cells.
+This information is stored in the :guilabel:`annotations` attribute:
+
+.. code-block:: python
+
+  for spiketrain in segment.spiketrains:
+      spiketrain_array = spiketrain.magnitude
+      unit_of_measure = spiketrain.units
+      device_name = spiketrain.annotations["device"]
+      list_of_spiking_cell_ids = spiketrain.annotations["senders"]
+      end_time_of_the_simulation = spiketrain.annotations["t_stop"]
+      population_size = spiketrain.annotations["pop_size"]
+
+.. note::
+
+  To retrieve the spike train for a specific cell, the spike time at index i in the ``spiketrain_array[i]``
+  corresponds to the cell with ID ``list_of_spiking_cell_ids[i]``.
+
+Analog Signals
+--------------
+
+Each segment also contains an :guilabel:`analogsignals` attribute, which holds a list of Neo :class:`AnalogSignal <neo.core.AnalogSignal>` objects.
+These objects contain the trace of the recorded property, along with the associated time points.
+They are also annotated with information such as the device name, the type of cell recorded, and the cell ID,
+which can be accessed through the :guilabel:`annotations` attribute:
+
+.. code-block:: python
+
+  for signal in segment.analogsignals:
+    trace_of_the_signal = signal.magnitude
+    unit_of_measure = signal.units
+    time_signature = signal.times
+    time_unit = signal.times.units
+    device_name = signal.annotations['name']
+    cell_type = signal.annotations['cell_type']
+    cell_id = signal.annotations['cell_id']
+
+.. note::
+
+  Unlike the spike train case, the :guilabel:`analogsignals` attribute contains a separate ``AnalogSignal``
+  object for each target of the device.
+
