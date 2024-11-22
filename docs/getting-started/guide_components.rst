@@ -186,7 +186,7 @@ Finally, to import our classes in our configuration file, we will modify the
   },
   "connectivity": {
     "A_to_B": {
-      "strategy": "connectivity.DistanceConnectivity",
+      "strategy": "connectome.DistanceConnectivity",
       "radius": 100,
       "presynaptic": {
         "cell_types": ["base_type"]
@@ -213,6 +213,107 @@ BSB is parallelizing placement jobs for each `Chunk` concerned.
 The parameters of `place` includes a dictionary linking each cell type name to its
 :class:`PlacementIndicator <.placement.indicator.PlacementIndicator>`, and the `Chunk`
 in which to place the cells.
+
+First, let's assign a random position to each cell that need to be within the Chunk.
+We will create a for loop to go through each `PlacementIndicator`.
+Then, we will use the `guess` function that estimates the number of cells to place
+within the `Chunk`.
+Finally, we will draw a random position for each cell to place and store them with
+the ``place_cells`` function.
+
+.. code-block:: python
+
+    def place(self, chunk, indicators):
+        # For each placement indicator
+        for name_indic, indicator in indicators.items():
+            # Prepare an array to store positions
+            all_positions = np.empty((0, 3))
+            # Guess the number of cells to place within the chunk.
+            num_to_place = indicator.guess(chunk=chunk)
+
+            if num_to_place > 0:
+                # Assign a random position to the cells within this Chunk
+                positions = (
+                    np.random.rand(num_to_place, 3) * chunk.dimensions + chunk.ldc
+                )
+                all_positions = np.concatenate([all_positions, positions])
+            self.place_cells(indicator, all_positions, chunk)
+
+Now, we need to apply our distribution to each Partition of our circuit to see how
+the cells are distributed within, along our directed axis.
+Let's make a new for loop to loop through Partitions of each indicator.
+Then, we extract the number of cells to place within the total Partition, still using
+the `guess` function. For that, we convert the partition into a list of voxels.
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 54-62
+
+Now, our function is supposed to place cells within only one Chunk.Fortunately,
+Partitions can be decomposed into Chunks. So, we can retrieve from the
+distribution the number of cells to place within the ``chunk`` parameter of the
+function, according to its position along the directed ``axis``.
+
+To do so, we need to define the interval occupied by the chunk within the partition.
+We will leverage the lowest and highest coordinates of the chunk and partition with
+respectively the functions ``ldc`` and ``mdc``.
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 63-68
+
+``bounds`` is here the interval of ratios of the space occupied by a Chunk within the Partition
+along the chosen axis.
+
+We also need to take into account the case where the direction is negative. In this case, we should
+invert the interval. E.g., if the ``bounds`` is [0.2, 0.3] then the inverted interval is [0.7, 0.8].
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 68-73
+
+Great, we have the interval on which we want to place our cells.
+Now, we will check how many cells to place within this interval according to our distribution
+along the provided axis, knowing the total number of cells to place within the partition.
+We will create a separate function for this called ``draw_interval``.
+Additionally, we also need to take into account the two other dimensions. We will compute the
+ratio of area occupied by the chunk along the two other directions:
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 75-82
+
+So, your final place function should look like this
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 54-89
+
+``draw_interval`` will leverage an
+`acceptance-rejection method <https://en.wikipedia.org/wiki/Rejection_sampling>`_ .
+In short, this method will draw n random values within [0, 1] and return the number which value
+is less than the probability according to the the distribution to fall in the provided interval
+boundaries.
+We will retrieve the interval of definition of the distribution and within boundaries of our
+provided ratio interval.
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 34-41
+
+From the distribution, we can retrieve the probability for a drawn random value be lesser than
+the upper bound and the probability for it to be greater than the lower bound.
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 42-45
+
+Finally, we apply the acceptance-rejection algorithm to see how much of the cells to place in
+the partition should be placed in the chunk:
+
+.. literalinclude:: /../examples/tutorials/distrib_placement.py
+    :language: python
+    :lines: 46-52
 
 We are done with the Placement! Here is how the full strategy looks like:
 
