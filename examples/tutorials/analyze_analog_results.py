@@ -1,41 +1,31 @@
-import numpy as np
 from neo import io
 
 # Read simulation data
-sim = io.NixIO("simulation-results/NAME_OF_YOUR_NEO_FILE.nio", mode="ro")
-blocks = sim.read_all_blocks()
-block = blocks[0].segments[0]
+my_file_name = "simulation-results/NAME_OF_YOUR_NEO_FILE.nio"
+sim = io.NixIO(my_file_name, mode="ro")
+block = sim.read_all_blocks()[0]
+segment = block.segments[0]
+my_signals = segment.analogsignals
 
 import matplotlib.pylab as plt  # you might have to pip install matplotlib
 
-# Plot recorders data for every analog signal, results are stored in simulation-results folder
-# Iterate over all the analog signals recorded ( for every device consider every target)
 has_plotted_neuron = False  # We will only plot one neuron recording here
 has_plotted_synapse = False  # We will only plot one synapse recording here
-for signal in block.analogsignals:
-
+for signal in my_signals:
     name_device = signal.name  # Retrieve the name of the device
     cell_id = signal.annotations["cell_id"]  # Retrieve the cell ID
-    # If the signal comes from a synapse recorder, i.e., the synapse type could be retrieved
+    # If the signal comes from a synapse recorder,
     # and if we did not plot a synapse recording yet
-    if "synapse_type" in signal.annotations.keys() and not has_plotted_synapse:
+    if name_device == "synapse_recorder" and not has_plotted_synapse:
         synapse_type = signal.annotations["synapse_type"]
         out_filename = (
-            "simulation-results/"
-            + name_device
-            + "_"
-            + str(cell_id)
-            + "_"
-            + synapse_type
-            + ".png"
+            f"simulation-results/{name_device}_{str(cell_id)}_{synapse_type}.png"
         )
         has_plotted_synapse = True
-    # If the signal comes from a voltage recorder, i.e., the synapse type could not be retrieved
+    # If the signal comes from a voltage recorder,
     # and if we did not plot a neuron recording yet
-    elif "synapse_type" not in signal.annotations.keys() and not has_plotted_neuron:
-        out_filename = (
-            "simulation-results/" + name_device + "_" + str(cell_id) + ".png"
-        )  # Name of the plot file
+    elif name_device == "vrecorder" and not has_plotted_neuron:
+        out_filename = f"simulation-results/{name_device}_{str(cell_id)}.png"
         has_plotted_neuron = True
     # If we plotted both types of recording, we exit the loop
     elif has_plotted_neuron and has_plotted_neuron:
@@ -51,5 +41,4 @@ for signal in block.analogsignals:
     plt.xlabel(f"Time ({signal.times.units.dimensionality.string})")
     plt.ylabel(f"{signal.units.dimensionality.string}")
     plt.plot(sim_time, signal.magnitude)
-    plt.savefig(out_filename)
-    plt.close()
+    plt.savefig(out_filename, dpi=200)

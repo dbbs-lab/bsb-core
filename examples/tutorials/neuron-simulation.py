@@ -59,47 +59,53 @@ config.simulations.add(
     resolution=0.025,
     duration=100,
     temperature=32,
-    cell_models=dict(
-        stellate_cell=dict(model="Stellate.definitionStellate", parameters=[])
+)
+config.simulations["neuronsim"].cell_models = dict(
+    stellate_cell=dict(model="Stellate.definitionStellate", parameters=[])
+)
+config.simulations["neuronsim"].connection_models = dict(
+    stellate_to_stellate=dict(
+        synapses=[
+            {
+                "synapse": "GABA",
+                "weight": 0.001,
+                "delay": 1,
+            }
+        ]
+    )
+)
+config.simulations["neuronsim"].devices = dict(
+    spike_generator=dict(
+        device="spike_generator",
+        start=9,
+        number=1,
+        interval=0,
+        noise=0,
+        delay=1,
+        weight=0.01,
+        targetting={"strategy": "by_id", "ids": {"stellate_cell": [0]}},
+        locations={"strategy": "branch", "labels": ["dendrites"]},
+        synapses=["AMPA", "NMDA"],
     ),
-    connection_models=dict(
-        stellate_to_stellate=dict(
-            synapses=[{"synapse": "GABA", "weight": 0.001, "delay": 1}]
-        )
+    vrecorder=dict(
+        device="voltage_recorder",
+        targetting={
+            "strategy": "sphere",
+            "radius": 100,
+            "origin": [50, 100, 150],
+            "cell_models": ["stellate_cell"],
+        },
     ),
-    devices=dict(
-        spike_generator=dict(
-            device="spike_generator",
-            start=9,
-            number=1,
-            interval=0,
-            noise=0,
-            delay=1,
-            weight=0.01,
-            targetting={"strategy": "by_id", "ids": {"stellate_cell": [0]}},
-            locations={"strategy": "branch", "labels": ["dendrites"]},
-            synapses=["AMPA", "NMDA"],
-        ),
-        vrecorder=dict(
-            device="voltage_recorder",
-            targetting={
-                "strategy": "sphere",
-                "radius": 100,
-                "origin": [50, 100, 150],
-                "cell_models": ["stellate_cell"],
-            },
-        ),
-        synapses_rec=dict(
-            device="synapse_recorder",
-            synapse_types=["AMPA", "NMDA"],
-            targetting={
-                "strategy": "sphere",
-                "radius": 100,
-                "origin": [50, 100, 150],
-                "cell_models": ["stellate_cell"],
-            },
-            locations={"strategy": "branch", "labels": ["dendrites"]},
-        ),
+    synapses_rec=dict(
+        device="synapse_recorder",
+        synapse_types=["AMPA", "NMDA"],
+        targetting={
+            "strategy": "sphere",
+            "radius": 100,
+            "origin": [50, 100, 150],
+            "cell_models": ["stellate_cell"],
+        },
+        locations={"strategy": "branch", "labels": ["dendrites"]},
     ),
 )
 

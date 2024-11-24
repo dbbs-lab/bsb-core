@@ -1,7 +1,9 @@
 from neo import io
 
+# Read simulation data
 my_file_name = "simulation-results/NAME_OF_YOUR_NEO_FILE.nio"
-block = io.NixIO(my_file_name, mode="ro").read_all_blocks()[0]
+sim = io.NixIO(my_file_name, mode="ro")
+block = sim.read_all_blocks()[0]
 segment = block.segments[0]
 my_spiketrains = segment.spiketrains
 
@@ -18,4 +20,4 @@ for i, spike_t in enumerate(my_spiketrains):  # Iterate over all spike trains
     ax[i].set_ylabel(f"Neuron ID")
     ax[i].set_title(f"Spikes from {name}")
 plt.tight_layout()
-plt.show()
+plt.savefig("simulation-results/raster_plot.png", dpi=200)

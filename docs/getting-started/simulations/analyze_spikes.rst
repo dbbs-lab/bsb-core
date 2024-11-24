@@ -22,7 +22,7 @@ your ``simulation-results/NAME_OF_YOUR_NEO_FILE.nio`` file, use the following co
 
 .. literalinclude:: /../examples/tutorials/analyze_spike_results.py
     :language: python
-    :lines: 1-6
+    :lines: 1-8
 
 In our case, we have only one ``block`` of data since we only ran one simulation. We also have a
 unique ``segment`` since all our data is recorded with the same time frame (see
@@ -38,10 +38,11 @@ annotations attribute:
 
 .. literalinclude:: /../examples/tutorials/analyze_spike_results.py
     :language: python
-    :lines: 8-21
+    :lines: 10-23
 
 This code should produce one figure with 3 subplots showing the raster plot of spiking activity
-for each device created in the simulation.
+for each device created in the simulation. The resulting figure is saved in the
+``simulation-results`` folder.
 
 Various analyses can be perform on spiking data, and several tools facilitate these.
 If you want to learn more about spike analysis, we recommend the

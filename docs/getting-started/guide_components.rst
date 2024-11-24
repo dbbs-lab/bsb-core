@@ -29,8 +29,8 @@ their `Partition` following a probability ``distribution`` along a certain ``axi
 The ``distribution`` should be a density function that produces random numbers, according
 to the distance along the ``axis`` to the border of the Partition.
 
-In short, we want to give more probability for the cells ``A`` within the ``base_layer``
-to be placed closer to the border with the ``top_layer``.
+Here, we want to control the distribution of the cells ``A`` within the ``base_layer``
+with respect to the border with the ``top_layer``.
 
 .. rubric:: Connectivity
 
@@ -104,8 +104,8 @@ to create your class configuration attributes.
 At this stage, you have created 2 python class with minimal code implementation, you should
 now link it to your configuration file.
 
-Adding configuration attributes
--------------------------------
+Add configuration attributes
+----------------------------
 
 For each of our strategy, we need to pass a list of parameters to their respective class,
 through our configuration file.

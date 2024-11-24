@@ -41,6 +41,8 @@ Configuration of the simulation
 In this tutorial, we assume that you have successfully reconstructed a network with BSB.
 We will now guide you through the process of configuring a simulation with BSB for your network.
 
+We want here to put the circuit reconstructed in a steady state with a low basal activity.
+
 Let's start by configuring the global simulation parameters.
 These include the :guilabel:`simulator` to be used; in our example, we are setting it to
 use NEST.
@@ -275,7 +277,7 @@ Final configuration file
 
   .. literalinclude:: /../examples/tutorials/nest-simulation.py
     :language: python
-    :lines: 1-44
+    :lines: 1-45
 
 
 Running the Simulation
@@ -311,13 +313,13 @@ You can now run your simulation:
 
   .. code-block:: bash
 
-    bsb simulate my_network.hdf5 basal_activity -o simulation-results
+    bsb simulate network.hdf5 basal_activity -o simulation-results
 
   .. code-block:: python
 
         from bsb import from_storage
 
-        scaffold = from_storage("my_network.hdf5")
+        scaffold = from_storage("network.hdf5")
         result = scaffold.run_simulation("basal_activity")
         result.write("simulation-results/basal_activity.nio", "ow")
 
@@ -328,6 +330,8 @@ The results of the simulation will be stored in the ``"simulation-results"`` fol
 
 For more detailed information about simulation modules,
 please refer to the :doc:`simulation section </simulation/intro>`.
+
+Congratulations, you simulated your first BSB reconstructed network with NEST!
 
 .. rubric:: Next steps:
 

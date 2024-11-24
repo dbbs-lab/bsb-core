@@ -64,6 +64,13 @@ Then, the configuration should be compiled:
 
 Now we have to configure the simulation block.
 
+Configuration of the simulation
+===============================
+
+We want here to see the postsynaptic response of our cells upon receiving an
+excitatory input. Each cell will receive one spike on their dendrites and
+we will check its effect on the postsynaptic current.
+
 Let's start by configuring the global simulation parameters: first of all,
 define a :guilabel:`simulator`; in our example, we are setting it to
 use NEURON.
@@ -107,7 +114,7 @@ the ion channel mechanisms are in the attribute :guilabel:`cable_types`.
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
-      :lines: 62-64
+      :lines: 63-65
 
 Connection Models
 -----------------
@@ -129,7 +136,7 @@ model file: :guilabel:`GABA`.
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
-      :lines: 65-69
+      :lines: 66-76
 
 To each synapse is assigned a :guilabel:`weight` of 0.001 and a :guilabel:`delay` (ms) of 1.
 
@@ -149,24 +156,24 @@ devices (see the targetting section on :doc:`this page </simulation/intro>` for 
 
     .. literalinclude:: /getting-started/configs/guide-neuron.json
       :language: json
-      :lines: 87-129
+      :lines: 87-127
 
     .. literalinclude:: /../examples/tutorials/neuron-simulation.py
       :language: python
-      :lines: 70-104
+      :lines: 77-110
 
 In this example, a :guilabel:`spike_generator` is used to produce ``1`` spike (attribute
 :guilabel:`number`) at ``9`` ms and send it to the cell with ID ``0`` (using the
 :guilabel:`targetting`) after ``1`` ms of delay and a :guilabel:`weight` of ``0.01``.
-The stimulus targets the ``AMPA`` and ``NMDA`` synapses located on the ``dendrites`` of the cell.
+The stimulus targets the ``AMPA`` and ``NMDA`` (excitatory) synapses located on the ``dendrites``
+of the cell.
 
 The membrane potential is recorded using a :guilabel:`voltage_recorder`, which collects the
 signal from within a ``100`` µm radius sphere at the center of the circuit. Hence, not all cells
 might be recorded.
 
-Synapse activity is monitored with a :guilabel:`synapse_recorder`
-for the :guilabel:`AMPA` and :guilabel:`NMDA` synapses on the cell's dendrites, within the same
-spherical region. Here too, not all synapses might be recorded.
+Synapse activity is monitored with a :guilabel:`synapse_recorder` for all the synaptic types on
+the cell's dendrites, within the same spherical region. Here too, not all synapses might be recorded.
 
 Final configuration file
 ------------------------
@@ -194,7 +201,7 @@ So, you need to update your file, using either the ``reconfigure`` command or th
 
   .. code-block:: bash
 
-    bsb reconfigure my_network.hdf5 network_configuration.json
+    bsb reconfigure my_network.hdf5 neuron-simulation.json
 
   .. code-block:: python
 
@@ -230,6 +237,8 @@ The results of the simulation will be stored in the ``"simulation-results"`` fol
 
 For more detailed information about simulation modules,
 please refer to the :doc:`simulation section </simulation/intro>`.
+
+Congratulations, you simulated your first BSB reconstructed network with NEURON!
 
 .. rubric:: Next steps:
 

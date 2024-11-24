@@ -25,7 +25,7 @@ your ``simulation-results/NAME_OF_YOUR_NEO_FILE.nio`` file, use the following co
 
 .. literalinclude:: /../examples/tutorials/analyze_analog_results.py
     :language: python
-    :lines: 1-7
+    :lines: 1-8
 
 If you followed the previous simulation example, the :guilabel:`analogsignals` attribute in the block
 should contain a list of all measured signals: the membrane potential recorded by the
@@ -37,9 +37,9 @@ Additional information is available through the annotations attribute.
 
 .. literalinclude:: /../examples/tutorials/analyze_analog_results.py
     :language: python
-    :lines: 10-49
+    :lines: 10-44
 
-This code generates 2 plots: one for an analog signal recorded at the synapse and one for the membrane
+This code generates 2 plots: one for a postsynaptic synapse and one for the membrane
 potential. The resulting figures are saved in the ``simulation-results`` folder.
 
 Here are some example of the figures that are produced:

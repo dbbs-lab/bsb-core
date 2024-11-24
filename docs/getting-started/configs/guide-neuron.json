@@ -89,10 +89,8 @@
               "device": "spike_generator",
               "start": 9,
               "number": 1,
-              "interval": 0,
-              "noise" : 0,
-              "delay": 1,
               "weight": 0.01,
+              "delay": 1,
               "targetting": {
                 "strategy": "by_id",
                 "ids": {"stellate_cell": [0]}
@@ -114,14 +112,14 @@
         },
         "synapses_rec":{
           "device": "synapse_recorder",
-          "synapse_types": ["AMPA", "NMDA"],
+          "synapse_types": ["AMPA", "NMDA", "GABA"],
           "targetting": {
             "strategy": "sphere",
             "radius" : 100,
             "origin" : [50, 100, 150],
             "cell_models" : ["stellate_cell"]
           },
-         "locations":{
+          "locations":{
             "strategy": "branch",
             "labels": ["dendrites"]
           }
