@@ -188,11 +188,11 @@ you can specify which parts of the morphologies should create contacts (e.g, den
       "strategy": "bsb.connectivity.VoxelIntersection",
       "presynaptic": {
         "cell_types": ["base_type"],
-        "morphology_labels": ["dendrites"]
+        "morphology_labels": ["axon"]
       },
       "postsynaptic": {
           "cell_types": ["top_type"],
-          "morphology_labels": ["axon"]
+          "morphology_labels": ["dendrites"]
       }
     }
   }

@@ -16,7 +16,7 @@ for signal in my_signals:
     cell_id = signal.annotations["cell_id"]  # Retrieve the cell ID
     # If the signal comes from a synapse recorder,
     # and if we did not plot a synapse recording yet
-    if name_device == "synapse_recorder" and not has_plotted_synapse:
+    if name_device == "synapses_rec" and not has_plotted_synapse:
         synapse_type = signal.annotations["synapse_type"]
         out_filename = (
             f"simulation-results/{name_device}_{str(cell_id)}_{synapse_type}.png"
@@ -28,7 +28,7 @@ for signal in my_signals:
         out_filename = f"simulation-results/{name_device}_{str(cell_id)}.png"
         has_plotted_neuron = True
     # If we plotted both types of recording, we exit the loop
-    elif has_plotted_neuron and has_plotted_neuron:
+    elif has_plotted_neuron and has_plotted_synapse:
         break
     # We still have some plotting to do
     else:

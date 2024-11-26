@@ -8,6 +8,6 @@ Getting Started
   top-level-guide
   getting-started_reconstruction
   basics
-  simulations/toc_multi_comp
   simulations/toc_point_neurons
+  simulations/toc_multi_comp
   guide_components
