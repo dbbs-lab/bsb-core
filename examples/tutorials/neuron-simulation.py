@@ -7,7 +7,7 @@ config = Configuration.default(storage={"engine": "hdf5", "root": "my_network.hd
 config.network.x = 100.0
 config.network.y = 200.0
 config.network.z = 300.0
-config.network.chunk_size = [100, 300, 100]
+config.network.chunk_size = [100, 100, 100]
 
 config.partitions.add("stellate_layer", thickness=100)
 
