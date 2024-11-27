@@ -755,6 +755,7 @@ class cfgdict(builtins.dict):
                 f"{self.get_node_name()} already contains '{key}'."
                 + " Use `node[key] = value` if you want to overwrite it."
             )
+        self._config_attr.flag_dirty(self._config_parent)
         self[key] = value = self._elem_type(*args, _parent=self, _key=key, **kwargs)
         return value
 
