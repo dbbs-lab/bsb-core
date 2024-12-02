@@ -1609,6 +1609,29 @@ class TestScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
         Scaffold(cfg, self.storage)
         self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
 
+    def test_updates(self):
+        """Test if tree is updated correctly"""
+        cfg = Configuration.default()
+        cfg.morphologies = ["dummy_neuron.swc"]
+        cfg.simulations.add(
+            "neuronsim",
+            simulator="neuron",
+            resolution=0.025,
+            duration=1,
+            temperature=32,
+            cell_models={},
+            connection_models={},
+            devices={},
+        )
+        cfg_dict = cfg.__tree__()
+        self.assertEqual(cfg_dict["morphologies"], ["dummy_neuron.swc"])
+        self.assertEqual(cfg_dict["simulations"]["neuronsim"]["simulator"], "neuron")
+        cfg.morphologies = []
+        cfg.simulations.pop("neuronsim")
+        cfg_dict = cfg.__tree__()
+        self.assertEqual(cfg_dict["morphologies"], [])
+        self.assertEqual(cfg_dict["simulations"], {})
+
 
 class TestNodeClass(unittest.TestCase):
     def test_standalone_node_name(self):
