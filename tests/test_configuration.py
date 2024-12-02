@@ -1626,7 +1626,7 @@ class TestScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
         cfg_dict = cfg.__tree__()
         self.assertEqual(cfg_dict["morphologies"], ["dummy_neuron.swc"])
         self.assertIn("brain_region", cfg_dict["regions"])
-        cfg.morphologies = []
+        cfg.morphologies.pop(0)
         cfg.regions.pop("brain_region")
         cfg_dict = cfg.__tree__()
         self.assertEqual(cfg_dict["morphologies"], [])
