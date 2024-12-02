@@ -1613,24 +1613,24 @@ class TestScripting(RandomStorageFixture, unittest.TestCase, engine_name="fs"):
         """Test if tree is updated correctly"""
         cfg = Configuration.default()
         cfg.morphologies = ["dummy_neuron.swc"]
-        cfg.simulations.add(
-            "neuronsim",
-            simulator="neuron",
-            resolution=0.025,
-            duration=1,
-            temperature=32,
-            cell_models={},
-            connection_models={},
-            devices={},
+        cfg.partitions.add("base_layer", thickness=100)
+        cfg.partitions.add("top_layer", thickness=100)
+        cfg.regions.add(
+            "brain_region",
+            type="stack",
+            children=[
+                "base_layer",
+                "top_layer",
+            ],
         )
         cfg_dict = cfg.__tree__()
         self.assertEqual(cfg_dict["morphologies"], ["dummy_neuron.swc"])
-        self.assertEqual(cfg_dict["simulations"]["neuronsim"]["simulator"], "neuron")
+        self.assertIn("brain_region", cfg_dict["regions"])
         cfg.morphologies = []
-        cfg.simulations.pop("neuronsim")
+        cfg.regions.pop("brain_region")
         cfg_dict = cfg.__tree__()
         self.assertEqual(cfg_dict["morphologies"], [])
-        self.assertEqual(cfg_dict["simulations"], {})
+        self.assertEqual(cfg_dict["regions"], {})
 
 
 class TestNodeClass(unittest.TestCase):
