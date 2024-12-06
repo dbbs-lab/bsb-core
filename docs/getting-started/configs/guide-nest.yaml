@@ -43,7 +43,7 @@ placement:
     - top_layer
 connectivity:
   A_to_B:
-    strategy: bsb.connectivity.VoxelIntersection
+    strategy: bsb.connectivity.AllToAll
     presynaptic:
       cell_types:
       - base_type
