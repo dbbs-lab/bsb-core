@@ -21,7 +21,11 @@ Description of the strategy to implement
 We want here to implement a distribution placement strategy: cells will be placed within
 their `Partition` following a probability ``distribution`` along a certain ``axis`` and
 ``direction``. For instance, let us use the
-:doc:`alpha random distribution <scipy:reference/generated/scipy.stats.alpha>`.
+:doc:`alpha random distribution <scipy:reference/generated/scipy.stats.alpha>`:
+
+.. figure:: /images/plot_alpha.png
+  :figwidth: 90%
+
 The ``distribution`` should be a density function that produces random numbers, according
 to the distance along the ``axis`` from a border of the Partition.
 

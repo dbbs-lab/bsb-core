@@ -42,7 +42,12 @@ annotations attribute:
 
 This code should produce one figure with 3 subplots showing the raster plot of spiking activity
 for each device created in the simulation. The resulting figure is saved in the
-``simulation-results`` folder.
+``simulation-results`` folder. The plot for the base type cells should show some spike events:
+
+.. figure:: /images/raster_base_types.png
+  :figwidth: 90%
+
+These events indicates that some cells are receiving more spikes from the generator.
 
 Various analyses can be perform on spiking data, and several tools facilitate these.
 If you want to learn more about spike analysis, we recommend the
