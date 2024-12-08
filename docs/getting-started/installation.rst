@@ -77,6 +77,17 @@ To then install the BSB with parallel MPI support:
 
   pip install bsb[parallel]
 
+You can run any bsb command or python scripts with MPI with the ``mpirun`` command,
+specifying the number of core to allocate:
+
+.. code-block:: bash
+
+    # run the BSB reconstruction with 5 cores
+    mpirun -n 5 bsb compile my-config.json -v 3
+
+    # run a python script in parallel with 4 cores
+    mpirun -n 4 python my-script.py
+
 Simulator backends
 ==================
 

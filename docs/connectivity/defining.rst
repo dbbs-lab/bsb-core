@@ -93,7 +93,7 @@ This snippet would connect only the cells of ``type_A`` that are labelled with e
 Specifying subcellular regions using morphology labels
 ======================================================
 
-You can also specify which regions on a morphology you're interested in connecting. By
+You can also specify which regions on a morphology you are interested in connecting. By
 default axodendritic contacts are enabled, but by specifying different :guilabel:`morphology_labels`
 you can alter this behavior. This example lets you form dendrodendritic contacts:
 

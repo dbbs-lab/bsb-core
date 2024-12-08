@@ -22,7 +22,9 @@ If you need to create an issue on Github, please provide as much context as poss
 
 Fork and create a Pull Request
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you are not part of the BSB maintainers, you should fork the bsb repository on your own account to modify the code.
+If you are not part of the BSB maintainers, you should
+`fork <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`_
+the bsb repository on your own account to modify the code.
 If you introduce new features to BSB, please provide the associated documentation (docstrings or general documentation),
 and unittests. We are trying to improve the coverage for both and would appreciate greatly your contribution.
 

@@ -114,7 +114,7 @@ morphology:
   :lines: 8-17
   :language: python
 
-Once you're done with the morphology you can save it again:
+Once you are done with the morphology you can save it again:
 
 .. literalinclude:: ../../examples/morphologies/usage.py
   :lines: 19
@@ -534,7 +534,7 @@ morphology, and returning any other values would be an error.
 
 If you need to break out of the morphologies that were handed to you, morphology
 distributors are also allowed to return their own :class:`~.morphologies.MorphologySet`.
-Since you're free to pass any list of morphology loaders to create a morphology set, you
+Since you are free to pass any list of morphology loaders to create a morphology set, you
 can put and assign any morphology you like.
 
 .. tip::

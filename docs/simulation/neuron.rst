@@ -6,7 +6,7 @@ NEURON is a simulator tool used in the computational neuroscience community to m
 of multicomportamental neurons.
 
 This simulator must be installed as a dependency when installing the `bsb-neuron <https://github.com/dbbs-lab/bsb-neuron>`_
-package. If you're installing NEURON separately, please refer to the official installation
+package. If you are installing NEURON separately, please refer to the official installation
 `documentation <https://nrn.readthedocs.io/en/8.2.6/install/install.html>`_ for guidance.
 
 The simulation block contains all the necessary components to run the simulation.

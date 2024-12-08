@@ -166,9 +166,9 @@ After the configuration has been cast all nodes are visited to check if they are
 reference and if so the value from elsewhere in the configuration is retrieved. The
 original string from the configuration is also stored in ``node.<ref>_reference``.
 
-After the configuration is loaded it's possible to either give a new reference key
+After the configuration is loaded it is possible to either give a new reference key
 (usually a string) or a new reference value. In most cases the configuration will
-automatically detect what you're passing into the reference:
+automatically detect what you are passing into the reference:
 
 .. code-block::
 

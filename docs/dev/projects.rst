@@ -64,33 +64,3 @@ For each file to link, you need to provide a list of 3 parameters:
   Links in ``tools.bsb.links`` are active for all models in your project! It's better to
   specify them on a per model basis using the ``tools.bsb.links."my_model_name.hdf5"``
   section.
-
-
-.. rubric:: Next steps:
-
-.. grid:: 1 1 1 2
-    :gutter: 1
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Make custom components
-       :link: components
-       :link-type: ref
-
-       Learn how to write your own components to e.g. place or connect cells.
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Command-Line Interface
-       :link: cli-guide
-       :link-type: ref
-
-       Familiarize yourself with BSB's CLI.
-
-    .. grid-item-card:: :octicon:`gear;1em;sd-text-warning` Learn about components
-       :link: main-components
-       :link-type: ref
-
-       Explore more about the main components.
-
-    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
-        :link: examples
-        :link-type: ref
-
-        Explore more advanced examples
