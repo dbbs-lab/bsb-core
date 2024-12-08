@@ -397,7 +397,7 @@ class SubTree:
     @property
     def branch_adjacency(self):
         """
-        Return a dictonary containing mapping the id of the branch to its children.
+        Return a dictionary containing mapping the id of the branch to its children.
         """
         idmap = {b: n for n, b in enumerate(self.branches)}
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
@@ -529,7 +529,9 @@ class SubTree:
 
     def rotate(self, rotation, center=None):
         """
-        Point rotation
+        Rotate the entire Subtree with respect to the center.
+        The rotation angles are assumed to be in degrees.
+        If the center is not provided, the Subtree will rotate from [0, 0, 0].
 
         :param rotation: Scipy rotation
         :type rotation: Union[scipy.spatial.transform.Rotation, List[float,float,float]]

@@ -82,7 +82,7 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
 
 @config.node
 class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
-    _url = "https://neuromorpho.org/"
+    _url = "http://cng.gmu.edu:8080/neuroMorpho/"  # "https://neuromorpho.org/"
     _meta = "api/neuron/select?q=neuron_name:"
     _files = "dableFiles/"
 

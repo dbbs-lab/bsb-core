@@ -1,3 +1,6 @@
+Connectivity
+============
+
 .. toctree::
    :maxdepth: 2
    :caption: Connectivity
@@ -6,3 +9,4 @@
    component
    connection-strategies
    geometric
+   connectivity-set
