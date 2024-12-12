@@ -157,16 +157,3 @@ jobs:
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-
-  deploy_ebrains:
-    runs-on: ubuntu-latest
-    needs: release
-    environment: EBRAINS
-    steps:
-      - name: Mirror to EBRAINS Gitlab
-        uses: wei/git-sync@v3
-        with:
-          source_repo: dbbs-lab/bsb-core
-          source_branch: main
-          destination_repo: https://push:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/robinde/bsb-core.git
-          destination_branch: main
