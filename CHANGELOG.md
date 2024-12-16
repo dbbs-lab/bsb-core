@@ -1,3 +1,11 @@
+## [v4.5.4] - 2024-12-16
+### :bug: Bug Fixes
+- [`516dc63`](https://github.com/dbbs-lab/bsb-core/commit/516dc631afcb77dbbc3c90c770af20b2f129e6d9) - Update configuration to store whenever an attribute is set *(PR [#900](https://github.com/dbbs-lab/bsb-core/pull/900) by [@filimarc](https://github.com/filimarc))*
+  - :arrow_lower_right: *fixes issue [#899](https://github.com/dbbs-lab/bsb-core/issues/899) opened by [@drodarie](https://github.com/drodarie)*
+- [`5799cf8`](https://github.com/dbbs-lab/bsb-core/commit/5799cf848944207cbf21d7183b75c78f678bbb38) - postprocessing *(PR [#901](https://github.com/dbbs-lab/bsb-core/pull/901) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#887](https://github.com/dbbs-lab/bsb-core/issues/887) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v4.5.3] - 2024-10-29
 ### :bug: Bug Fixes
 - [`0dac469`](https://github.com/dbbs-lab/bsb-core/commit/0dac46937c26a078b8b92864321919d8ed2ccac7) - mpi comm *(PR [#896](https://github.com/dbbs-lab/bsb-core/pull/896) by [@drodarie](https://github.com/drodarie))*
@@ -480,3 +488,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.5.1]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.0...v4.5.1
 [v4.5.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.1...v4.5.2
 [v4.5.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.2...v4.5.3
+[v4.5.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.3...v4.5.4

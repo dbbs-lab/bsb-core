@@ -664,6 +664,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def __set__(self, instance, value, _key=None):
         _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
+        self.flag_dirty(instance)
 
     def __populate__(self, instance, value, unique_list=False):
         cfglist = _getattr(instance, self.attr_name)
@@ -755,6 +756,7 @@ class cfgdict(builtins.dict):
                 f"{self.get_node_name()} already contains '{key}'."
                 + " Use `node[key] = value` if you want to overwrite it."
             )
+        self._config_attr.flag_dirty(self._config_parent)
         self[key] = value = self._elem_type(*args, _parent=self, _key=key, **kwargs)
         return value
 
