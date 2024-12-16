@@ -19,6 +19,7 @@ from typing import Type
 
 from .. import plugins
 from ..exceptions import UnknownStorageEngineError
+from ..services import MPILock
 from ..services.mpi import MPIService
 
 if typing.TYPE_CHECKING:
@@ -389,7 +390,7 @@ def open_storage(root, comm=None):
     """
     engines = get_engines()
     for name, engine in engines.items():
-        if engine.peek_exists(root) and engine.recognizes(root, MPIService(comm)):
+        if engine.peek_exists(root) and engine.recognizes(root, MPILock.sync(comm)):
             return Storage(name, root, comm, missing_ok=False)
     else:
         for name, engine in engines.items():
