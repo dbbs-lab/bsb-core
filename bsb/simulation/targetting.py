@@ -64,9 +64,7 @@ class CellTypeFilter:
     only_local: bool = config.attr(type=bool, default=True)
 
     def get_targets(self, adapter, simulation, simdata):
-        chunks = simdata.chunks
-        if not self.only_local:
-            chunks = None
+        chunks = simdata.chunks if self.only_local else None
         return {
             cell_name: cell_type.get_placement_set(chunks=chunks)
             for cell_name, cell_type in simulation.scaffold.cell_types.items()
