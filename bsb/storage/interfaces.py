@@ -114,8 +114,9 @@ class Engine(Interface):
         """
         pass
 
+    @staticmethod
     @abc.abstractmethod
-    def recognizes(self, root):
+    def recognizes(root, comm):
         """
         Must return whether the given argument is recognized as a valid storage object.
         """
