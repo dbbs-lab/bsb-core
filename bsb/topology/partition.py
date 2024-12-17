@@ -18,7 +18,6 @@ from ..exceptions import (
     ConfigurationError,
     LayoutError,
     NodeNotFoundError,
-    RequirementError,
 )
 from ..storage._chunks import Chunk
 from ..storage._files import NrrdDependencyNode
@@ -109,6 +108,19 @@ class Partition(abc.ABC):
         :rtype: bsb.voxels.VoxelSet
         """
         pass
+
+    def to_voxels(self):
+        """
+        Voxelize the partition's occupation.
+        """
+
+        chunk_size = self.scaffold.network.chunk_size
+        return VoxelSet.concatenate(
+            *(
+                self.chunk_to_voxels(Chunk(chunk, chunk_size))
+                for chunk in self.to_chunks(chunk_size)
+            )
+        )
 
     @abc.abstractmethod
     def rotate(self, rotation):  # pragma: nocover

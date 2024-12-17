@@ -2,6 +2,16 @@
 Partitions
 ##########
 
+Partitions contain shape descriptions used to define the spatial layout of the network.
+These descriptions can be represented as layers, meshes and voxelsets.
+In the BSB the following two partitions are implemented:
+
+* :ref:`Rhomboid  <rhomboid-partition>`
+* :ref:`Layers  <layer-partition>`
+* :ref:`Voxelized volumes <voxel-partition>`.
+
+.. _rhomboid-partition:
+
 ========
 Rhomboid
 ========
@@ -17,6 +27,7 @@ Parameters
 * ``origin``: Coordinate of the origin of the partition.
 * ``can_move``: Boolean flag to authorize the translation of the partition.
 
+.. _layer-partition:
 
 =====
 Layer
@@ -48,7 +59,7 @@ Voxels
 :class:`Voxel partitions <.topology.partition.Voxels>` are an irregular shape in space,
 described by a group of rhomboids, called a :class:`~.voxels.VoxelSet`. Most brain atlases
 scan the brain in a 3D grid and publish their data in the same way, usually in the `Nearly
-Raw Raster Data format, NRRD <https://pynrrd.readthedocs.io/en/latest/user-guide.html>`_.
+Raw Raster Data format, NRRD <https://pynrrd.readthedocs.io/en/stable/>`_.
 In general, whenever you have a voxelized 3D image, a ``Voxels`` partition will help you
 define the shapes contained within.
 

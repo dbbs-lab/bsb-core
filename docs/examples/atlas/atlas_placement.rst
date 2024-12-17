@@ -22,7 +22,7 @@ the CCFv3 mouse brain annotation atlas volume from the Allen Institute website.
 Use :guilabel:`mask_source` to provide your own nrrd annotation volume.
 
 The :guilabel:`struct_name` refers to the Allen mouse brain region acronym or name.
-You can also replace that with :guilabel:`struct_id`, if you're using the numeric identifiers.
+You can also replace that with :guilabel:`struct_id`, if you are using the numeric identifiers.
 You can find the ids, acronyms and names in the Allen Brain Atlas brain region hierarchy file.
 
 If we now place our ``my_cell`` in the ``declive``, it will be placed with a fixed
