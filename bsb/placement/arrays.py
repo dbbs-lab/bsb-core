@@ -23,7 +23,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
     """Angle between the second axis and the axis of the rows of cells"""
 
     def boot(self):
-        if self.angle % (np.pi / 2) == 0:
+        if self.angle % (np.pi) == np.pi / 2:
             raise ConfigurationError(
                 f"Parallel array angle should be not a multiple of pi/2 for '{self.name}'. Provided angle: {self.angle}"
             )
