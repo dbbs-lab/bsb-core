@@ -1,3 +1,8 @@
+## [v4.5.5] - 2024-12-17
+### :bug: Bug Fixes
+- [`e65bdd6`](https://github.com/dbbs-lab/bsb-core/commit/e65bdd6367c1e2547cb519143ccccb593963dad4) - parallel arrays *(PR [#903](https://github.com/dbbs-lab/bsb-core/pull/903) by [@drodarie](https://github.com/drodarie))*
+
+
 ## [v4.5.4] - 2024-12-16
 ### :bug: Bug Fixes
 - [`516dc63`](https://github.com/dbbs-lab/bsb-core/commit/516dc631afcb77dbbc3c90c770af20b2f129e6d9) - Update configuration to store whenever an attribute is set *(PR [#900](https://github.com/dbbs-lab/bsb-core/pull/900) by [@filimarc](https://github.com/filimarc))*
@@ -489,3 +494,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.5.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.1...v4.5.2
 [v4.5.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.2...v4.5.3
 [v4.5.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.3...v4.5.4
+[v4.5.5]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.4...v4.5.5
