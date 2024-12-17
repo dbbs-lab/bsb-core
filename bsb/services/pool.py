@@ -540,9 +540,9 @@ class JobPool:
     _pool_owners = {}
     _tmp_folders = {}
 
-    def __init__(self, scaffold, fail_fast=False, workflow: "Workflow" = None):
+    def __init__(self, id, scaffold, fail_fast=False, workflow: "Workflow" = None):
         self._schedulers: list[concurrent.futures.Future] = []
-        self.id: int = None
+        self.id: int = id
         self._scaffold = scaffold
         self._comm = scaffold._comm
         self._unhandled_errors = []
@@ -563,8 +563,6 @@ class JobPool:
         self._context = ExitStack()
         tmp_dirname = self._context.enter_context(tempfile.TemporaryDirectory())
 
-        self.id = JobPool._next_pool_id
-        JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = self._scaffold
         JobPool._pools[self.id] = self
         JobPool._tmp_folders[self.id] = tmp_dirname

@@ -114,10 +114,15 @@ class Engine(Interface):
         """
         pass
 
+    @staticmethod
     @abc.abstractmethod
-    def recognizes(self, root):
+    def recognizes(root, lock):
         """
-        Must return whether the given argument is recognized as a valid storage object.
+        Must return whether the given root argument is recognized as a valid storage object.
+
+        :param root: The unique identifier for the storage
+        :param lock: Window to synchronize read write operations across
+          all MPI processes in the communicator.
         """
         pass
 

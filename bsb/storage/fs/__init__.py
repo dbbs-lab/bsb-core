@@ -29,8 +29,8 @@ class FileSystemEngine(Engine):
         path = Path(self._root) / "versions.txt"
         return json.loads(path.read_text())
 
-    @classmethod
-    def recognizes(cls, root):
+    @staticmethod
+    def recognizes(root, lock):
         try:
             return os.path.exists(root) and os.path.isdir(root)
         except Exception:
