@@ -387,8 +387,7 @@ class Scaffold:
                 report("Clearing data", level=2)
                 # Clear the placement and connectivity data, but leave any cached files
                 # and morphologies intact.
-                self.clear_placement()
-                self.clear_connectivity()
+                self.clear()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
