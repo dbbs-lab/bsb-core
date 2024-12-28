@@ -390,7 +390,7 @@ def open_storage(root, comm=None):
     """
     engines = get_engines()
     for name, engine in engines.items():
-        if engine.peek_exists(root) and engine.recognizes(root, MPILock.sync(comm)):
+        if engine.peek_exists(root) and engine.recognizes(root, comm):
             return Storage(name, root, comm, missing_ok=False)
     else:
         for name, engine in engines.items():

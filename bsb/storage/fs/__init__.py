@@ -30,7 +30,7 @@ class FileSystemEngine(Engine):
         return json.loads(path.read_text())
 
     @staticmethod
-    def recognizes(root, lock):
+    def recognizes(root, comm):
         try:
             return os.path.exists(root) and os.path.isdir(root)
         except Exception:

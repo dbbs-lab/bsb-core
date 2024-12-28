@@ -116,13 +116,13 @@ class Engine(Interface):
 
     @staticmethod
     @abc.abstractmethod
-    def recognizes(root, lock):
+    def recognizes(root, comm):
         """
         Must return whether the given root argument is recognized as a valid storage object.
 
         :param root: The unique identifier for the storage
-        :param lock: Window to synchronize read write operations across
-          all MPI processes in the communicator.
+        :param mpi4py.MPI.Comm comm: MPI communicator that shares control
+          over the Storage.
         """
         pass
 
