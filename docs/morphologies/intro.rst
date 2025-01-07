@@ -378,6 +378,8 @@ passed around in the framework as :class:`StoredMorphologies
 :class:`~.morphologies.Morphology` object from storage and a
 :meth:`~.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
 
+.. _morphology_selector:
+
 Morphology selectors
 --------------------
 

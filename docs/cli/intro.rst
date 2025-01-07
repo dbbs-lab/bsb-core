@@ -4,7 +4,6 @@
 Introduction
 ############
 
-The command line interface is composed of a collection of pluggable commands.
 Open up your favorite terminal and enter the ``bsb --help`` command
 to verify you correctly installed the software.
 

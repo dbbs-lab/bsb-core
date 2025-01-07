@@ -11,8 +11,8 @@ If you want to read a step by step tutorial on how to make your own component, c
 :doc:`page </getting-started/guide_components>`
 
 For each component, the BSB provides interfaces, each with a set of functions that you must
-implement. By implementing these functions are present, the framework can seamlessly integrate
-your custom components.
+implement. By implementing these functions, the framework can seamlessly integrate your
+custom components.
 
 Here is how you do it (theoretically):
 

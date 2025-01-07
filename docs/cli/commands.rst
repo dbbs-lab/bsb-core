@@ -27,7 +27,7 @@ project settings.
 * ``quickstart``: Generates an exemplary project with basic config that can be compiled.
 * ``exists``: With this flag, it is not an error for the ``parent-folder`` to exist.
 * ``json``: With this flag, the configuration file will be written in the JSON format
-  instead of YAML format used by default.
+  instead of the default YAML format.
 
 .. _bsb_make_config:
 

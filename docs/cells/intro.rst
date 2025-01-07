@@ -16,7 +16,7 @@ represented by **cell models**.
 .. rubric:: Basic configuration
 
 The :guilabel:`radius` and :guilabel:`density` are the 2 most basic :doc:`placement
-indications </placement/placement-indicators>`, they specify how large and dense the cells in the population generally are.
+indications </placement/placement-indicators>`: they specify how large and dense the cells in the population generally are.
 The :guilabel:`plotting` block allows you to specify formatting details.
 
 .. tab-set-code::
@@ -47,7 +47,7 @@ The :guilabel:`plotting` block allows you to specify formatting details.
 
 .. rubric:: Specifying spatial density
 
-You can set the spatial distribution for each cell type present in a
+You can set the spatial distribution for each cell type present in an
 :ref:`NrrdVoxels <voxel-partition>` partition.
 
 To do so, you should first attach your nrrd volumetric density file(s) to the partition with either
@@ -111,25 +111,25 @@ in the :guilabel:`cell_types` with :guilabel:`density_key`:
         )
 
         config.cell_types.add(
-        "first_cell_type",
-        spatial=dict(radius=10, density_key="first_cell_type_density")
-        plotting=dict(display_name="First Cell Type", color="pink",opacity="1.0")
+            "first_cell_type",
+            spatial=dict(radius=10, density_key="first_cell_type_density")
+            plotting=dict(display_name="First Cell Type", color="pink",opacity="1.0")
         )
         config.cell_types.add(
-        "second_cell_type",
-        spatial=dict(radius=10, density_key="second_cell_type_density")
-        plotting=dict(display_name="First Cell Type", color="#0000FF",opacity="0.5")
+            "second_cell_type",
+            spatial=dict(radius=10, density_key="second_cell_type_density")
+            plotting=dict(display_name="First Cell Type", color="#0000FF",opacity="0.5")
         )
 
-The nrrd files should contain voxel based volumetric density in unit of cells / voxel volume,
+The NRRD files should contain voxel based volumetric density in unit of cells / voxel volume,
 where the voxel volume is in cubic unit of :guilabel:`voxel_size`.
 i.e., if :guilabel:`voxel_size` is in µm then the density file is in cells/µm^3.
 
 .. rubric:: Specifying morphologies
 
 
-To associate a cell type with a specific morphology, add the desired morphology to the cells by referencing
-the corresponding name stored in the :doc:`morphology repository </morphologies/repository>`.
+The easiest way to associate a morphology to a cell type is by referencing the name it is stored under.
+There are more advanced ways as well, covered in our guide on :ref:`Morphology Selectors <morphology_selector>` .
 
 .. tab-set-code::
 
