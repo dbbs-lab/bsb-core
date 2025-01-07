@@ -71,10 +71,10 @@ You can use your project to create reconstructions of your model, generating cel
 and connections:
 
 ```
-bsb compile -p
+bsb compile
 ```
 
-This creates a [network file](bsb.readthedocs.io/getting-started/networks.html) and plots the network.
+This creates a network file.
 
 ### Simulating a network
 

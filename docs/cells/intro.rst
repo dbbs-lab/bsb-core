@@ -48,7 +48,7 @@ The :guilabel:`plotting` block allows you to specify formatting details.
 .. rubric:: Specifying spatial density
 
 You can set the spatial distribution for each cell type present in a
-:ref:`NrrdVoxels <bsb:voxel-partition>` partition.
+:ref:`NrrdVoxels <voxel-partition>` partition.
 
 To do so, you should first attach your nrrd volumetric density file(s) to the partition with either
 the :guilabel:`source` or :guilabel:`sources` blocks.

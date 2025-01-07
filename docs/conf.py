@@ -79,7 +79,6 @@ intersphinx_mapping = {
     "mpi4py": ("https://mpi4py.readthedocs.io/en/stable/", None),
     "arbor": ("https://docs.arbor-sim.org/en/latest/", None),
     "neo": ("https://neo.readthedocs.io/en/latest/", None),
-    "bsb": ("https://bsb.readthedocs.io/en/latest", None),
 }
 
 # Add any paths that contain templates here, relative to this directory.

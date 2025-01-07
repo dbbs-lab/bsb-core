@@ -207,7 +207,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
             for name, sim in extra_simulations.items():
                 if name not in network.simulations and name == sim_name:
                     network.simulations[sim_name] = sim
-        root = pathlib.Path(getattr(context.arguments, "output_folder", "./"))
+        root = pathlib.Path(getattr(context.arguments, "output-folder", "./"))
         if not root.is_dir() or not os.access(root, os.W_OK):
             return report(
                 f"Output provided '{root.absolute()}' is not an existing directory with write access.",
@@ -231,7 +231,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
     def add_parser_arguments(self, parser):
         parser.add_argument("network")
         parser.add_argument("simulation")
-        parser.add_argument("-o", "--output_folder")
+        parser.add_argument("-o", "--output-folder")
 
 
 class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
