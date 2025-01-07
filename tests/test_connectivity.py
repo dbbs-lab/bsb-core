@@ -639,7 +639,7 @@ class TestVoxelIntersection(
         conns = len(self.network.get_connectivity_set("intersect"))
         self.assertGreater(conns, 0, "no connections formed")
         self.network.connectivity.intersect.contacts = 2
-        self.network.compile(clear=True)
+        self.network.compile(redo=True)
         new_conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(conns * 2, new_conns, "Expected double contacts")
 
@@ -651,7 +651,7 @@ class TestVoxelIntersection(
         conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(0, conns, "expected no contacts")
         self.network.connectivity.intersect.contacts = -3
-        self.network.compile(clear=True)
+        self.network.compile(redo=True)
         conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(0, conns, "expected no contacts")
 

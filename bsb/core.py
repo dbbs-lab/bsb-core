@@ -1,6 +1,7 @@
 import itertools
 import os
 import sys
+import time
 import typing
 
 import numpy as np
@@ -201,8 +202,6 @@ class Scaffold:
         # Then, `storage` is initialized for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
         self.storage = storage
-        # Synchronize the JobPool static variable so that each core use the same ids.
-        JobPool._next_pool_id = self._comm.bcast(JobPool._next_pool_id, root=0)
 
     storage_cfg = _config_property("storage")
     for attr in _cfg_props:
@@ -388,8 +387,7 @@ class Scaffold:
                 report("Clearing data", level=2)
                 # Clear the placement and connectivity data, but leave any cached files
                 # and morphologies intact.
-                self.clear_placement()
-                self.clear_connectivity()
+                self.clear()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
@@ -791,8 +789,9 @@ class Scaffold:
         return cs
 
     def create_job_pool(self, fail_fast=None, quiet=False):
+        id_pool = self._comm.bcast(int(time.time()), root=0)
         pool = JobPool(
-            self, fail_fast=fail_fast, workflow=getattr(self, "_workflow", None)
+            id_pool, self, fail_fast=fail_fast, workflow=getattr(self, "_workflow", None)
         )
         try:
             # Check whether stdout is a TTY, and that it is larger than 0x0
