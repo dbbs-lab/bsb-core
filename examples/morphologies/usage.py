@@ -1,3 +1,5 @@
+import numpy as np
+
 from bsb import from_storage
 
 # Load the morphology
@@ -13,7 +15,7 @@ special_branch.label(["axon", "special"])
 first_quarter = np.arange(len(special_branch)) < len(special_branch) / 4
 special_branch.label(["initial_segment"], first_quarter)
 # Assign random data as the `random_data` property to the branch
-special_branch.set_property(random_data=np.random.random(len(special_branch)))
+special_branch.set_properties(random_data=np.random.random(len(special_branch)))
 print(f"Random data for each point:", special_branch.random_data)
 
 network.morphologies.save("processed_morphology", morpho)

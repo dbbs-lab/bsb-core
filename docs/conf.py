@@ -79,6 +79,7 @@ intersphinx_mapping = {
     "mpi4py": ("https://mpi4py.readthedocs.io/en/stable/", None),
     "arbor": ("https://docs.arbor-sim.org/en/latest/", None),
     "neo": ("https://neo.readthedocs.io/en/latest/", None),
+    "bsb": ("https://bsb.readthedocs.io/en/latest", None),
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -91,9 +92,6 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "getting-started/labels.rst",
-    "getting-started/blender.rst",
-    "getting-started/layer.rst",
 ]
 
 autoclass_content = "both"

@@ -76,7 +76,14 @@ def get_config_path():
     return [*itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values())]
 
 
-def copy_configuration_template(template, output="network_configuration.json", path=None):
+def get_configuration_template(template, path=None):
+    """
+    Returns the configuration template files matching the provided name.
+
+    :param str template: name of the configuration template
+    :param list path: list of paths to search for configuration templates
+    :rtype: List[str]
+    """
     path = [
         *map(
             os.path.abspath,
@@ -90,7 +97,19 @@ def copy_configuration_template(template, output="network_configuration.json", p
         raise ConfigTemplateNotFoundError(
             "'%template%' not found in config path %path%", template, path
         )
-    copy_file(files[0], output)
+    return files
+
+
+def copy_configuration_template(template, output="network_configuration.json", path=None):
+    """
+    Copy the first configuration template file matching the provided name to the provided
+    output filename.
+
+    :param str template: name of the configuration template
+    :param str output: name of the output file
+    :param list path: list of paths to search for configuration templates
+    """
+    copy_file(get_configuration_template(template, path)[0], output)
 
 
 def format_configuration_content(parser_name: str, config: "Configuration", **kwargs):

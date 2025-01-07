@@ -575,6 +575,24 @@ class Scaffold:
         """
         return [cell_type.get_placement_set() for cell_type in self.cell_types.values()]
 
+    def connect_cells(self, pre_set, post_set, src_locs, dest_locs, name):
+        """
+        Connect cells from a presynaptic placement set to cells of a postsynaptic placement set,
+        and into a connectivity set.
+        The description of the hemitype (source or target cell population) connection location
+        is stored as a list of 3 ids: the cell index (in the placement set), morphology branch
+        index, and the morphology branch section index.
+        If no morphology is attached to the hemitype, then the morphology indexes can be set to -1.
+
+        :param bsb.storage.interfaces.PlacementSet pre_set: presynaptic placement set
+        :param bsb.storage.interfaces.PlacementSet post_set: postsynaptic placement set
+        :param List[List[int, int, int]] src_locs: list of the presynaptic `connection location`.
+        :param List[List[int, int, int]] dest_locs: list of the postsynaptic `connection location`.
+        :param str name: Name to give to the `ConnectivitySet`
+        """
+        cs = self.require_connectivity_set(pre_set.cell_type, post_set.cell_type, name)
+        cs.connect(pre_set, post_set, src_locs, dest_locs)
+
     def get_connectivity(
         self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None
     ) -> typing.List["ConnectivitySet"]:
@@ -777,7 +795,7 @@ class Scaffold:
         )
         try:
             # Check whether stdout is a TTY, and that it is larger than 0x0
-            # (e.g. MPI sets it to 0x0 unless an xterm is emulated.
+            # (e.g. MPI sets it to 0x0 unless a xterm is emulated.
             tty = os.isatty(sys.stdout.fileno()) and sum(os.get_terminal_size())
         except Exception:
             tty = False

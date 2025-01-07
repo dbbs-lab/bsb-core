@@ -27,7 +27,13 @@ def _all_chunks(iter_):
 
 
 def _queue_connectivity(self, pool: "JobPool"):
-    # Get the queued jobs of all the strategies we depend on.
+    """Get the queued jobs of all the strategies we depend on.
+
+    Parameters
+    ----------
+    param pool : pool where the jobs will be queued
+    type pool: bsb.services.pool.JobPool
+    """
     deps = set(_gutil.ichain(pool.get_submissions_of(strat) for strat in self.get_deps()))
     # Schedule all chunks in 1 job
     pre_chunks = _all_chunks(self.presynaptic.cell_types)
