@@ -1,3 +1,18 @@
+## [v5.0.0] - 2025-01-07
+### :boom: BREAKING CHANGES
+- due to [`575c9bd`](https://github.com/dbbs-lab/bsb-core/commit/575c9bd7289c47838efd3a5dc0b54105206ac6f5) - mpi hdf5 *(PR [#902](https://github.com/dbbs-lab/bsb-core/pull/902) by [@drodarie](https://github.com/drodarie))*:
+
+  mpi hdf5 (#902)
+
+
+### :bug: Bug Fixes
+- [`553f8b3`](https://github.com/dbbs-lab/bsb-core/commit/553f8b3684f3eada58e5a351ad2005645890c9e6) - bump bsb-hdf5 version *(commit by [@drodarie](https://github.com/drodarie))*
+
+### :recycle: Refactors
+- [`575c9bd`](https://github.com/dbbs-lab/bsb-core/commit/575c9bd7289c47838efd3a5dc0b54105206ac6f5) - mpi hdf5 *(PR [#902](https://github.com/dbbs-lab/bsb-core/pull/902) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *addresses issue [#893](https://github.com/dbbs-lab/bsb-core/issues/893) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v4.5.5] - 2024-12-17
 ### :bug: Bug Fixes
 - [`e65bdd6`](https://github.com/dbbs-lab/bsb-core/commit/e65bdd6367c1e2547cb519143ccccb593963dad4) - parallel arrays *(PR [#903](https://github.com/dbbs-lab/bsb-core/pull/903) by [@drodarie](https://github.com/drodarie))*
@@ -495,3 +510,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.5.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.2...v4.5.3
 [v4.5.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.3...v4.5.4
 [v4.5.5]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.4...v4.5.5
+[v5.0.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.5...v5.0.0
