@@ -27,7 +27,9 @@ class Distribution:
     distribution: str = config.attr(
         type=types.in_(_available_distributions), required=True
     )
+    """Name of the scipy.stats distribution function"""
     parameters: dict[str, typing.Any] = config.catch_all(type=types.any_())
+    """parameters to pass to the distribution"""
 
     def __init__(self, **kwargs):
         if self.distribution == "constant":
@@ -42,7 +44,35 @@ class Distribution:
             )
 
     def draw(self, n):
+        """Draw n random samples from the distribution"""
         return self._distr.rvs(size=n)
+
+    def definition_interval(self, epsilon=0):
+        """
+        Returns the `epsilon` and 1 - `epsilon` values of
+        the distribution Percent point function.
+
+        :param float epsilon: ratio of the interval to ignore
+        """
+        if epsilon < 0 or epsilon > 1:
+            raise ValueError("Epsilon must be between 0 and 1")
+        return self._distr.ppf(epsilon), self._distr.ppf(1 - epsilon)
+
+    def cdf(self, value):
+        """
+        Returns the result of the cumulative distribution function for `value`
+
+        :param float value: value to evaluate
+        """
+        return self._distr.cdf(value)
+
+    def sf(self, value):
+        """
+        Returns the result of the Survival function for `value`
+
+        :param float value: value to evaluate
+        """
+        return self._distr.sf(value)
 
     def __getattr__(self, attr):
         if "_distr" not in self.__dict__:

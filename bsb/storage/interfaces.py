@@ -372,9 +372,10 @@ class PlacementSet(Interface):
 
     @abc.abstractmethod
     def __init__(self, engine, cell_type):
-        self._engine = engine
+        super().__init__(engine)
         self._type = cell_type
         self._tag = cell_type.name
+        self._morphology_labels = None
 
     @abc.abstractmethod
     def __len__(self):
@@ -444,7 +445,7 @@ class PlacementSet(Interface):
         pass
 
     @classmethod
-    def require(cls, engine, type):
+    def require(cls, engine, cell_type):
         """
         Return and create a placement set, if it didn't exist before.
 
@@ -459,9 +460,9 @@ class PlacementSet(Interface):
         :returns: A placement set
         :rtype: bsb.storage.interfaces.PlacementSet
         """
-        if not cls.exists(engine, type):
-            cls.create(engine, type)
-        return cls(engine, type)
+        if not cls.exists(engine, cell_type):
+            cls.create(engine, cell_type)
+        return cls(engine, cell_type)
 
     @abc.abstractmethod
     def clear(self, chunks=None):
@@ -531,10 +532,6 @@ class PlacementSet(Interface):
 
     @abc.abstractmethod
     def __iter__(self):
-        pass
-
-    @abc.abstractmethod
-    def __len__(self):
         pass
 
     @abc.abstractmethod
@@ -636,10 +633,8 @@ class PlacementSet(Interface):
     @abc.abstractmethod
     def get_labelled(self, labels):
         """
-        Should return the cells labelled with given labels.
+        Should return the ids of the cells labelled with given labels.
 
-        :param cells: Array of cells in this set to label.
-        :type cells: numpy.ndarray
         :param labels: List of labels
         :type labels: list[str]
         """
@@ -650,8 +645,6 @@ class PlacementSet(Interface):
         """
         Should return a mask that fits the placement set for the cells with given labels.
 
-        :param cells: Array of cells in this set to label.
-        :type cells: numpy.ndarray
         :param labels: List of labels
         :type labels: list[str]
         """
@@ -739,7 +732,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
     @abc.abstractmethod
     def all(self):
         """
-        Fetch all of the stored morphologies.
+        Fetch all the stored morphologies.
 
         :returns: List of the stored morphologies.
         :rtype: List[~bsb.storage.interfaces.StoredMorphology]
