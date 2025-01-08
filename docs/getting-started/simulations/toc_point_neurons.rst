@@ -1,4 +1,4 @@
-Guides on Point-neurons simulation
+Guides on Point-neuron simulations
 ==================================
 
 .. toctree::

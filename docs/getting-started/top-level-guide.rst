@@ -63,7 +63,10 @@ simulate the network. The ones that you will probably employ the most are:
   (and attach :guilabel:`Morphologies` when needed),
 * :guilabel:`Placement` places cells,
 * :guilabel:`Connectivity` connect cells,
-* :guilabel:`Simulation` simulates the resulting network.
+* :guilabel:`Simulation` simulates the resulting network. Each simulation consists of:
+    * :guilabel:`Cell Models` describe how to simulate a cell.
+    * :guilabel:`Connection Models` describe how to simulate cellular connections such as synapses and gap junctions.
+    * :guilabel:`Devices` describe the experimental setup by ways of input stimuli, recording devices, LFP probes, etc.
 
 Assembled together these components form a linear workflow that will build your network from scratch.
 
