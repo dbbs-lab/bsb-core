@@ -15,11 +15,13 @@ import urllib.request as _ur
 
 import certifi as _cert
 import nrrd as _nrrd
+import numpy as np
 import requests as _rq
+from scipy.spatial.transform import Rotation
 from voxcell import VoxelData
 
 from .. import config
-from .._util import obj_str_insert
+from .._util import obj_str_insert, rotation_matrix_from_vectors
 from ..config import types
 from ..config._attrs import cfglist
 from ..morphologies.parsers import MorphologyParser
@@ -491,6 +493,30 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
     Configuration dependency node to load NRRD files.
     """
 
+    space_origin = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, 0.0, 0.0]),
+        call_default=True,
+        type=types.ndarray(),
+    )
+    """Origin point for the datasets."""
+    default_vector = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, -1.0, 0.0]),
+        call_default=True,
+        type=types.ndarray(),
+    )
+    """Default orientation vector of each position."""
+
+    @config.property(type=int)
+    def voxel_size(self):
+        """Size of each voxel."""
+        return self._voxel_size if self._voxel_size is not None else 25
+
+    @voxel_size.setter
+    def voxel_size(self, value):
+        self._voxel_size = value
+
     def get_header(self):
         with self.file.provide_locally() as (path, encoding):
             return _nrrd.read_header(path)
@@ -501,6 +527,88 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
     def load_object(self):
         return self.pipe(self.get_data())
+
+    def crosses_voxel(self, point, last_point):
+        """
+        Check if the distance of one voxel is separating two positions.
+
+        :param numpy.ndarray point: starting position
+        :param numpy.ndarray last_point: ending position
+        :return: True if position are separated by at least one voxel.
+        :rtype: bool
+        """
+        return np.any(np.absolute(point - last_point) >= self.voxel_size)
+
+    def voxel_of(self, point):
+        """
+        Convert a 3D float position into a voxel based coordinate.
+
+        :param numpy.ndarray point: floating point
+        :return: 3D voxel coordinate
+        :rtype: numpy.ndarray
+        """
+        return np.asarray(
+            np.floor((point - self.space_origin) / self.voxel_size),
+            dtype=int,
+        )
+
+    @staticmethod
+    def is_within(vox, dataset):
+        """
+        Check if a voxel location is within a dataset's dimension, based on its shape.
+
+        :param numpy.ndarray vox: 3D position of the voxel
+        :param numpy.ndarray dataset: array to test
+        :return: True if vox is within the dataset.
+        :rtype: bool
+        """
+        return (
+            np.all(vox >= 0)
+            * (vox[0] < dataset.shape[0])
+            * (vox[1] < dataset.shape[1])
+            * (vox[2] < dataset.shape[2])
+        )
+
+    def voxel_data_of(self, point, dataset):
+        """
+        Retrieve voxel information from a dataset.
+
+        :param numpy.ndarray point: floating point
+        :param numpy.ndarray dataset: 3D numpy dataset
+        :return: data stored at the point position.
+        """
+        vox = self.voxel_of(point)
+        if self.is_within(vox, dataset):
+            return dataset[vox[0], vox[1], vox[2]]
+
+    def voxel_orient(self, orientation_field, point):
+        """
+        Retrieve the orientation vector at a point location
+
+        :param numpy.ndarray orientation_field: brain orientation field
+        :param numpy.ndarray point: floating position
+        :return: 3D orientation vector.
+        :rtype: numpy.ndarray
+        """
+        loc_orient = self.voxel_data_of(point, orientation_field)
+        if np.all(np.linalg.norm(loc_orient) == 0) or np.isnan(loc_orient).any():
+            raise ValueError("No value for the provided location.")
+        return loc_orient
+
+    def voxel_rotation_of(self, orientation_field, point):
+        """
+        Retrieve the rotation to apply at a certain location to orient a point towards
+        the orientation field.
+
+        :param numpy.ndarray orientation_field: brain orientation field
+        :param numpy.ndarray point: floating position
+        :return: Rotation to apply to the point to match the orientation field.
+        :rtype: scipy.spatial.transform.Rotation
+        """
+        loc_orient = self.voxel_orient(orientation_field, point)
+        return Rotation.from_matrix(
+            rotation_matrix_from_vectors(self.default_vector, -loc_orient)
+        )
 
 
 class MorphologyOperationCallable(OperationCallable):

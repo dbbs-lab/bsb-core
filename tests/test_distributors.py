@@ -118,8 +118,9 @@ class TestVolumetricRotations(
             partitions=dict(
                 a=dict(
                     type="nrrd",
-                    source=get_data_path("orientations", "toy_annotations.nrrd"),
-                    voxel_size=25,
+                    sources=dict(
+                        annotations=get_data_path("orientations", "toy_annotations.nrrd")
+                    ),
                 )
             ),
             cell_types=dict(a=dict(spatial=dict(radius=2, density=1e-4))),

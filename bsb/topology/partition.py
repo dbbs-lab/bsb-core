@@ -9,10 +9,8 @@ import typing
 
 import nrrd
 import numpy as np
-from scipy.spatial.transform import Rotation
 from voxcell import RegionMap, VoxelData
 
-from bsb._util import rotation_matrix_from_vectors
 from bsb.config._attrs import cfgdict, cfglist
 
 from .. import config
@@ -22,7 +20,6 @@ from ..exceptions import (
     ConfigurationError,
     LayoutError,
     NodeNotFoundError,
-    RequirementError,
 )
 from ..storage._chunks import Chunk
 from ..storage._files import NrrdDependencyNode
@@ -354,34 +351,21 @@ class Voxels(Partition, abc.ABC, classmap_entry=None):
 @config.node
 class NrrdVoxels(Voxels, classmap_entry="nrrd"):
     """
-    Voxel partition whose voxelset is loaded from an NRRD file. By default it includes all the
+    Voxel partition whose voxelset is loaded from a NRRD files. By default, it includes all the
     nonzero voxels in the file, but other masking conditions can be specified. Additionally, data
     can be associated to each voxel by inclusion of (multiple) source NRRD files.
     """
 
-    source: NrrdDependencyNode = config.attr(
-        type=NrrdDependencyNode,
-        required=types.mut_excl("source", "sources", required=False),
-    )
-    """Path to the NRRD file containing volumetric data to associate with the partition.
-    If source is set, then sources should not be set."""
-    sources: cfglist[NrrdDependencyNode] = config.list(
-        type=NrrdDependencyNode,
-        required=types.mut_excl("source", "sources", required=False),
-    )
-    """List of paths to NRRD files containing volumetric data to associate with the Partition.
-    If sources is set, then source should not be set."""
+    mask_source: NrrdDependencyNode = config.attr(type=NrrdDependencyNode)
+    """Path to the NRRD file containing the volumetric annotation data of the Partition."""
     mask_value: int = config.attr(type=int)
     """Integer value to filter in mask_source (if it is set, otherwise sources/source) to create a 
     mask of the voxel set(s) used as input."""
-    mask_source: NrrdDependencyNode = config.attr(type=NrrdDependencyNode)
-    """Path to the NRRD file containing the volumetric annotation data of the Partition."""
-    mask_only: bool = config.attr(type=bool, default=False)
-    """Flag to indicate no voxel data needs to be stored"""
-    voxel_size: int = config.attr(type=int, required=True)
-    """Size of each voxel."""
-    keys: list[str] = config.attr(type=types.list(str))
-    """List of names to assign to each source of the Partition."""
+    sources: cfgdict[str, NrrdDependencyNode] = config.dict(
+        type=NrrdDependencyNode, required=False
+    )
+    """List of paths to NRRD files containing volumetric data to associate with the Partition.
+    If sources is set, then source should not be set."""
     sparse: bool = config.attr(type=bool, default=True)
     """
     Boolean flag to expect a sparse or dense mask. If the mask selects most
@@ -391,6 +375,18 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
     """Boolean flag to check the sources and the mask sizes. 
     When the flag is True, sources and mask should have exactly the same sizes;
     otherwise, sources sizes should be greater than mask sizes."""
+
+    @config.property(type=bool)
+    def mask_only(self):
+        """Flag to indicate no voxel data needs to be stored"""
+        return len(self.sources) == 0
+
+    @property
+    def voxel_size(self):
+        """Size of each voxel."""
+        if self._mask_src is None:
+            self._validate()
+        return self._mask_src[0].voxel_size
 
     def get_mask(self):
         """
@@ -438,7 +434,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
             np.transpose(mask),
             self.voxel_size,
             data=voxel_data,
-            data_keys=self.keys,
+            data_keys=list(self.sources.keys()),
         )
 
     def _validate(self):
@@ -448,10 +444,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         return shape
 
     def _validate_sources(self):
-        if self.source is not None:
-            self._src = [self.source]
-        else:
-            self._src = self.sources.copy()
+        self._src = list(self.sources.values()).copy()
         if self.mask_source is not None:
             self._mask_src = [self.mask_source]
         else:
@@ -515,37 +508,6 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     """Name or acronym of the region to filter within the annotation volume according to the AMBRH.
     If struct_name is set, then struct_id should not be set."""
 
-    space_origin = config.attr(
-        required=False,
-        default=lambda: np.array([0.0, 0.0, 0.0]),
-        call_default=True,
-        type=types.ndarray(),
-    )
-    """Origin point for the datasets."""
-    default_vector = config.attr(
-        required=False,
-        default=lambda: np.array([0.0, -1.0, 0.0]),
-        call_default=True,
-        type=types.ndarray(),
-    )
-    """Default orientation vector of each position."""
-    atlas_datasets: cfgdict[str, NrrdDependencyNode] = config.dict(
-        required=False, type=NrrdDependencyNode
-    )
-
-    @config.property(type=int)
-    def voxel_size(self):
-        """Size of each voxel."""
-        return self._voxel_size if self._voxel_size is not None else 25
-
-    @voxel_size.setter
-    def voxel_size(self, value):
-        self._voxel_size = value
-
-    @config.property(type=bool)
-    def mask_only(self):
-        return self.source is None and len(self.sources) == 0
-
     @config.property(type=str)
     @functools.cache
     def mask_source(self):
@@ -599,23 +561,6 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         :rtype: voxcell.voxel_data.VoxelData
         """
         return self.mask_source.load_object()
-
-    @functools.cached_property
-    def datasets(self):
-        """
-        Return a dictionary of VoxelData instances corresponding to the datasets attached
-        to the annotations.
-
-        :rtype: dict[str, :class:`voxcell.voxel_data.VoxelData`]
-        """
-        return {k: v.load_object() for k, v in self.atlas_datasets.items()}
-
-    def boot(self):
-        for k, v in self.datasets.items():
-            if np.any(np.array(v.raw.shape[:3]) != np.array(self.annotations.shape)):
-                raise ConfigurationError(
-                    f"Shape of dataset {k} does not match the shape of the annotations."
-                )
 
     @classmethod
     def get_structure_mask_condition(cls, find):
@@ -686,88 +631,6 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         # has an id that is part of the structure.
         id = self.struct_id if self.struct_id is not None else self.struct_name
         self._mask_cond = self.get_structure_mask_condition(id)
-
-    def crosses_voxel(self, point, last_point):
-        """
-        Check if the distance of one voxel is separating two positions.
-
-        :param numpy.ndarray point: starting position
-        :param numpy.ndarray last_point: ending position
-        :return: True if position are separated by at least one voxel.
-        :rtype: bool
-        """
-        return np.any(np.absolute(point - last_point) >= self.voxel_size)
-
-    def voxel_of(self, point):
-        """
-        Convert a 3D float position into a voxel based coordinate.
-
-        :param numpy.ndarray point: floating point
-        :return: 3D voxel coordinate
-        :rtype: numpy.ndarray
-        """
-        return np.asarray(
-            np.floor((point - self.space_origin) / self.voxel_size),
-            dtype=int,
-        )
-
-    @staticmethod
-    def is_within(vox, dataset):
-        """
-        Check if a voxel location is within a dataset's dimension, based on its shape.
-
-        :param numpy.ndarray vox: 3D position of the voxel
-        :param numpy.ndarray dataset: array to test
-        :return: True if vox is within the dataset.
-        :rtype: bool
-        """
-        return (
-            np.all(vox >= 0)
-            * (vox[0] < dataset.shape[0])
-            * (vox[1] < dataset.shape[1])
-            * (vox[2] < dataset.shape[2])
-        )
-
-    def voxel_data_of(self, point, dataset):
-        """
-        Retrieve voxel information from a dataset.
-
-        :param numpy.ndarray point: floating point
-        :param numpy.ndarray dataset: 3D numpy dataset
-        :return: data stored at the point position.
-        """
-        vox = self.voxel_of(point)
-        if self.is_within(vox, dataset):
-            return dataset[vox[0], vox[1], vox[2]]
-
-    def voxel_orient(self, orientation_field, point):
-        """
-        Retrieve the orientation vector at a point location
-
-        :param numpy.ndarray orientation_field: brain orientation field
-        :param numpy.ndarray point: floating position
-        :return: 3D orientation vector.
-        :rtype: numpy.ndarray
-        """
-        loc_orient = self.voxel_data_of(point, orientation_field)
-        if np.all(np.linalg.norm(loc_orient) == 0) or np.isnan(loc_orient).any():
-            raise ValueError("No value for the provided location.")
-        return loc_orient
-
-    def voxel_rotation_of(self, orientation_field, point):
-        """
-        Retrieve the rotation to apply at a certain location to orient a point towards
-        the orientation field.
-
-        :param numpy.ndarray orientation_field: brain orientation field
-        :param numpy.ndarray point: floating position
-        :return: Rotation to apply to the point to match the orientation field.
-        :rtype: scipy.spatial.transform.Rotation
-        """
-        loc_orient = self.voxel_orient(orientation_field, point)
-        return Rotation.from_matrix(
-            rotation_matrix_from_vectors(self.default_vector, -loc_orient)
-        )
 
 
 def _safe_hread(s):
