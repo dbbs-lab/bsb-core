@@ -20,7 +20,7 @@ A typical workflow of the BSB works as follows:
 1. The user provides a configuration that describes the network they want to reconstruct
    and simulate.
 
-   It is interpreted by BSB as a list of tasks to perform.
+   It is interpreted by the BSB as a series of tasks to perform.
 2. The BSB creates the topology of the network (i.e., its shape and size).
 3. The BSB places cells within the network, following a defined strategy.
 4. The BSB connects the aforementioned cells according to connectivity rules.
@@ -55,7 +55,7 @@ storage object full of neuroscience.
 
 To do so, the configuration leverages configurable objects to describe the underlying neural network,
 called **components**. Components define which methods and parameters should be used to reconstruct and
-simulate the network. The ones that you would probably employ the most are:
+simulate the network. The ones that you will probably employ the most are:
 
 * :guilabel:`Topology` defines the shape and volume of your network,
   (it is composed of :guilabel:`Regions` and :guilabel:`Partitions`),
@@ -63,7 +63,10 @@ simulate the network. The ones that you would probably employ the most are:
   (and attach :guilabel:`Morphologies` when needed),
 * :guilabel:`Placement` places cells,
 * :guilabel:`Connectivity` connect cells,
-* :guilabel:`Simulation` simulates the resulting network.
+* :guilabel:`Simulation` simulates the resulting network. Each simulation consists of:
+    * :guilabel:`Cell Models` describe how to simulate a cell.
+    * :guilabel:`Connection Models` describe how to simulate cellular connections such as synapses and gap junctions.
+    * :guilabel:`Devices` describe the experimental setup by ways of input stimuli, recording devices, LFP probes, etc.
 
 Assembled together these components form a linear workflow that will build your network from scratch.
 
@@ -78,9 +81,18 @@ Configuration
 =============
 
 The ``Configuration`` object is organized as a hierarchical tree.
-From the root, the main blocks branch off, consisting of nine main components: :guilabel:`network`,
-:guilabel:`storage`, :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`morphologies`, :guilabel:`cell_types`,
-:guilabel:`placement`, :guilabel:`connectivity`, and :guilabel:`simulation`.
+From the root, the main blocks branch off, consisting of nine main components:
+
+* :guilabel:`network`
+* :guilabel:`storage`
+* :guilabel:`regions`
+* :guilabel:`partitions`
+* :guilabel:`morphologies`
+* :guilabel:`cell_types`
+* :guilabel:`placement`
+* :guilabel:`connectivity`
+* :guilabel:`simulation`
+
 These blocks contain nested sub-blocks that form the network.
 Additionally, there are two optional components: :guilabel:`after_placement` and :guilabel:`after_connectivity`,
 where users can define specific hooks to run within the workflow.
@@ -96,7 +108,7 @@ All these components will be described in more detail in the following sections.
 
 The configuration object contains only the description of the model, not its implementation (python code)
 nor its data (stored in the storage object).
-It can therefore be stored in a separate file (usually Json or Yaml) that can be easily interpreted by BSB.
+It can therefore be stored in a separate file (usually Json or Yaml) that can be easily interpreted by the BSB.
 
 What is next?
 =============

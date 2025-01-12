@@ -168,7 +168,7 @@ class ConnectionStrategy(abc.ABC, HasDependencies):
         Central method of each connection strategy. Given a pair of
         ``HemitypeCollection`` (one for each connection side), should connect
         cell population using the scaffold's (available as ``self.scaffold``)
-        :func:`~bsb.core.Scaffold.connect_cells` method.
+        :meth:`bsb.core.Scaffold.connect_cells` method.
 
         :param bsb.connectivity.strategy.HemitypeCollection presyn_collection:
           presynaptic filtered cell population.

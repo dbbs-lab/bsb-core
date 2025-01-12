@@ -29,7 +29,7 @@ class Distribution:
     )
     """Name of the scipy.stats distribution function"""
     parameters: dict[str, typing.Any] = config.catch_all(type=types.any_())
-    """parameters to pass to the distribution"""
+    """Parameters to pass to the distribution"""
 
     def __init__(self, **kwargs):
         if self.distribution == "constant":

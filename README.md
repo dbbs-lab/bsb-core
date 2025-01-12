@@ -8,7 +8,7 @@
 # BSB: A component framework for neural modelling
 
 Developed by the Department of Brain and Behavioral Sciences at the University of Pavia,
-the BSB is a component framework for neural modelling, which focusses on component
+the BSB is a component framework for neural modelling, which focuses on component
 declarations to piece together a model. The component declarations can be made in any
 supported configuration language, or using the library functions in Python. It offers
 parallel reconstruction and simulation of any network topology, placement and/or
@@ -29,7 +29,7 @@ pip install "bsb"
 ```
 
 Advanced users looking to control install an unconventional combination of plugins might
-be better of installing just this package, and the desired plugins:
+be better off installing just this package, and the desired plugins:
 
 ```
 pip install "bsb-core"
@@ -65,20 +65,28 @@ bsb new my_model --quickstart
 cd my_model
 ```
 
+This will create a `my_model` folder for you with some starter files. It should contain:
+
+- `network_configuration.yaml`: A configuration file in which your network will be described.
+- A `pyproject.toml` file: This file uses the TOML syntax to set configuration values for the BSB.
+- A `placement.py` and `connectome.py` files if you want to make your own components.
+
 ### Reconstructing a network
 
-You can use your project to create reconstructions of your model, generating cell positions
+Within your project folder, you can create reconstructions of your model, generating cell positions
 and connections:
 
 ```
-bsb compile -p
+bsb compile
 ```
 
-This creates a [network file](bsb.readthedocs.io/getting-started/networks.html) and plots the network.
+The `compile` command should produce a network file located in your project
+folder based on your configuration file.
 
 ### Simulating a network
 
-The default project currently contains no simulation config.
+The starter project contains no simulation configuration but the documentation provides tutorials
+for the neural simulators supported by the BSB.
 
 # Contributing
 

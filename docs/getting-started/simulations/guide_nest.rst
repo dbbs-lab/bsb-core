@@ -326,7 +326,7 @@ You can now run your simulation:
 The results of the simulation will be stored in the ``"simulation-results"`` folder.
 
 .. note::
-    If you run the simulation with the command line interface, the name of the output nio file is randomized by BSB.
+    If you run the simulation with the command line interface, the name of the output nio file is randomized by the BSB.
 
 For more detailed information about simulation modules,
 please refer to the :doc:`simulation section </simulation/intro>`.

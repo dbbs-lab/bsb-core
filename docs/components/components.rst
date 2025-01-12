@@ -10,10 +10,9 @@ out of the box components for basic operations, but often you'll need to write y
 If you want to read a step by step tutorial on how to make your own component, check this
 :doc:`page </getting-started/guide_components>`
 
-For each component, BSB provides interfaces, each with a set of functions that you must
-implement. If these functions are present, the framework knows how to use your class.
-
-Hence, the framework allows you to plug in user code pretty much anywhere. Neat.
+For each component, the BSB provides interfaces, each with a set of functions that you must
+implement. By implementing these functions, the framework can seamlessly integrate your
+custom components into a BSB workflow. Neat!
 
 Here is how you do it (theoretically):
 

@@ -27,11 +27,10 @@ def _all_chunks(iter_):
 
 
 def _queue_connectivity(self, pool: "JobPool"):
-    """Get the queued jobs of all the strategies we depend on.
+    """
+    Get the queued jobs of all the strategies we depend on.
 
-    Parameters
-    ----------
-    param pool : pool where the jobs will be queued
+    param pool: pool where the jobs will be queued
     type pool: bsb.services.pool.JobPool
     """
     deps = set(_gutil.ichain(pool.get_submissions_of(strat) for strat in self.get_deps()))
