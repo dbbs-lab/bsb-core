@@ -1,3 +1,8 @@
+## [v5.0.1] - 2025-01-12
+### :bug: Bug Fixes
+- [`0fa0711`](https://github.com/dbbs-lab/bsb-core/commit/0fa0711a0ba86ea88f5871347f6679e455d13269) - Implement feedback on new docs *(PR [#905](https://github.com/dbbs-lab/bsb-core/pull/905) by [@drodarie](https://github.com/drodarie))*
+
+
 ## [v5.0.0] - 2025-01-07
 ### :boom: BREAKING CHANGES
 - due to [`575c9bd`](https://github.com/dbbs-lab/bsb-core/commit/575c9bd7289c47838efd3a5dc0b54105206ac6f5) - mpi hdf5 *(PR [#902](https://github.com/dbbs-lab/bsb-core/pull/902) by [@drodarie](https://github.com/drodarie))*:
@@ -511,3 +516,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.5.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.3...v4.5.4
 [v4.5.5]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.4...v4.5.5
 [v5.0.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.5...v5.0.0
+[v5.0.1]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.0...v5.0.1
