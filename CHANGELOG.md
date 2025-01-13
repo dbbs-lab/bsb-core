@@ -1,3 +1,9 @@
+## [v5.0.2] - 2025-01-13
+### :bug: Bug Fixes
+- [`818de95`](https://github.com/dbbs-lab/bsb-core/commit/818de951ecfee9ae288d40044cc7b7a3456e1d44) - CLI bsb simulate command *(PR [#909](https://github.com/dbbs-lab/bsb-core/pull/909) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#908](https://github.com/dbbs-lab/bsb-core/issues/908) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v5.0.1] - 2025-01-12
 ### :bug: Bug Fixes
 - [`0fa0711`](https://github.com/dbbs-lab/bsb-core/commit/0fa0711a0ba86ea88f5871347f6679e455d13269) - Implement feedback on new docs *(PR [#905](https://github.com/dbbs-lab/bsb-core/pull/905) by [@drodarie](https://github.com/drodarie))*
@@ -517,3 +523,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.5.5]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.4...v4.5.5
 [v5.0.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.5...v5.0.0
 [v5.0.1]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.0...v5.0.1
+[v5.0.2]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.1...v5.0.2
