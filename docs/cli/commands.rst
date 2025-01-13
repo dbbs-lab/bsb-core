@@ -114,6 +114,12 @@ Run a simulation from a compiled network architecture.
 * ``path/to/netw.hdf5``: Path to the network file.
 * ``sim-name``: Name of the simulation.
 
+.. rubric:: Flags
+
+* ``-o``, ``--output-folder``: Output the simulation results to an existing folder.
+  If omitted, the current folder is used.
+
+
 .. _bsb_cache:
 
 Check the global cache

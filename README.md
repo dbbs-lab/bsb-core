@@ -98,7 +98,16 @@ Take a look at the [contribution guide](CONTRIBUTING.md)
 This research has received funding from the European Union’s Horizon 2020 Framework
 Program for Research and Innovation under the Specific Grant Agreement No. 945539
 (Human Brain Project SGA3) and Specific Grant Agreement No. 785907 (Human Brain
-Project SGA2) and from Centro Fermi project “Local Neuronal Microcircuits” to ED. We
-acknowledge the use of EBRAINS platform and Fenix Infrastructure resources, which are
+Project SGA2) and from Centro Fermi project “Local Neuronal Microcircuits” to ED. 
+The project is also receiving funding from the Virtual Brain Twin Project under the 
+European Union's Research and Innovation Program Horizon Europe under grant agreement 
+No 101137289. 
+
+We acknowledge the use of EBRAINS platform and Fenix Infrastructure resources, which are
 partially funded from the European Union’s Horizon 2020 research and innovation
-programme through the ICEI project under the grant agreement No. 800858
+programme under the Specific Grant Agreement No. 101147319 (EBRAINS 2.0 Project) and 
+through the ICEI project under the grant agreement No. 800858 respectively.
+
+## Supported by
+
+[![JetBrains logo](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSourceSupport)
