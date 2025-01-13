@@ -207,7 +207,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
             for name, sim in extra_simulations.items():
                 if name not in network.simulations and name == sim_name:
                     network.simulations[sim_name] = sim
-        root = pathlib.Path(getattr(context.arguments, "output-folder", "./"))
+        root = pathlib.Path(getattr(context.arguments, "output_folder", "./"))
         if not root.is_dir() or not os.access(root, os.W_OK):
             return report(
                 f"Output provided '{root.absolute()}' is not an existing directory with write access.",
