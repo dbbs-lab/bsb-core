@@ -3,6 +3,8 @@ Contains builtin commands.
 """
 
 import itertools
+import os
+import pathlib
 from uuid import uuid4
 
 import errr
@@ -12,6 +14,7 @@ from ...config import parse_configuration_file
 from ...core import Scaffold, from_storage
 from ...exceptions import NodeNotFoundError
 from ...option import BsbOption
+from ...reporting import report
 from ...storage import open_storage
 from . import BaseCommand
 
@@ -115,10 +118,10 @@ def _flatten_arr_args(arr):
 
 class MakeConfigCommand(BaseCommand, name="make-config"):
     def handler(self, context):
-        from ...config import copy_template
+        from ...config import copy_configuration_template
 
         args = context.arguments
-        copy_template(args.template, args.output, path=args.path or ())
+        copy_configuration_template(args.template, args.output, path=args.path or ())
 
     def get_options(self):
         return {}
@@ -204,6 +207,12 @@ class BsbSimulate(BaseCommand, name="simulate"):
             for name, sim in extra_simulations.items():
                 if name not in network.simulations and name == sim_name:
                     network.simulations[sim_name] = sim
+        root = pathlib.Path(getattr(context.arguments, "output_folder", "./"))
+        if not root.is_dir() or not os.access(root, os.W_OK):
+            return report(
+                f"Output provided '{root.absolute()}' is not an existing directory with write access.",
+                level=0,
+            )
         try:
             result = network.run_simulation(sim_name)
         except NodeNotFoundError as e:
@@ -211,7 +220,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
             append += ", ".join(f"'{name}'" for name in extra_simulations.keys())
             errr.wrap(type(e), e, append=append)
         else:
-            result.write(getattr(context.arguments, "output", f"{uuid4()}.nio"), "ow")
+            result.write(root / f"{uuid4()}.nio", "ow")
 
     def get_options(self):
         return {
@@ -222,7 +231,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
     def add_parser_arguments(self, parser):
         parser.add_argument("network")
         parser.add_argument("simulation")
-        parser.add_argument("-o", "--output")
+        parser.add_argument("-o", "--output-folder")
 
 
 class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover

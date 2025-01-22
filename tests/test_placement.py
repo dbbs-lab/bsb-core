@@ -12,6 +12,7 @@ from bsb_test import (
 
 from bsb import (
     MPI,
+    BootError,
     CellType,
     Chunk,
     Configuration,
@@ -21,6 +22,7 @@ from bsb import (
     PlacementError,
     PlacementRelationError,
     PlacementStrategy,
+    Rhomboid,
     Scaffold,
     VoxelData,
     Voxels,
@@ -222,6 +224,54 @@ class TestIndicators(
             # voxel density key not found
             dud4_ind.guess(voxels=self.voxels.get_voxelset())
 
+    def test_regression_issue_885(self):
+        # Test placement with count ratio in separated partitions
+        self.network.topology.children.append(
+            part := Rhomboid(
+                name="dud_layer2", origin=[0, 0, 120], dimensions=[200, 200, 80]
+            )
+        )
+        self.network.resize()
+        placement = PlacementDud(
+            name="dud",
+            strategy="PlacementDud",
+            partitions=[part],
+            cell_types=[self.network.cell_types["cell_rel_count"]],
+        )
+        self.network.placement["dud3"] = placement
+        indic = placement.get_indicators()["cell_rel_count"]
+        # the target is 40 * 0.5 distributed in 4 chunks
+        for chunk in part.to_chunks(np.array([100, 100, 100])):
+            self.assertEqual(
+                40 * 0.5 / 4, indic.guess(_chunk(chunk[0], chunk[1], chunk[2]))
+            )
+
+    def test_local_count_ratio(self):
+        # Test placement with local count ratio in overlapping partitions
+        # dud_layer2 overlaps with dud_layer
+        self.network.topology.children[0].thickness = 200.0
+        self.network.topology.children.append(
+            part := Rhomboid(
+                name="dud_layer2", origin=[100, 0, 0], dimensions=[100, 200, 100]
+            )
+        )
+        self.network.resize()
+        self.network.cell_types["cell_rel_count"].spatial.count_ratio = None
+        self.network.cell_types["cell_rel_count"].spatial.local_count_ratio = 2.0
+        placement = PlacementDud(
+            name="dud",
+            strategy="PlacementDud",
+            partitions=[part],
+            cell_types=[self.network.cell_types["cell_rel_count"]],
+        )
+        self.network.placement["dud3"] = placement
+        indic = placement.get_indicators()["cell_rel_count"]
+        # 2 chunks fully overlapping with the 8 from the target
+        for chunk in part.to_chunks(np.array([100, 100, 100])):
+            self.assertEqual(
+                40 / 8 * 2.0, indic.guess(_chunk(chunk[0], chunk[1], chunk[2]))
+            )
+
     def test_negative_guess_count(self):
         self.placement = single_layer_placement(
             self.network, offset=np.array([-300.0, -300.0, -300.0])
@@ -321,6 +371,71 @@ class TestPlacementStrategies(
         pos = ps.load_positions()
         self.assertAll(pos[:, 1] <= cfg.partitions.test_layer.data.mdc[1], "not in layer")
         self.assertAll(pos[:, 1] >= cfg.partitions.test_layer.data.ldc[1], "not in layer")
+
+    def test_packed_arrays(self):
+        cfg = get_test_config("single")
+        network = Scaffold(cfg, self.storage)
+        cfg.placement["test_placement"] = dict(
+            strategy="bsb.placement.ParallelArrayPlacement",
+            cell_types=["test_cell"],
+            partitions=["test_layer"],
+            spacing_x=150,
+            angle=0,
+        )
+        with self.assertRaises(WorkflowError):
+            network.compile(clear=True)
+
+    def test_wrong_angles(self):
+        cfg = get_test_config("single")
+        network = Scaffold(cfg, self.storage)
+        with self.assertRaises(BootError):
+            cfg.placement["test_placement"] = dict(
+                strategy="bsb.placement.ParallelArrayPlacement",
+                cell_types=["test_cell"],
+                partitions=["test_layer"],
+                spacing_x=50,
+                angle=90,
+            )
+        with self.assertRaises(BootError):
+            cfg.placement["test_placement"] = dict(
+                strategy="bsb.placement.ParallelArrayPlacement",
+                cell_types=["test_cell"],
+                partitions=["test_layer"],
+                spacing_x=50,
+                angle=-450,
+            )
+
+    def test_regression_issue_889(self):
+        cfg = Configuration.default(
+            regions={
+                "cerebellar_cortex": {"type": "group", "children": ["purkinje_layer"]}
+            },
+            partitions={
+                "purkinje_layer": {
+                    "type": "rhomboid",
+                    "origin": [100, 100, 0],
+                    "dimensions": [100, 100, 15],
+                }
+            },
+            cell_types={
+                "purkinje_cell": {
+                    "spatial": {"planar_density": 0.00045, "radius": 7.5},
+                }
+            },
+            placement={
+                "purkinje_layer_placement": {
+                    "strategy": "bsb.placement.ParallelArrayPlacement",
+                    "partitions": ["purkinje_layer"],
+                    "cell_types": ["purkinje_cell"],
+                    "spacing_x": 50,
+                    "angle": 0,
+                }
+            },
+        )
+        network = Scaffold(cfg, self.storage)
+        network.compile(clear=True)
+        ps = network.get_placement_set("purkinje_cell")
+        self.assertEqual(4, len(ps), "parallel array placement with offset is broken")
 
 
 class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):

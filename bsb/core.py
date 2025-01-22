@@ -1,6 +1,7 @@
 import itertools
 import os
 import sys
+import time
 import typing
 
 import numpy as np
@@ -17,8 +18,9 @@ from .exceptions import (
 from .placement import PlacementStrategy
 from .profiling import meter
 from .reporting import report
-from .services import MPI, JobPool
+from .services import JobPool
 from .services._pool_listeners import NonTTYTerminalListener, TTYTerminalListener
+from .services.mpi import MPIService
 from .services.pool import Job, Workflow
 from .simulation import get_simulation_adapter
 from .storage import Storage, open_storage
@@ -39,15 +41,17 @@ if typing.TYPE_CHECKING:
 
 
 @meter()
-def from_storage(root):
+def from_storage(root, comm=None):
     """
     Load :class:`.core.Scaffold` from a storage object.
 
     :param root: Root (usually path) pointing to the storage object.
+    :param mpi4py.MPI.Comm comm: MPI communicator that shares control
+      over the Storage.
     :returns: A network scaffold
     :rtype: :class:`Scaffold`
     """
-    return open_storage(root).load()
+    return open_storage(root, comm).load()
 
 
 _cfg_props = (
@@ -128,6 +132,8 @@ class Scaffold:
         :type storage: :class:`~.storage.Storage`
         :param clear: Start with a new network, clearing any previously stored information
         :type clear: bool
+        :param comm: MPI communicator that shares control over the Storage.
+        :type comm: mpi4py.MPI.Comm
         :returns: A network object
         :rtype: :class:`~.core.Scaffold`
         """
@@ -137,7 +143,7 @@ class Scaffold:
         )
         self._configuration = None
         self._storage = None
-        self._comm = comm or MPI
+        self._comm = MPIService(comm)
         self._bootstrap(config, storage, clear=clear)
 
     def __contains__(self, component):
@@ -151,10 +157,10 @@ class Scaffold:
         return f"'{file}' with {cells_placed} cell types, and {n_types} connection_types"
 
     def is_main_process(self) -> bool:
-        return not MPI.get_rank()
+        return not self._comm.get_rank()
 
     def is_worker_process(self) -> bool:
-        return bool(MPI.get_rank())
+        return bool(self._comm.get_rank())
 
     def _bootstrap(self, config, storage, clear=False):
         if config is None:
@@ -174,7 +180,12 @@ class Scaffold:
         if not storage:
             # No storage given, create one.
             report("Creating storage from config.", level=4)
-            storage = Storage(config.storage.engine, config.storage.root)
+            storage = Storage(
+                config.storage.engine, config.storage.root, self._comm.get_communicator()
+            )
+        else:
+            # Override MPI comm of storage to match the scaffold's
+            storage._comm = self._comm
         if clear:
             # Storage given, but asked to clear it before use.
             storage.remove()
@@ -183,12 +194,12 @@ class Scaffold:
         self._configuration = config
         # Make sure the storage config node reflects the storage we are using
         config._update_storage_node(storage)
-        # Give the scaffold access to the unitialized storage object (for use during
+        # Give the scaffold access to the uninitialized storage object (for use during
         # config bootstrapping).
         self._storage = storage
         # First, the scaffold is passed to each config node, and their boot methods called
         self._configuration._bootstrap(self)
-        # Then, `storage` is initted for the scaffold, and `config` is stored (happens
+        # Then, `storage` is initialized for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
         self.storage = storage
 
@@ -376,8 +387,7 @@ class Scaffold:
                 report("Clearing data", level=2)
                 # Clear the placement and connectivity data, but leave any cached files
                 # and morphologies intact.
-                self.clear_placement()
-                self.clear_connectivity()
+                self.clear()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
@@ -464,7 +474,7 @@ class Scaffold:
         chunk=None,
     ):
         """
-        Place cells inside of the scaffold
+        Place cells inside the scaffold
 
         .. code-block:: python
 
@@ -564,6 +574,24 @@ class Scaffold:
         :rtype: List[~bsb.storage.interfaces.PlacementSet]
         """
         return [cell_type.get_placement_set() for cell_type in self.cell_types.values()]
+
+    def connect_cells(self, pre_set, post_set, src_locs, dest_locs, name):
+        """
+        Connect cells from a presynaptic placement set to cells of a postsynaptic placement set,
+        and into a connectivity set.
+        The description of the hemitype (source or target cell population) connection location
+        is stored as a list of 3 ids: the cell index (in the placement set), morphology branch
+        index, and the morphology branch section index.
+        If no morphology is attached to the hemitype, then the morphology indexes can be set to -1.
+
+        :param bsb.storage.interfaces.PlacementSet pre_set: presynaptic placement set
+        :param bsb.storage.interfaces.PlacementSet post_set: postsynaptic placement set
+        :param List[List[int, int, int]] src_locs: list of the presynaptic `connection location`.
+        :param List[List[int, int, int]] dest_locs: list of the postsynaptic `connection location`.
+        :param str name: Name to give to the `ConnectivitySet`
+        """
+        cs = self.require_connectivity_set(pre_set.cell_type, post_set.cell_type, name)
+        cs.connect(pre_set, post_set, src_locs, dest_locs)
 
     def get_connectivity(
         self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None
@@ -761,12 +789,13 @@ class Scaffold:
         return cs
 
     def create_job_pool(self, fail_fast=None, quiet=False):
+        id_pool = self._comm.bcast(int(time.time()), root=0)
         pool = JobPool(
-            self, fail_fast=fail_fast, workflow=getattr(self, "_workflow", None)
+            id_pool, self, fail_fast=fail_fast, workflow=getattr(self, "_workflow", None)
         )
         try:
             # Check whether stdout is a TTY, and that it is larger than 0x0
-            # (e.g. MPI sets it to 0x0 unless an xterm is emulated.
+            # (e.g. MPI sets it to 0x0 unless an xterm is emulated).
             tty = os.isatty(sys.stdout.fileno()) and sum(os.get_terminal_size())
         except Exception:
             tty = False

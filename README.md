@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/dbbs-lab/bsb-core/actions/workflows/build.yml/badge.svg)](https://github.com/dbbs-lab/bsb-core/actions/workflows/build.yml)
+[![Build Status](https://github.com/dbbs-lab/bsb-core/actions/workflows/main.yml/badge.svg)](https://github.com/dbbs-lab/bsb-core/actions/workflows/main.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Documentation Status](https://readthedocs.org/projects/bsb/badge/?version=latest)](https://bsb.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/dbbs-lab/bsb-core/branch/main/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb-core)
@@ -8,7 +8,7 @@
 # BSB: A component framework for neural modelling
 
 Developed by the Department of Brain and Behavioral Sciences at the University of Pavia,
-the BSB is a component framework for neural modelling, which focusses on component
+the BSB is a component framework for neural modelling, which focuses on component
 declarations to piece together a model. The component declarations can be made in any
 supported configuration language, or using the library functions in Python. It offers
 parallel reconstruction and simulation of any network topology, placement and/or
@@ -25,14 +25,14 @@ Any package in the BSB ecosystem can be installed from PyPI through `pip`. Most 
 will want to install the main [bsb](https://pypi.org/project/bsb/) framework:
 
 ```
-pip install "bsb~=4.1"
+pip install "bsb"
 ```
 
 Advanced users looking to control install an unconventional combination of plugins might
-be better of installing just this package, and the desired plugins:
+be better off installing just this package, and the desired plugins:
 
 ```
-pip install "bsb-core~=4.1"
+pip install "bsb-core"
 ```
 
 Note that installing `bsb-core` does not come with any plugins installed and the usually
@@ -65,20 +65,28 @@ bsb new my_model --quickstart
 cd my_model
 ```
 
+This will create a `my_model` folder for you with some starter files. It should contain:
+
+- `network_configuration.yaml`: A configuration file in which your network will be described.
+- A `pyproject.toml` file: This file uses the TOML syntax to set configuration values for the BSB.
+- A `placement.py` and `connectome.py` files if you want to make your own components.
+
 ### Reconstructing a network
 
-You can use your project to create reconstructions of your model, generating cell positions
+Within your project folder, you can create reconstructions of your model, generating cell positions
 and connections:
 
 ```
-bsb compile -p
+bsb compile
 ```
 
-This creates a [network file](bsb.readthedocs.io/getting-started/networks.html) and plots the network.
+The `compile` command should produce a network file located in your project
+folder based on your configuration file.
 
 ### Simulating a network
 
-The default project currently contains no simulation config.
+The starter project contains no simulation configuration but the documentation provides tutorials
+for the neural simulators supported by the BSB.
 
 # Contributing
 
@@ -90,7 +98,16 @@ Take a look at the [contribution guide](CONTRIBUTING.md)
 This research has received funding from the European Union’s Horizon 2020 Framework
 Program for Research and Innovation under the Specific Grant Agreement No. 945539
 (Human Brain Project SGA3) and Specific Grant Agreement No. 785907 (Human Brain
-Project SGA2) and from Centro Fermi project “Local Neuronal Microcircuits” to ED. We
-acknowledge the use of EBRAINS platform and Fenix Infrastructure resources, which are
+Project SGA2) and from Centro Fermi project “Local Neuronal Microcircuits” to ED. 
+The project is also receiving funding from the Virtual Brain Twin Project under the 
+European Union's Research and Innovation Program Horizon Europe under grant agreement 
+No 101137289. 
+
+We acknowledge the use of EBRAINS platform and Fenix Infrastructure resources, which are
 partially funded from the European Union’s Horizon 2020 research and innovation
-programme through the ICEI project under the grant agreement No. 800858
+programme under the Specific Grant Agreement No. 101147319 (EBRAINS 2.0 Project) and 
+through the ICEI project under the grant agreement No. 800858 respectively.
+
+## Supported by
+
+[![JetBrains logo](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSourceSupport)

@@ -38,7 +38,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
-    "sphinx.ext.imgmath",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
@@ -94,9 +93,6 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "getting-started/labels.rst",
-    "getting-started/blender.rst",
-    "getting-started/layer.rst",
 ]
 
 autoclass_content = "both"

@@ -14,7 +14,6 @@ from ..exceptions import (
     NoReferenceAttributeSignal,
     RequirementError,
 )
-from ..services import MPI
 from ._compile import _wrap_reserved
 from ._hooks import run_hook
 from ._make import (
@@ -396,7 +395,7 @@ def _boot_nodes(top_node, scaffold):
         except Exception as e:
             errr.wrap(BootError, e, prepend=f"Failed to boot {node}:")
     # fixme: why is this here? Will deadlock in case of BootError on specific node only.
-    MPI.barrier()
+    scaffold._comm.barrier()
 
 
 def _unset_nodes(top_node):
@@ -665,6 +664,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def __set__(self, instance, value, _key=None):
         _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
+        self.flag_dirty(instance)
 
     def __populate__(self, instance, value, unique_list=False):
         cfglist = _getattr(instance, self.attr_name)
@@ -756,6 +756,7 @@ class cfgdict(builtins.dict):
                 f"{self.get_node_name()} already contains '{key}'."
                 + " Use `node[key] = value` if you want to overwrite it."
             )
+        self._config_attr.flag_dirty(self._config_parent)
         self[key] = value = self._elem_type(*args, _parent=self, _key=key, **kwargs)
         return value
 

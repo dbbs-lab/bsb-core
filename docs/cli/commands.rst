@@ -17,7 +17,7 @@ Create a project
 
 .. code-block:: bash
 
-  bsb [OPTIONS] new <project-name> <parent-folder> [--quickstart] [--exists]
+  bsb [OPTIONS] new <project-name> <parent-folder> [--quickstart] [--exists] [--json]
 
 Creates a new project directory at ``folder``. You will be prompted to fill in some
 project settings.
@@ -26,6 +26,8 @@ project settings.
 * ``parent-folder``: Filesystem location where the project folder will be created.
 * ``quickstart``: Generates an exemplary project with basic config that can be compiled.
 * ``exists``: With this flag, it is not an error for the ``parent-folder`` to exist.
+* ``json``: With this flag, the configuration file will be written in the JSON format
+  instead of the default YAML format.
 
 .. _bsb_make_config:
 
@@ -111,6 +113,12 @@ Run a simulation from a compiled network architecture.
 
 * ``path/to/netw.hdf5``: Path to the network file.
 * ``sim-name``: Name of the simulation.
+
+.. rubric:: Flags
+
+* ``-o``, ``--output-folder``: Output the simulation results to an existing folder.
+  If omitted, the current folder is used.
+
 
 .. _bsb_cache:
 

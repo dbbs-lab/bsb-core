@@ -13,10 +13,10 @@ class AfterPlacementHook(abc.ABC):
     name: str = config.attr(key=True)
 
     def queue(self, pool):
-        pool.queue(
-            lambda scaffold: scaffold.after_placement[self.name].postprocess(),
-            submitter=self,
-        )
+        def static_function(scaffold, name):
+            return scaffold.after_placement[name].postprocess()
+
+        pool.queue(static_function, (self.name,), submitter=self)
 
     @abc.abstractmethod
     def postprocess(self):
@@ -28,10 +28,10 @@ class AfterConnectivityHook(abc.ABC):
     name: str = config.attr(key=True)
 
     def queue(self, pool):
-        pool.queue(
-            lambda scaffold: scaffold.after_connectivity[self.name].postprocess(),
-            submitter=self,
-        )
+        def static_function(scaffold, name):
+            return scaffold.after_connectivity[name].postprocess()
+
+        pool.queue(static_function, (self.name,), submitter=self)
 
     @abc.abstractmethod
     def postprocess(self):

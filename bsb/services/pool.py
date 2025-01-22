@@ -61,7 +61,6 @@ from ..exceptions import (
     JobPoolError,
     JobSchedulingError,
 )
-from . import MPI
 from ._util import ErrorModule, MockModule
 
 if typing.TYPE_CHECKING:
@@ -295,6 +294,7 @@ class Job(abc.ABC):
         cache_items=None,
     ):
         self.pool_id = pool.id
+        self._comm = pool._comm
         self._args = args
         self._kwargs = kwargs
         self._deps = set(deps or [])
@@ -431,7 +431,7 @@ class Job(abc.ABC):
         else:
             # When all our dependencies have been discarded we can queue ourselves. Unless the
             # pool is serial, then the pool itself just runs all jobs in order.
-            if not self._deps and MPI.get_size() > 1:
+            if not self._deps and self._comm.get_size() > 1:
                 # self._pool is set when the pool first tried to enqueue us, but we were still
                 # waiting for deps, in the `_enqueue` method below.
                 self._enqueue(self._pool)
@@ -540,10 +540,11 @@ class JobPool:
     _pool_owners = {}
     _tmp_folders = {}
 
-    def __init__(self, scaffold, fail_fast=False, workflow: "Workflow" = None):
+    def __init__(self, id, scaffold, fail_fast=False, workflow: "Workflow" = None):
         self._schedulers: list[concurrent.futures.Future] = []
-        self.id: int = None
+        self.id: int = id
         self._scaffold = scaffold
+        self._comm = scaffold._comm
         self._unhandled_errors = []
         self._running_futures: list[concurrent.futures.Future] = []
         self._mpipool: typing.Optional["MPIExecutor"] = None
@@ -556,14 +557,12 @@ class JobPool:
         self._fail_fast = fail_fast
         self._workflow = workflow
         self._cache_buffer = np.zeros(1000, dtype=np.uint64)
-        self._cache_window = MPI.window(self._cache_buffer)
+        self._cache_window = self._comm.window(self._cache_buffer)
 
     def __enter__(self):
         self._context = ExitStack()
         tmp_dirname = self._context.enter_context(tempfile.TemporaryDirectory())
 
-        self.id = JobPool._next_pool_id
-        JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = self._scaffold
         JobPool._pools[self.id] = self
         JobPool._tmp_folders[self.id] = tmp_dirname
@@ -605,7 +604,7 @@ class JobPool:
 
     @property
     def parallel(self):
-        return MPI.get_size() > 1
+        return self._comm.get_size() > 1
 
     @classmethod
     def get_owner(cls, id):
@@ -620,7 +619,7 @@ class JobPool:
         return self.get_owner(self.id)
 
     def is_main(self):
-        return MPI.get_rank() == 0
+        return self._comm.get_rank() == 0
 
     def get_submissions_of(self, submitter):
         return [job for job in self._job_queue if job.submitter is submitter]
@@ -709,7 +708,7 @@ class JobPool:
         """
         Execute the jobs in the queue
 
-        In serial execution this runs all of the jobs in the queue in First In First Out
+        In serial execution this runs all the jobs in the queue in First In First Out
         order. In parallel execution this enqueues all jobs into the MPIPool unless they
         have dependencies that need to complete first.
         """
@@ -746,7 +745,7 @@ class JobPool:
             # master logic.
 
             # Check if we need to abort our process due to errors etc.
-            abort = MPI.bcast(None)
+            abort = self._comm.bcast(None)
             if abort:
                 raise WorkflowError(
                     "Unhandled exceptions during parallel execution.",
@@ -816,7 +815,7 @@ class JobPool:
             # Shut down our internal pool
             self._mpipool.shutdown(wait=False, cancel_futures=True)
             # Broadcast whether the worker nodes should raise an unhandled error.
-            MPI.bcast(self._workers_raise_unhandled)
+            self._comm.bcast(self._workers_raise_unhandled)
 
     def _execute_serial(self):
         # Wait for jobs to finish scheduling

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .. import warn
-from ..exceptions import ConfigurationWarning, FileImportError
+from ..exceptions import ConfigurationWarning, FileImportError, ParserError
 
 
 class parsed_node:

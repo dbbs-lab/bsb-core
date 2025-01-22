@@ -14,7 +14,6 @@ dependencies = [
     "numpy~=1.19",
     "scipy~=1.5",
     "scikit-learn~=1.0",
-    "colour~=0.1",
     "errr~=1.2",
     "rtree~=1.0",
     "psutil~=5.8",
@@ -68,8 +67,9 @@ parallel = [
 ]
 test = [
     "bsb-arbor~=4.0",
-    "bsb-hdf5~=4.0",
+    "bsb-hdf5~=5.0",
     "bsb-test~=4.2",
+    "bsb-json~=4.2",
     "coverage~=7.3",
 ]
 docs = [
@@ -100,7 +100,7 @@ line-length = 90
 profile = "black"
 
 [tool.bumpversion]
-current_version = "4.5.0"
+current_version = "5.0.2"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"
