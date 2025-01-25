@@ -4,7 +4,7 @@ import numpy as np
 
 from . import config
 from .config import refs
-from .exceptions import MorphologyDataError, MorphologyError
+from .exceptions import MorphologyDataError, MorphologyError, ConnectivityError
 from .reporting import report
 
 
@@ -139,6 +139,94 @@ class SpoofDetails(AfterConnectivityHook):
             ),
             level=2,
         )
+
+
+@config.node
+class FuseConnections(AfterConnectivityHook):
+    connections: list[str] = config.list(required=True)
+    branches: list[(int, str)] = config.list()
+
+    def postprocess(self):
+        cs_first = self.scaffold.get_connectivity_set(self.connections[0])
+        connectivity_first_set = cs_first.load_connections().all()
+        if not self.branches:
+            # Check if CellTypes correspond
+            connectivity_sets = [
+                self.scaffold.get_connectivity_set(name) for name in self.connections
+            ]
+            for conn_index in range(len(connectivity_sets) - 1):
+                if (
+                    connectivity_sets[conn_index + 1].pre_type
+                    != connectivity_sets[conn_index].post_type
+                ):
+                    raise ConnectivityError(
+                        "PostConnectivityHook {} can't fuse connections between {} and {}".format(
+                            self.name,
+                            connectivity_sets[conn_index].post_type,
+                            connectivity_sets[conn_index + 1].pre_type,
+                        )
+                    )
+
+            left_set = connectivity_first_set
+            for conn in connectivity_sets[1:]:
+                cs_right = conn
+                right_set = cs_right.load_connections().all()
+                new_cs = self.merge_sets(left_set, right_set)
+                left_set = new_cs
+
+            first_ps = cs_first.pre_type.get_placement_set()
+            last_ps = cs_right.post_type.get_placement_set()
+            self.scaffold.connect_cells(
+                first_ps, last_ps, new_cs[0], new_cs[1], self.name
+            )
+
+    def merge_sets(self, left_set: (np.array, np.array), right_set: (np.array, np.array)):
+
+        # sort according to common cell ids
+        left_sorting = np.argsort(left_set[1], axis=0)
+        left_pre_sorted = left_set[0][left_sorting[:, 0]]
+        left_post_sorted = left_set[1][left_sorting[:, 0], 0]
+        right_sorting = np.argsort(right_set[0], axis=0)
+        right_pre_sorted = right_set[0][right_sorting[:, 0], 0]
+        right_post_sorted = right_set[1][right_sorting[:, 0]]
+
+        # get unique common cells and counts
+        u1, index1, counts1 = np.unique(
+            left_post_sorted, return_index=True, return_counts=True
+        )
+
+        u2, index2, counts2 = np.unique(
+            right_pre_sorted, return_index=True, return_counts=True
+        )
+
+        common1 = np.isin(u1, u2)
+        common2 = np.isin(u2, u1)
+
+        left_post_ref = np.array(
+            [(index1[i], index1[i + 1]) for i in range(len(index1) - 1)]
+        )
+        left_post_ref = np.append(
+            left_post_ref, [(index1[-1], len(left_post_sorted))], axis=0
+        )
+        right_pre_ref = np.array(
+            [(index2[i], index2[i + 1]) for i in range(len(index2) - 1)]
+        )
+        right_pre_ref = np.append(
+            right_pre_ref, [(index2[-1], len(right_pre_sorted))], axis=0
+        )
+
+        new_size = np.dot(counts2[common2], counts1[common1])
+        new_left_pre = np.zeros((new_size, 3), dtype=int)
+        new_right_post = np.zeros((new_size, 3), dtype=int)
+        cnt = 0
+        for l, r in zip(left_post_ref[common1], right_pre_ref[common2]):
+            for srs_loc in left_pre_sorted[l[0] : l[1] :]:
+                for dest_loc in right_post_sorted[r[0] : r[1] :]:
+                    new_left_pre[cnt] = srs_loc
+                    new_right_post[cnt] = dest_loc
+                    cnt += 1
+
+        return (new_left_pre, new_right_post)
 
 
 @config.node
