@@ -4,7 +4,7 @@ import numpy as np
 
 from . import config
 from .config import refs
-from .exceptions import MorphologyDataError, MorphologyError, ConnectivityError
+from .exceptions import ConnectivityError, MorphologyDataError, MorphologyError
 from .reporting import report
 
 

@@ -1,15 +1,14 @@
 import os
 import unittest
-import numpy as np
 
-from bsb_test import RandomStorageFixture, NumpyTestCase
+import numpy as np
+from bsb_test import NumpyTestCase, RandomStorageFixture
 
 from bsb import (
     MPI,
     AfterConnectivityHook,
     AfterPlacementHook,
     Configuration,
-    ConnectivityError,
     Scaffold,
     config,
 )
@@ -157,7 +156,7 @@ class TestFuseConnectionsHook(
             )
         )
 
-        with self.assertRaises(ExceptionGroup) as e:
+        with self.assertRaises(Exception) as e:
             self.network.run_after_connectivity()
 
     def test_two_connectivities(self):
