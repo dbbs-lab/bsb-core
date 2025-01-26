@@ -9,6 +9,7 @@ from bsb import (
     AfterConnectivityHook,
     AfterPlacementHook,
     Configuration,
+    FuseConnections,
     Scaffold,
     config,
 )
@@ -146,6 +147,8 @@ class TestFuseConnectionsHook(
 
         self.network.connect_cells(ps_a, ps_b, a_to_b[0], a_to_b[1], "A_to_B")
         self.network.connect_cells(ps_b, ps_c, b_to_c[0], b_to_c[1], "B_to_C")
+        self.a_to_b = a_to_b
+        self.b_to_c = b_to_c
 
     def test_cell_type_mismatch(self):
 
@@ -159,23 +162,16 @@ class TestFuseConnectionsHook(
         with self.assertRaises(Exception) as e:
             self.network.run_after_connectivity()
 
-    def test_two_connectivities(self):
+    def test_merge_sets(self):
 
-        self.cfg.after_connectivity = dict(
-            new_connection=dict(
-                strategy="bsb.postprocessing.FuseConnections",
-                connections=["A_to_B", "B_to_C"],
-            )
-        )
+        my_hook = FuseConnections(connections=["A_to_B", "B_to_C"])
 
-        self.network.run_after_connectivity()
-
-        cs = self.network.get_connectivity_set("new_connection")
-        computed_connections = cs.load_connections().all()
+        computed_connections = my_hook.merge_sets(self.a_to_b, self.b_to_c)
         real_connections = (
-            np.array([[0, 1, 1], [1, 1, 1], [1, 2, 1], [0, 1, 1], [1, 1, 1]]),
-            np.array([[0, -1, -1], [0, -1, -1], [0, -1, -1], [1, -1, -1], [1, -1, -1]]),
+            np.array([[0, 1, 1], [0, 1, 1], [1, 1, 1], [1, 1, 1], [1, 2, 1]]),
+            np.array([[0, -1, -1], [1, -1, -1], [0, -1, -1], [1, -1, -1], [0, -1, -1]]),
         )
+
         self.assertAll(
             computed_connections[0] == real_connections[0],
             "Fused connection must match real connections",
@@ -186,7 +182,7 @@ class TestFuseConnectionsHook(
         )
 
     def test_three_connectivities(self):
-
+        # Add a third connectivity set and test the chained A_B -> B_C -> C_D fusion.
         c_to_d = -1 * np.ones((2, 5, 3))
         c_to_d[0, :, 0] = [0, 0, 1, 1, 1]
         c_to_d[1] = [[0, 2, 1], [2, -1, -1], [0, 1, 1], [1, -1, -1], [2, 1, 2]]

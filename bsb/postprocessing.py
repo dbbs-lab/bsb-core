@@ -264,6 +264,7 @@ __all__ = [
     "BidirectionalContact",
     "AfterPlacementHook",
     "AfterConnectivityHook",
+    "FuseConnections",
     "Relay",
     "SpoofDetails",
 ]
