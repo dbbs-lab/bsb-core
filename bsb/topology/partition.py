@@ -521,6 +521,11 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     """Name or acronym of the region to filter within the annotation volume according to the AMBRH.
     If struct_name is set, then struct_id should not be set."""
 
+    atlas_datasets: cfgdict[str, NrrdDependencyNode] = config.dict(
+        required=False, type=NrrdDependencyNode
+    )
+    """Additional Volumetric Datasets to attach to the atlas."""
+
     @config.property(type=str)
     @functools.cache
     def mask_source(self):
@@ -574,6 +579,23 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         :rtype: voxcell.voxel_data.VoxelData
         """
         return self.mask_source.load_object()
+
+    @functools.cached_property
+    def datasets(self):
+        """
+        Return a dictionary of VoxelData instances corresponding to the datasets attached
+        to the annotations.
+
+        :rtype: dict[str, :class:`voxcell.voxel_data.VoxelData`]
+        """
+        return {k: v.load_object() for k, v in self.atlas_datasets.items()}
+
+    def boot(self):
+        for k, v in self.datasets.items():
+            if np.any(np.array(v.raw.shape[:3]) != np.array(self.annotations.shape)):
+                raise ConfigurationError(
+                    f"Shape of dataset {k} does not match the shape of the annotations."
+                )
 
     @classmethod
     def get_structure_mask_condition(cls, find):
