@@ -133,7 +133,7 @@ class TestFuseConnectionsHook(
         self.network = Scaffold(self.cfg, self.storage)
         self.network.compile(skip_connectivity=True)
 
-        # Set custom connections
+        # Set custom connections only on master rank
         a_to_b = -1 * np.ones((2, 4, 3))
         a_to_b[0] = [[0, 1, 1], [1, 1, 1], [1, 2, 1], [1, 2, 2]]
         a_to_b[1, :, 0] = [0, 0, 1, 2]
@@ -141,14 +141,24 @@ class TestFuseConnectionsHook(
         b_to_c = -1 * np.ones((2, 4, 3))
         b_to_c[0, :, 0] = [0, 0, 1, 3]
         b_to_c[1, :, 0] = [0, 1, 0, 1]
-        ps_a = self.network.cell_types["A"].get_placement_set()
-        ps_b = self.network.cell_types["B"].get_placement_set()
-        ps_c = self.network.cell_types["C"].get_placement_set()
 
-        self.network.connect_cells(ps_a, ps_b, a_to_b[0], a_to_b[1], "A_to_B")
-        self.network.connect_cells(ps_b, ps_c, b_to_c[0], b_to_c[1], "B_to_C")
+        c_to_d = -1 * np.ones((2, 5, 3))
+        c_to_d[0, :, 0] = [0, 0, 1, 1, 1]
+        c_to_d[1] = [[0, 2, 1], [2, -1, -1], [0, 1, 1], [1, -1, -1], [2, 1, 2]]
+
         self.a_to_b = a_to_b
         self.b_to_c = b_to_c
+        self.c_to_d = c_to_d
+        if not MPI.get_rank():
+
+            ps_a = self.network.cell_types["A"].get_placement_set()
+            ps_b = self.network.cell_types["B"].get_placement_set()
+            ps_c = self.network.cell_types["C"].get_placement_set()
+            ps_d = self.network.cell_types["D"].get_placement_set()
+
+            self.network.connect_cells(ps_a, ps_b, a_to_b[0], a_to_b[1], "A_to_B")
+            self.network.connect_cells(ps_b, ps_c, b_to_c[0], b_to_c[1], "B_to_C")
+            self.network.connect_cells(ps_c, ps_d, c_to_d[0], c_to_d[1], "C_to_D")
 
     def test_cell_type_mismatch(self):
 
@@ -182,15 +192,7 @@ class TestFuseConnectionsHook(
         )
 
     def test_three_connectivities(self):
-        # Add a third connectivity set and test the chained A_B -> B_C -> C_D fusion.
-        c_to_d = -1 * np.ones((2, 5, 3))
-        c_to_d[0, :, 0] = [0, 0, 1, 1, 1]
-        c_to_d[1] = [[0, 2, 1], [2, -1, -1], [0, 1, 1], [1, -1, -1], [2, 1, 2]]
-
-        ps_c = self.network.cell_types["C"].get_placement_set()
-        ps_d = self.network.cell_types["D"].get_placement_set()
-
-        self.network.connect_cells(ps_c, ps_d, c_to_d[0], c_to_d[1], "C_to_D")
+        # Test the chained A_B -> B_C -> C_D fusion.
 
         self.cfg.after_connectivity = dict(
             new_connection=dict(
@@ -201,7 +203,7 @@ class TestFuseConnectionsHook(
         self.network.run_after_connectivity()
 
         A_locs = [[0, 1, 1], [1, 1, 1], [1, 2, 1], [1, 2, 2]]
-        D_locs = c_to_d[1]
+        D_locs = self.c_to_d[1]
 
         real_connections = (
             (np.repeat(A_locs[0:3:], [5, 5, 2], axis=0)),
