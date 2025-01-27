@@ -143,6 +143,13 @@ class SpoofDetails(AfterConnectivityHook):
 
 @config.node
 class FuseConnections(AfterConnectivityHook):
+    """This hook enables the creation of a new connectivity set by chaining the provided connectivity sets.
+    For example, if connectivity sets A -> B and B -> C are given, they will be remapped to A -> C..
+
+    :param connections: A list of connectivity names to be merged, with the merging process occurring in ascending order based on the list elements ids.
+    :param branches: This feature is not yet implemented.
+    """
+
     connections: list[str] = config.list(required=True)
     branches: list[(int, str)] = config.list()
 
@@ -180,7 +187,11 @@ class FuseConnections(AfterConnectivityHook):
                 first_ps, last_ps, new_cs[0], new_cs[1], self.name
             )
 
-    def merge_sets(self, left_set: (np.array, np.array), right_set: (np.array, np.array)):
+    def merge_sets(
+        self,
+        left_set: tuple[np.ndarray, np.ndarray],
+        right_set: tuple[np.ndarray, np.ndarray],
+    ):
 
         # sort according to common cell ids
         left_sorting = np.argsort(left_set[1], axis=0)
@@ -202,6 +213,7 @@ class FuseConnections(AfterConnectivityHook):
         common1 = np.isin(u1, u2)
         common2 = np.isin(u2, u1)
 
+        # assign the indices to retrieve the positions of all the recurrencies of the unique
         left_post_ref = np.array(
             [(index1[i], index1[i + 1]) for i in range(len(index1) - 1)]
         )
@@ -214,7 +226,7 @@ class FuseConnections(AfterConnectivityHook):
         right_pre_ref = np.append(
             right_pre_ref, [(index2[-1], len(right_pre_sorted))], axis=0
         )
-
+        # Cycle on the common uniques and combine the pre - post references
         new_size = np.dot(counts2[common2], counts1[common1])
         new_left_pre = np.zeros((new_size, 3), dtype=int)
         new_right_post = np.zeros((new_size, 3), dtype=int)
