@@ -1,10 +1,16 @@
 import abc
+import graphlib as gl
 
 import numpy as np
 
 from . import config
 from .config import refs
-from .exceptions import ConnectivityError, MorphologyDataError, MorphologyError
+from .exceptions import (
+    ConfigurationError,
+    ConnectivityError,
+    MorphologyDataError,
+    MorphologyError,
+)
 from .reporting import report
 
 
@@ -146,46 +152,62 @@ class FuseConnections(AfterConnectivityHook):
     """This hook enables the creation of a new connectivity set by chaining the provided connectivity sets.
     For example, if connectivity sets A -> B and B -> C are given, they will be remapped to A -> C..
 
-    :param connections: A list of connectivity names to be merged, with the merging process occurring in ascending order based on the list elements ids.
-    :param branches: This feature is not yet implemented.
+    :param connections: A list of connectivity names to be merged.
     """
 
     connections: list[str] = config.list(required=True)
     branches: list[(int, str)] = config.list()
 
     def postprocess(self):
-        cs_first = self.scaffold.get_connectivity_set(self.connections[0])
-        connectivity_first_set = cs_first.load_connections().all()
-        if not self.branches:
-            # Check if CellTypes correspond
-            connectivity_sets = [
-                self.scaffold.get_connectivity_set(name) for name in self.connections
-            ]
-            for conn_index in range(len(connectivity_sets) - 1):
-                if (
-                    connectivity_sets[conn_index + 1].pre_type
-                    != connectivity_sets[conn_index].post_type
-                ):
-                    raise ConnectivityError(
-                        "PostConnectivityHook {} can't fuse connections between {} and {}".format(
-                            self.name,
-                            connectivity_sets[conn_index].post_type,
-                            connectivity_sets[conn_index + 1].pre_type,
-                        )
-                    )
 
-            left_set = connectivity_first_set
-            for conn in connectivity_sets[1:]:
-                cs_right = conn
+        new_graph = {}
+        get_connection = {}
+        # Create the connectivity graph
+        for connection in self.connections:
+            try:
+                cs = self.scaffold.get_connectivity_set(connection)
+            except DatasetNotFoundError:
+                raise ConnectivityError(
+                    f"AfterConnectivityHook {self.name} do not find {connection} ConnectivitySet."
+                )
+            except ValueError as e:
+                raise e
+            if cs.post_type.name in new_graph:
+                raise ConfigurationError(
+                    f"FuseConnectivity class do not allow branching. In {self.name} the CellType {cs.post_type.name} receive more than one connection"
+                )
+            else:
+                new_graph[cs.post_type.name] = {cs.pre_type.name}
+                if cs.pre_type.name in get_connection:
+                    raise ConfigurationError(
+                        f"FuseConnectivity class do not allow branching. In {self.name} the CellType {cs.post_type.name} establish more than one connection"
+                    )
+                else:
+                    get_connection[cs.pre_type.name] = cs
+
+        # Initialize the graph element and try to sort
+        graph = gl.TopologicalSorter(new_graph)
+        try:
+            graph_sorted = [*graph.static_order()]
+        except gl.CycleError as cy_err:
+            raise ConfigurationError(
+                f"AfterConnectivityHook {self.name} failed because a connection loop is detected: {cy_err.args[1]}"
+            )
+
+        for i, pre_cell in enumerate(graph_sorted[:-1]):
+            if not i:
+                cs_first = get_connection[pre_cell]
+                left_set = cs_first.load_connections().all()
+            else:
+                cs_right = get_connection[pre_cell]
                 right_set = cs_right.load_connections().all()
                 new_cs = self.merge_sets(left_set, right_set)
                 left_set = new_cs
+            print(i)
 
-            first_ps = cs_first.pre_type.get_placement_set()
-            last_ps = cs_right.post_type.get_placement_set()
-            self.scaffold.connect_cells(
-                first_ps, last_ps, new_cs[0], new_cs[1], self.name
-            )
+        first_ps = cs_first.pre_type.get_placement_set()
+        last_ps = cs_right.post_type.get_placement_set()
+        self.scaffold.connect_cells(first_ps, last_ps, new_cs[0], new_cs[1], self.name)
 
     def merge_sets(
         self,

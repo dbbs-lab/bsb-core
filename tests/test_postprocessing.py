@@ -146,6 +146,14 @@ class TestFuseConnectionsHook(
         c_to_d[0, :, 0] = [0, 0, 1, 1, 1]
         c_to_d[1] = [[0, 2, 1], [2, -1, -1], [0, 1, 1], [1, -1, -1], [2, 1, 2]]
 
+        b_to_d = -1 * np.ones((2, 2, 3))
+        b_to_d[0, :, 0] = [0, 3]
+        b_to_d[1, :, 0] = [1, 0]
+
+        d_to_a = -1 * np.ones((2, 1, 3))
+        d_to_a[0, :, 0] = [0]
+        d_to_a[1, :, 0] = [0]
+
         self.a_to_b = a_to_b
         self.b_to_c = b_to_c
         self.c_to_d = c_to_d
@@ -159,13 +167,15 @@ class TestFuseConnectionsHook(
             self.network.connect_cells(ps_a, ps_b, a_to_b[0], a_to_b[1], "A_to_B")
             self.network.connect_cells(ps_b, ps_c, b_to_c[0], b_to_c[1], "B_to_C")
             self.network.connect_cells(ps_c, ps_d, c_to_d[0], c_to_d[1], "C_to_D")
+            self.network.connect_cells(ps_b, ps_d, b_to_d[0], b_to_d[1], "B_to_D")
+            self.network.connect_cells(ps_d, ps_a, d_to_a[0], d_to_a[1], "D_to_A")
 
-    def test_cell_type_mismatch(self):
+    def test_nonexistent_set(self):
 
         self.cfg.after_connectivity = dict(
             new_connection=dict(
                 strategy="bsb.postprocessing.FuseConnections",
-                connections=["B_to_C", "A_to_B"],
+                connections=["B_to_C", "K_to_B"],
             )
         )
 
@@ -191,13 +201,38 @@ class TestFuseConnectionsHook(
             "Fused connection must match real connections",
         )
 
+    def test_no_branches(self):
+        # Test that the branch B + C -> D is detected
+
+        self.cfg.after_connectivity = dict(
+            new_connection=dict(
+                strategy="bsb.postprocessing.FuseConnections",
+                connections=["A_to_B", "B_to_C", "C_to_D", "B_to_D"],
+            )
+        )
+
+        with self.assertRaises(Exception) as e:
+            self.network.run_after_connectivity()
+
+    def test_no_loops(self):
+        # Test that a loop is detected
+
+        self.cfg.after_connectivity = dict(
+            new_connection=dict(
+                strategy="bsb.postprocessing.FuseConnections",
+                connections=["A_to_B", "B_to_C", "D_to_A", "C_to_D"],
+            )
+        )
+        with self.assertRaises(Exception) as e:
+            self.network.run_after_connectivity()
+
     def test_three_connectivities(self):
         # Test the chained A_B -> B_C -> C_D fusion.
 
         self.cfg.after_connectivity = dict(
             new_connection=dict(
                 strategy="bsb.postprocessing.FuseConnections",
-                connections=["A_to_B", "B_to_C", "C_to_D"],
+                connections=["B_to_C", "A_to_B", "C_to_D"],
             )
         )
         self.network.run_after_connectivity()
