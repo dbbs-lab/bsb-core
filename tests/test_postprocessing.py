@@ -201,18 +201,48 @@ class TestFuseConnectionsHook(
             "Fused connection must match real connections",
         )
 
-    def test_no_branches(self):
-        # Test that the branch B + C -> D is detected
+    def test_wrong_chains(self):
+        # Test that discontinuous trees is detected
 
+        self.cfg.after_connectivity = dict(
+            new_connection=dict(
+                strategy="bsb.postprocessing.FuseConnections",
+                connections=["A_to_B", "C_to_D"],
+            )
+        )
+
+        with self.assertRaises(Exception) as e:
+            self.network.run_after_connectivity()
+
+        # Test multiple roots
+        self.cfg.after_connectivity = dict(
+            new_connection=dict(
+                strategy="bsb.postprocessing.FuseConnections",
+                connections=["C_to_D", "B_to_D"],
+            )
+        )
+
+        with self.assertRaises(Exception) as e:
+            self.network.run_after_connectivity()
+
+        # Test multiple ends
+        self.cfg.after_connectivity = dict(
+            new_connection=dict(
+                strategy="bsb.postprocessing.FuseConnections",
+                connections=["B_to_C", "B_to_D"],
+            )
+        )
+
+        with self.assertRaises(Exception) as e:
+            self.network.run_after_connectivity()
+
+    def test_with_branches(self):
         self.cfg.after_connectivity = dict(
             new_connection=dict(
                 strategy="bsb.postprocessing.FuseConnections",
                 connections=["A_to_B", "B_to_C", "C_to_D", "B_to_D"],
             )
         )
-
-        with self.assertRaises(Exception) as e:
-            self.network.run_after_connectivity()
 
     def test_no_loops(self):
         # Test that a loop is detected

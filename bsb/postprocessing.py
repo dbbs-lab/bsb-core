@@ -8,6 +8,7 @@ from .config import refs
 from .exceptions import (
     ConfigurationError,
     ConnectivityError,
+    DatasetNotFoundError,
     MorphologyDataError,
     MorphologyError,
 )
@@ -156,14 +157,29 @@ class FuseConnections(AfterConnectivityHook):
     """
 
     connections: list[str] = config.list(required=True)
-    branches: list[(int, str)] = config.list()
 
     def postprocess(self):
+        class Node:
+            def __init__(self, name):
+                self.name = name
+                self.parents = []
+                self.children = []
 
-        new_graph = {}
-        get_connection = {}
-        # Create the connectivity graph
-        for connection in self.connections:
+            def add_child(self, child):
+                self.children.append(child)
+
+            def add_parent(self, parent):
+                self.parents.append(parent)
+
+            def __eq__(self, name):
+                return self.name == name
+
+        # Create the connectivity tree
+        tree = []
+        roots = []  # store the list of potential root of the tree
+        ends = []  # store the list of potential end of the tree
+        # convert to set to avoid potential duplicates
+        for connection in set(self.connections):
             try:
                 cs = self.scaffold.get_connectivity_set(connection)
             except DatasetNotFoundError:
@@ -172,41 +188,60 @@ class FuseConnections(AfterConnectivityHook):
                 )
             except ValueError as e:
                 raise e
-            if cs.post_type.name in new_graph:
-                raise ConfigurationError(
-                    f"FuseConnectivity class do not allow branching. In {self.name} the CellType {cs.post_type.name} receive more than one connection"
-                )
-            else:
-                new_graph[cs.post_type.name] = {cs.pre_type.name}
-                if cs.pre_type.name in get_connection:
-                    raise ConfigurationError(
-                        f"FuseConnectivity class do not allow branching. In {self.name} the CellType {cs.post_type.name} establish more than one connection"
-                    )
-                else:
-                    get_connection[cs.pre_type.name] = cs
+            if cs.pre_type.name not in tree:
+                tree.append(Node(name=cs.pre_type.name))
+                roots.append(cs.pre_type.name)
+            if cs.post_type.name not in tree:
+                tree.append(Node(name=cs.post_type.name))
+                ends.append(cs.post_type.name)
 
-        # Initialize the graph element and try to sort
-        graph = gl.TopologicalSorter(new_graph)
-        try:
-            graph_sorted = [*graph.static_order()]
-        except gl.CycleError as cy_err:
-            raise ConfigurationError(
-                f"AfterConnectivityHook {self.name} failed because a connection loop is detected: {cy_err.args[1]}"
+            tree[tree.index(cs.pre_type.name)].add_child(cs)
+            tree[tree.index(cs.post_type.name)].add_parent(cs.pre_type.name)
+            if cs.post_type.name in roots:
+                roots.remove(cs.post_type.name)
+            if cs.pre_type.name in ends:
+                ends.remove(cs.pre_type.name)
+
+        if len(roots) != 1 or len(ends) != 1:
+            raise ConnectivityError(
+                f"Multiple roots or ends detected in your chain of connectivity sets."
             )
 
-        for i, pre_cell in enumerate(graph_sorted[:-1]):
-            if not i:
-                cs_first = get_connection[pre_cell]
-                left_set = cs_first.load_connections().all()
-            else:
-                cs_right = get_connection[pre_cell]
-                right_set = cs_right.load_connections().all()
-                new_cs = self.merge_sets(left_set, right_set)
-                left_set = new_cs
-            print(i)
+        def visit(node, passed=[], marked=[], parent_cs=None):
+            # Depth-first search recursive algorithm to merge connection sets and check for loops
+            if node in marked:
+                return parent_cs
+            if node in passed:
+                raise ConnectivityError(
+                    "Loop detected in your chain of connectivity sets."
+                )
+            passed.append(node)
+            new_cs = [np.empty((0, 3), dtype=int), np.empty((0, 3), dtype=int)]
+            for child in node.children:
+                cs = visit(
+                    tree[tree.index(child.post_type.name)],
+                    passed,
+                    marked,
+                    child.load_connections().all(),
+                )
+                if parent_cs is not None:
+                    cs = self.merge_sets(parent_cs, cs)
+                new_cs = np.concatenate([new_cs, cs], axis=1)
+            marked.append(node)
+            if len(node.children) == 0:
+                new_cs = parent_cs
+            return new_cs
 
-        first_ps = cs_first.pre_type.get_placement_set()
-        last_ps = cs_right.post_type.get_placement_set()
+        first_node = tree[tree.index(roots[0])]
+        last_node = tree[tree.index(ends[0])]
+        new_cs = visit(first_node)
+
+        first_ps = first_node.children[0].pre_type.get_placement_set()
+        last_ps = (
+            tree[tree.index(last_node.parents[0])]
+            .children[0]
+            .post_type.get_placement_set()
+        )
         self.scaffold.connect_cells(first_ps, last_ps, new_cs[0], new_cs[1], self.name)
 
     def merge_sets(
@@ -260,7 +295,7 @@ class FuseConnections(AfterConnectivityHook):
                     new_right_post[cnt] = dest_loc
                     cnt += 1
 
-        return (new_left_pre, new_right_post)
+        return new_left_pre, new_right_post
 
 
 @config.node
