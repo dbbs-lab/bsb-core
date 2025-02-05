@@ -242,11 +242,7 @@ class FuseConnections(AfterConnectivityHook):
         new_cs = visit(first_node)
 
         first_ps = first_node.children[0].pre_type.get_placement_set()
-        last_ps = (
-            tree[tree.index(last_node.parents[0])]
-            .children[0]
-            .post_type.get_placement_set()
-        )
+        last_ps = self.scaffold.get_placement_set(last_node.name)
         self.scaffold.connect_cells(first_ps, last_ps, new_cs[0], new_cs[1], self.name)
 
     def merge_sets(
