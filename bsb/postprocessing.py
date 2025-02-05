@@ -1,12 +1,10 @@
 import abc
-import graphlib as gl
 
 import numpy as np
 
 from . import config
 from .config import refs
 from .exceptions import (
-    ConfigurationError,
     ConnectivityError,
     DatasetNotFoundError,
     MorphologyDataError,
@@ -164,6 +162,10 @@ class FuseConnections(AfterConnectivityHook):
                 self.name = name
                 self.parents = []
                 self.children = []
+                self.resolved_cs = [
+                    np.empty((0, 3), dtype=int),
+                    np.empty((0, 3), dtype=int),
+                ]
 
             def add_child(self, child):
                 self.children.append(child)
@@ -207,30 +209,33 @@ class FuseConnections(AfterConnectivityHook):
                 f"Multiple roots or ends detected in your chain of connectivity sets."
             )
 
+        def _return_cs(node, parent_cs):
+            if parent_cs is not None and len(node.resolved_cs[0]) > 0:
+                return self.merge_sets(parent_cs, node.resolved_cs)
+            elif parent_cs is not None:
+                return parent_cs
+            else:
+                return node.resolved_cs
+
         def visit(node, passed=[], marked=[], parent_cs=None):
             # Depth-first search recursive algorithm to merge connection sets and check for loops
             if node in marked:
-                return parent_cs
+                return _return_cs(node, parent_cs)
             if node in passed:
                 raise ConnectivityError(
                     "Loop detected in your chain of connectivity sets."
                 )
             passed.append(node)
-            new_cs = [np.empty((0, 3), dtype=int), np.empty((0, 3), dtype=int)]
-            for child in node.children:
+            for out_cs in node.children:
                 cs = visit(
-                    tree[tree.index(child.post_type.name)],
+                    tree[tree.index(out_cs.post_type.name)],
                     passed,
                     marked,
-                    child.load_connections().all(),
+                    out_cs.load_connections().all(),
                 )
-                if parent_cs is not None:
-                    cs = self.merge_sets(parent_cs, cs)
-                new_cs = np.concatenate([new_cs, cs], axis=1)
+                node.resolved_cs = np.concatenate([node.resolved_cs, cs], axis=1)
             marked.append(node)
-            if len(node.children) == 0:
-                new_cs = parent_cs
-            return new_cs
+            return _return_cs(node, parent_cs)
 
         first_node = tree[tree.index(roots[0])]
         last_node = tree[tree.index(ends[0])]
@@ -270,7 +275,7 @@ class FuseConnections(AfterConnectivityHook):
         common1 = np.isin(u1, u2)
         common2 = np.isin(u2, u1)
 
-        # assign the indices to retrieve the positions of all the recurrencies of the unique
+        # assign the indices to retrieve the positions of all the recurrences of the unique
         left_post_ref = np.array(
             [(index1[i], index1[i + 1]) for i in range(len(index1) - 1)]
         )

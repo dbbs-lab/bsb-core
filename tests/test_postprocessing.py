@@ -157,6 +157,7 @@ class TestFuseConnectionsHook(
         self.a_to_b = a_to_b
         self.b_to_c = b_to_c
         self.c_to_d = c_to_d
+        self.b_to_d = b_to_d
         if not MPI.get_rank():
 
             ps_a = self.network.cell_types["A"].get_placement_set()
@@ -243,6 +244,37 @@ class TestFuseConnectionsHook(
                 connections=["A_to_B", "B_to_C", "C_to_D", "B_to_D"],
             )
         )
+        self.network.run_after_connectivity()
+        D_locs = self.c_to_d[1]
+        predicted_connections = (
+            np.concatenate(
+                [np.repeat(self.a_to_b[0, 0:3:], [5, 5, 2], axis=0), self.a_to_b[0, 0:2]],
+                axis=0,
+            ),
+            np.concatenate(
+                [
+                    np.append(
+                        np.concatenate((D_locs, D_locs), axis=0), D_locs[0:2], axis=0
+                    ),
+                    np.repeat([self.b_to_d[1, 0]], 2, axis=0),
+                ],
+                axis=0,
+            ),
+        )
+        cs = self.network.get_connectivity_set("new_connection")
+        computed_connections = cs.load_connections().all()
+        self.assertEqual(len(computed_connections[0]), len(predicted_connections[0]))
+        ids_found = []
+        for src, tgt in zip(*predicted_connections):
+            ids = np.where(
+                np.all(src == computed_connections[0], axis=-1)
+                * np.all(tgt == computed_connections[1], axis=-1)
+            )[0]
+            ids = ids[np.isin(ids, ids_found, invert=True)]
+            self.assertGreater(
+                len(ids), 0, f"Predicted connection {src}, {tgt} not found"
+            )
+            ids_found.append(ids[0])
 
     def test_no_loops(self):
         # Test that a loop is detected
@@ -288,7 +320,7 @@ class TestFuseConnectionsHook(
             "Number of computed connections do not match the number of real connections",
         )
 
-        # Create a transponse of the arrays and check if we obtain the same connections
+        # Create a transpose of the arrays and check if we obtain the same connections
 
         reversed_comp = np.array(
             [
