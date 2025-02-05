@@ -4,7 +4,12 @@ import numpy as np
 
 from . import config
 from .config import refs
-from .exceptions import MorphologyDataError, MorphologyError
+from .exceptions import (
+    ConnectivityError,
+    DatasetNotFoundError,
+    MorphologyDataError,
+    MorphologyError,
+)
 from .reporting import report
 
 
@@ -142,6 +147,159 @@ class SpoofDetails(AfterConnectivityHook):
 
 
 @config.node
+class FuseConnections(AfterConnectivityHook):
+    """This hook enables the creation of a new connectivity set by chaining the provided connectivity sets.
+    For example, if connectivity sets A -> B and B -> C are given, they will be remapped to A -> C..
+
+    :param connections: A list of connectivity names to be merged.
+    """
+
+    connections: list[str] = config.list(required=True)
+
+    def postprocess(self):
+        class Node:
+            def __init__(self, name):
+                self.name = name
+                self.parents = []
+                self.children = []
+                self.resolved_cs = [
+                    np.empty((0, 3), dtype=int),
+                    np.empty((0, 3), dtype=int),
+                ]
+
+            def add_child(self, child):
+                self.children.append(child)
+
+            def add_parent(self, parent):
+                self.parents.append(parent)
+
+            def __eq__(self, name):
+                return self.name == name
+
+        # Create the connectivity tree
+        tree = []
+        roots = []  # store the list of potential root of the tree
+        ends = []  # store the list of potential end of the tree
+        # convert to set to avoid potential duplicates
+        for connection in set(self.connections):
+            try:
+                cs = self.scaffold.get_connectivity_set(connection)
+            except DatasetNotFoundError:
+                raise ConnectivityError(
+                    f"AfterConnectivityHook {self.name} do not find {connection} ConnectivitySet."
+                )
+            except ValueError as e:
+                raise e
+            if cs.pre_type.name not in tree:
+                tree.append(Node(name=cs.pre_type.name))
+                roots.append(cs.pre_type.name)
+            if cs.post_type.name not in tree:
+                tree.append(Node(name=cs.post_type.name))
+                ends.append(cs.post_type.name)
+
+            tree[tree.index(cs.pre_type.name)].add_child(cs)
+            tree[tree.index(cs.post_type.name)].add_parent(cs.pre_type.name)
+            if cs.post_type.name in roots:
+                roots.remove(cs.post_type.name)
+            if cs.pre_type.name in ends:
+                ends.remove(cs.pre_type.name)
+
+        if len(roots) != 1 or len(ends) != 1:
+            raise ConnectivityError(
+                f"Multiple roots or ends detected in your chain of connectivity sets."
+            )
+
+        def _return_cs(node, parent_cs):
+            if parent_cs is not None and len(node.resolved_cs[0]) > 0:
+                return self.merge_sets(parent_cs, node.resolved_cs)
+            elif parent_cs is not None:
+                return parent_cs
+            else:
+                return node.resolved_cs
+
+        def visit(node, passed=[], marked=[], parent_cs=None):
+            # Depth-first search recursive algorithm to merge connection sets and check for loops
+            if node in marked:
+                return _return_cs(node, parent_cs)
+            if node in passed:
+                raise ConnectivityError(
+                    "Loop detected in your chain of connectivity sets."
+                )
+            passed.append(node)
+            for out_cs in node.children:
+                cs = visit(
+                    tree[tree.index(out_cs.post_type.name)],
+                    passed,
+                    marked,
+                    out_cs.load_connections().all(),
+                )
+                node.resolved_cs = np.concatenate([node.resolved_cs, cs], axis=1)
+            marked.append(node)
+            return _return_cs(node, parent_cs)
+
+        first_node = tree[tree.index(roots[0])]
+        last_node = tree[tree.index(ends[0])]
+        new_cs = visit(first_node)
+
+        first_ps = first_node.children[0].pre_type.get_placement_set()
+        last_ps = self.scaffold.get_placement_set(last_node.name)
+        self.scaffold.connect_cells(first_ps, last_ps, new_cs[0], new_cs[1], self.name)
+
+    def merge_sets(
+        self,
+        left_set: tuple[np.ndarray, np.ndarray],
+        right_set: tuple[np.ndarray, np.ndarray],
+    ):
+
+        # sort according to common cell ids
+        left_sorting = np.argsort(left_set[1], axis=0)
+        left_pre_sorted = left_set[0][left_sorting[:, 0]]
+        left_post_sorted = left_set[1][left_sorting[:, 0], 0]
+        right_sorting = np.argsort(right_set[0], axis=0)
+        right_pre_sorted = right_set[0][right_sorting[:, 0], 0]
+        right_post_sorted = right_set[1][right_sorting[:, 0]]
+
+        # get unique common cells and counts
+        u1, index1, counts1 = np.unique(
+            left_post_sorted, return_index=True, return_counts=True
+        )
+
+        u2, index2, counts2 = np.unique(
+            right_pre_sorted, return_index=True, return_counts=True
+        )
+
+        common1 = np.isin(u1, u2)
+        common2 = np.isin(u2, u1)
+
+        # assign the indices to retrieve the positions of all the recurrences of the unique
+        left_post_ref = np.array(
+            [(index1[i], index1[i + 1]) for i in range(len(index1) - 1)]
+        )
+        left_post_ref = np.append(
+            left_post_ref, [(index1[-1], len(left_post_sorted))], axis=0
+        )
+        right_pre_ref = np.array(
+            [(index2[i], index2[i + 1]) for i in range(len(index2) - 1)]
+        )
+        right_pre_ref = np.append(
+            right_pre_ref, [(index2[-1], len(right_pre_sorted))], axis=0
+        )
+        # Cycle on the common uniques and combine the pre - post references
+        new_size = np.dot(counts2[common2], counts1[common1])
+        new_left_pre = np.zeros((new_size, 3), dtype=int)
+        new_right_post = np.zeros((new_size, 3), dtype=int)
+        cnt = 0
+        for l, r in zip(left_post_ref[common1], right_pre_ref[common2]):
+            for srs_loc in left_pre_sorted[l[0] : l[1] :]:
+                for dest_loc in right_post_sorted[r[0] : r[1] :]:
+                    new_left_pre[cnt] = srs_loc
+                    new_right_post[cnt] = dest_loc
+                    cnt += 1
+
+        return new_left_pre, new_right_post
+
+
+@config.node
 class Relay(AfterConnectivityHook):
     """
     Replaces connections on a cell with the relayed connections to the connection targets
@@ -176,6 +334,7 @@ __all__ = [
     "BidirectionalContact",
     "AfterPlacementHook",
     "AfterConnectivityHook",
+    "FuseConnections",
     "Relay",
     "SpoofDetails",
 ]

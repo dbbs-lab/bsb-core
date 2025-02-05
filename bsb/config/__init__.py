@@ -164,7 +164,7 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
     raise ParserError("\n".join(ichain(msges)) + f"\n{msg}")
 
 
-def _from_parsed(parser_name, tree, meta, file=None):
+def _from_parsed(parser_name: str, tree: dict, meta: dict, file: str = None):
     from ._config import Configuration
 
     conf = Configuration(tree)
@@ -175,6 +175,19 @@ def _from_parsed(parser_name, tree, meta, file=None):
 
 
 def parse_configuration_file(file, parser=None, path=None, **kwargs):
+    """
+    Parse a configuration file into a Configuration.
+
+    :param str file: path to the configuration file
+    :param str path: path from which to parse the configuration file. Use this
+     parameter to mock the configuration file location which can help resolve
+     relative paths in configuration files.
+    :param ConfigurationParser parser: parser to use. If None is provided, the BSB will
+     parse the content based on the file extension defined in `path` and the available
+     ConfigurationParser classes that the BSB could find.
+    :return: the parsed configuration.
+    :rtype: Configuration
+    """
     if hasattr(file, "read"):
         data = file.read()
         try:
@@ -189,7 +202,19 @@ def parse_configuration_file(file, parser=None, path=None, **kwargs):
     return parse_configuration_content(data, parser, path, **kwargs)
 
 
-def parse_configuration_content(content, parser=None, path=None, **kwargs):
+def parse_configuration_dict(content, parser=None, path=None, **kwargs):
+    """
+    Parse the content of a configuration file into a dictionary.
+
+    :param str content: content of a configuration file
+    :param str path: path to the location of the configuration file
+    :param ConfigurationParser parser: parser to use. If None is provided, the BSB will
+     parse the content based on the file extension defined in `path` and the available
+     ConfigurationParser classes that the BSB could find.
+    :return: a dictionary of the parsed content, a dictionary storing the metadata, and
+     the name of the parser used to obtain the results.
+    :rtype: (dict, dict, str)
+    """
     if parser is None:
         parser_classes = get_configuration_parser_classes()
         ext = path.split(".")[-1] if path is not None else None
@@ -201,6 +226,22 @@ def parse_configuration_content(content, parser=None, path=None, **kwargs):
     else:
         parser_name = parser.__name__
         tree, meta = parser.parse(content, path=path)
+    return tree, meta, parser_name
+
+
+def parse_configuration_content(content, parser=None, path=None, **kwargs):
+    """
+    Parse the content of a configuration file into a Configuration.
+
+    :param str content: content of a configuration file
+    :param str path: path to the location of the configuration file
+    :param ConfigurationParser parser: parser to use. If None is provided, the BSB will
+     parse the content based on the file extension defined in `path` and the available
+     ConfigurationParser classes that the BSB could find.
+    :return: the parsed configuration.
+    :rtype: Configuration
+    """
+    tree, meta, parser_name = parse_configuration_dict(content, parser, path, **kwargs)
     return _from_parsed(parser_name, tree, meta, path)
 
 
@@ -228,6 +269,7 @@ __all__ = [
     "on",
     "parse_configuration_file",
     "parse_configuration_content",
+    "parse_configuration_dict",
     "pluggable",
     "property",
     "provide",
@@ -253,6 +295,7 @@ __api__ = [
     "get_config_path",
     "make_config_diagram",
     "parse_configuration_file",
+    "parse_configuration_dict",
     "parse_configuration_content",
     "refs",
     "types",

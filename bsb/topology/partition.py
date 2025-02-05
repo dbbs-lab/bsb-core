@@ -1,5 +1,5 @@
 """
-    Module for the Partition configuration nodes and its dependencies.
+Module for the Partition configuration nodes and its dependencies.
 """
 
 import abc

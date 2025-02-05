@@ -224,6 +224,7 @@ FixedIndegree: typing.Type["bsb.connectivity.general.FixedIndegree"]
 FixedOutdegree: typing.Type["bsb.connectivity.general.FixedOutdegree"]
 FixedPositions: typing.Type["bsb.placement.strategy.FixedPositions"]
 FractionFilter: typing.Type["bsb.simulation.targetting.FractionFilter"]
+FuseConnections: typing.Type["bsb.postprocessing.FuseConnections"]
 GatewayError: typing.Type["bsb.exceptions.GatewayError"]
 GeneratedMorphology: typing.Type["bsb.storage.interfaces.GeneratedMorphology"]
 HasDependencies: typing.Type["bsb.mixins.HasDependencies"]
@@ -414,6 +415,7 @@ on_main: "bsb.storage.decorators.on_main"
 on_main_until: "bsb.storage.decorators.on_main_until"
 open_storage: "bsb.storage.open_storage"
 parse_configuration_content: "bsb.config.parse_configuration_content"
+parse_configuration_dict: "bsb.config.parse_configuration_dict"
 parse_configuration_file: "bsb.config.parse_configuration_file"
 parse_morphology_content: "bsb.morphologies.parsers.parse_morphology_content"
 parse_morphology_file: "bsb.morphologies.parsers.parse_morphology_file"
