@@ -1,14 +1,14 @@
 """
-    This module contains shorthand ``reference`` definitions. References are used in the
-    configuration module to point to other locations in the Configuration object.
+This module contains shorthand ``reference`` definitions. References are used in the
+configuration module to point to other locations in the Configuration object.
 
-    Minimally a reference is a function that takes the configuration root and the current
-    node as arguments, and returns another node in the configuration object::
+Minimally a reference is a function that takes the configuration root and the current
+node as arguments, and returns another node in the configuration object::
 
-      def some_reference(root, here):
-          return root.other.place
+  def some_reference(root, here):
+      return root.other.place
 
-    More advanced usage of references will include custom reference errors.
+More advanced usage of references will include custom reference errors.
 """
 
 
