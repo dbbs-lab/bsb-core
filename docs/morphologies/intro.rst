@@ -4,7 +4,7 @@ Morphologies
 
 Morphologies are the 3D representation of a cell. A morphology consists of head-to-tail
 connected branches, and branches consist of a series of points with radii. Points can be
-labelled and can have multiple user-defined properties per point.
+labeled and can have multiple user-defined properties per point.
 
 .. figure:: /images/morphology.png
   :figclass: only-light
@@ -23,7 +23,7 @@ labelled and can have multiple user-defined properties per point.
 
 Network configurations can contain a :guilabel:`morphologies` key to define
 the morphologies that should be processed and assigned to cells. See
-:doc:`../getting-started/include_morphos` for a guide on the possibilities.
+:doc:`/getting-started/simulations/include_morphos` for a guide on the possibilities.
 Morphologies can be stored in a network in the
 :class:`~.storage.interfaces.MorphologyRepository`.
 
@@ -114,7 +114,7 @@ morphology:
   :lines: 8-17
   :language: python
 
-Once you're done with the morphology you can save it again:
+Once you are done with the morphology you can save it again:
 
 .. literalinclude:: ../../examples/morphologies/usage.py
   :lines: 19
@@ -176,8 +176,8 @@ Subtrees can be selected using label(s) on the morphology.
 
 .. warning::
 
-	Branches will be selected as soon as they have one or more points labelled with a
-	selected label.
+    Branches will be selected as soon as they have one or more points labelled with a
+    selected label.
 
 Selections will always include all the branches emanating (downtree) from the selection as
 well:
@@ -330,13 +330,13 @@ Subtree gaps between parent and child branches can be closed:
 
 .. note::
 
-	The gaps between any subtree branch and its parent will be closed, even if the parent is
-	not part of the subtree. This means that gaps of roots of a subtree may be closed as
-	well. Gaps _between_ roots are never collapsed.
+    The gaps between any subtree branch and its parent will be closed, even if the parent is
+    not part of the subtree. This means that gaps of roots of a subtree may be closed as
+    well. Gaps _between_ roots are never collapsed.
 
 .. seealso::
 
-	 `Collapsing`_
+    `Collapsing`_
 
 Collapsing
 ----------
@@ -377,6 +377,8 @@ passed around in the framework as :class:`StoredMorphologies
 :meth:`~.storage.interfaces.StoredMorphology.load` method to load the
 :class:`~.morphologies.Morphology` object from storage and a
 :meth:`~.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
+
+.. _morphology_selector:
 
 Morphology selectors
 --------------------
@@ -461,6 +463,7 @@ Currently unspecified, up to the Storage and MorphologyRepository support to ret
 dictionary of available metadata from
 :meth:`~.storage.interfaces.MorphologyRepository.get_meta`.
 
+.. _MorphologyDistributors:
 
 Morphology distributors
 -----------------------
@@ -475,9 +478,9 @@ a :class:`~.morphologies.RotationSet`.
 
 .. warning::
 
-	The rotations returned by a morphology distributor may be overruled when a
-	:class:`~.placement.distributor.RotationDistributor` is defined for the same placement
-	block.
+    The rotations returned by a morphology distributor may be overruled when a
+    :class:`~.placement.distributor.RotationDistributor` is defined for the same placement
+    block.
 
 Distributor configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -533,7 +536,7 @@ morphology, and returning any other values would be an error.
 
 If you need to break out of the morphologies that were handed to you, morphology
 distributors are also allowed to return their own :class:`~.morphologies.MorphologySet`.
-Since you're free to pass any list of morphology loaders to create a morphology set, you
+Since you are free to pass any list of morphology loaders to create a morphology set, you
 can put and assign any morphology you like.
 
 .. tip::
@@ -556,8 +559,8 @@ can put and assign any morphology you like.
       ]
       return MorphologySet(loaders, np.arange(len(loaders)))
 
-  This is cumbersome, so if you plan on generating new morphologies, use a `morphology
-  generator`_ instead.
+  This is cumbersome, so if you plan on generating new morphologies, use a
+  `morphology generator`_ instead.
 
 Finally, each morphology distributor is allowed to return an additional argument to assign
 rotations to each cell as well. The return value must be a

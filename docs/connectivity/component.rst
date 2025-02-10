@@ -2,8 +2,6 @@
 Writing a component
 ===================
 
-.. bsb_component_intro::
-
 You can create custom connectivity patterns by creating a Python file in your project
 root (e.g. ``my_module.py``) with inside a class inheriting from
 :class:`~.connectivity.strategy.ConnectionStrategy`.

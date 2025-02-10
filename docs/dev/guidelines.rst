@@ -1,3 +1,5 @@
+.. _development-section:
+
 ####################
 Developer Guidelines
 ####################
@@ -7,9 +9,6 @@ the communication with its maintainer and smoothen the process of integration an
 
 Please, read first our `code of conduct <https://github.com/dbbs-lab/bsb-core/blob/main/CODE_OF_CONDUCT.md>`_  to
 understand how to interact with the BSB community |:heart:|
-
-Development process
--------------------
 
 Raise issue on Github
 ~~~~~~~~~~~~~~~~~~~~~
@@ -23,14 +22,18 @@ If you need to create an issue on Github, please provide as much context as poss
 
 Fork and create a Pull Request
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you are not part of the BSB maintainers, you should fork the bsb repository on your own account to modify the code.
+If you are not part of the BSB maintainers, you should
+`fork <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`_
+the bsb repository on your own account to modify the code.
 If you introduce new features to BSB, please provide the associated documentation (docstrings or general documentation),
 and unittests. We are trying to improve the coverage for both and would appreciate greatly your contribution.
 
 The documentation, tests and code style (black, isort) is controlled for each commit on the repository, so please
 install the :doc:`pre-commit hooks <installation>` and run the following tests before pushing on the repository:
 
-To install::
+To install:
+
+.. code-block:: bash
 
   cd bsb-core
   black .

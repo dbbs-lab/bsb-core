@@ -18,10 +18,10 @@ The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
 :class:`PlacementStrategies <.placement.strategy.PlacementStrategy>` and
 :class:`ConnectionStrategies <.connectivity.strategy.ConnectionStrategy>` respectively.
 
-When you're configuring a model you'll mostly be using configuration :ref:`attributes
+When you are configuring a model you will mostly be using configuration :ref:`attributes
 <config_attrs>`, :ref:`nodes <config_nodes>`, :ref:`dictionaries <config_dict>`,
 :ref:`lists <config_list>`, and :ref:`references <config_ref>`. These configuration units
-can be declared through the config file, or programatically added.
+can be declared through the configuration file, or programatically added.
 
 Code
 ####
@@ -58,7 +58,7 @@ and handle the values:
     value1 = config.attr(type=int)
     thingy2 = config.list(type=int, size=2, required=True)
 
-For more information on creating your own configuration nodes see :doc:`nodes`.
+For more information on creating your own configuration nodes see :doc:`/config/nodes`.
 
 JSON
 ####

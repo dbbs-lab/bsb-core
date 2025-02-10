@@ -1,3 +1,34 @@
+## [v5.0.2] - 2025-01-13
+### :bug: Bug Fixes
+- [`818de95`](https://github.com/dbbs-lab/bsb-core/commit/818de951ecfee9ae288d40044cc7b7a3456e1d44) - CLI bsb simulate command *(PR [#909](https://github.com/dbbs-lab/bsb-core/pull/909) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *fixes issue [#908](https://github.com/dbbs-lab/bsb-core/issues/908) opened by [@drodarie](https://github.com/drodarie)*
+
+
+## [v5.0.1] - 2025-01-12
+### :bug: Bug Fixes
+- [`0fa0711`](https://github.com/dbbs-lab/bsb-core/commit/0fa0711a0ba86ea88f5871347f6679e455d13269) - Implement feedback on new docs *(PR [#905](https://github.com/dbbs-lab/bsb-core/pull/905) by [@drodarie](https://github.com/drodarie))*
+
+
+## [v5.0.0] - 2025-01-07
+### :boom: BREAKING CHANGES
+- due to [`575c9bd`](https://github.com/dbbs-lab/bsb-core/commit/575c9bd7289c47838efd3a5dc0b54105206ac6f5) - mpi hdf5 *(PR [#902](https://github.com/dbbs-lab/bsb-core/pull/902) by [@drodarie](https://github.com/drodarie))*:
+
+  mpi hdf5 (#902)
+
+
+### :bug: Bug Fixes
+- [`553f8b3`](https://github.com/dbbs-lab/bsb-core/commit/553f8b3684f3eada58e5a351ad2005645890c9e6) - bump bsb-hdf5 version *(commit by [@drodarie](https://github.com/drodarie))*
+
+### :recycle: Refactors
+- [`575c9bd`](https://github.com/dbbs-lab/bsb-core/commit/575c9bd7289c47838efd3a5dc0b54105206ac6f5) - mpi hdf5 *(PR [#902](https://github.com/dbbs-lab/bsb-core/pull/902) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *addresses issue [#893](https://github.com/dbbs-lab/bsb-core/issues/893) opened by [@drodarie](https://github.com/drodarie)*
+
+
+## [v4.5.5] - 2024-12-17
+### :bug: Bug Fixes
+- [`e65bdd6`](https://github.com/dbbs-lab/bsb-core/commit/e65bdd6367c1e2547cb519143ccccb593963dad4) - parallel arrays *(PR [#903](https://github.com/dbbs-lab/bsb-core/pull/903) by [@drodarie](https://github.com/drodarie))*
+
+
 ## [v4.5.4] - 2024-12-16
 ### :bug: Bug Fixes
 - [`516dc63`](https://github.com/dbbs-lab/bsb-core/commit/516dc631afcb77dbbc3c90c770af20b2f129e6d9) - Update configuration to store whenever an attribute is set *(PR [#900](https://github.com/dbbs-lab/bsb-core/pull/900) by [@filimarc](https://github.com/filimarc))*
@@ -489,3 +520,7 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v4.5.2]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.1...v4.5.2
 [v4.5.3]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.2...v4.5.3
 [v4.5.4]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.3...v4.5.4
+[v4.5.5]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.4...v4.5.5
+[v5.0.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.5...v5.0.0
+[v5.0.1]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.0...v5.0.1
+[v5.0.2]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.1...v5.0.2

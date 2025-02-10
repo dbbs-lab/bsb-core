@@ -16,7 +16,9 @@ The plugin system detects pip packages that define ``entry_points`` of the plugi
 category. Entry points can be specified in your package's ``setup`` using the
 ``entry_point`` argument. See the `setuptools documentation
 <https://setuptools.readthedocs.io/en/latest/userguide/entry_point.html>`_ for a full
-explanation. Here are some plugins the BSB itself registers::
+explanation. Here are some plugins the BSB itself registers:
+
+.. code-block:: python
 
   entry_points={
       "bsb.adapters": [

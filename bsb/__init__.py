@@ -7,7 +7,7 @@ which are essential for `bsb-core` to function. First time users are recommended
 install the `bsb` package instead.
 """
 
-__version__ = "4.5.4"
+__version__ = "5.0.2"
 
 import functools
 import importlib

@@ -7,6 +7,9 @@
     "network": {
 
     },
+    "morphologies": [
+
+    ],
     "regions": {
 
     },

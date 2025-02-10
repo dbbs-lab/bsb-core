@@ -23,6 +23,7 @@ htmlcov/
 *.io
 .vscode/
 .idea/
+.vs/
 bsb-*/
 
 

@@ -12,6 +12,7 @@ from bsb_test import (
 
 from bsb import (
     MPI,
+    BootError,
     CellType,
     Chunk,
     Configuration,
@@ -370,6 +371,39 @@ class TestPlacementStrategies(
         pos = ps.load_positions()
         self.assertAll(pos[:, 1] <= cfg.partitions.test_layer.data.mdc[1], "not in layer")
         self.assertAll(pos[:, 1] >= cfg.partitions.test_layer.data.ldc[1], "not in layer")
+
+    def test_packed_arrays(self):
+        cfg = get_test_config("single")
+        network = Scaffold(cfg, self.storage)
+        cfg.placement["test_placement"] = dict(
+            strategy="bsb.placement.ParallelArrayPlacement",
+            cell_types=["test_cell"],
+            partitions=["test_layer"],
+            spacing_x=150,
+            angle=0,
+        )
+        with self.assertRaises(WorkflowError):
+            network.compile(clear=True)
+
+    def test_wrong_angles(self):
+        cfg = get_test_config("single")
+        network = Scaffold(cfg, self.storage)
+        with self.assertRaises(BootError):
+            cfg.placement["test_placement"] = dict(
+                strategy="bsb.placement.ParallelArrayPlacement",
+                cell_types=["test_cell"],
+                partitions=["test_layer"],
+                spacing_x=50,
+                angle=90,
+            )
+        with self.assertRaises(BootError):
+            cfg.placement["test_placement"] = dict(
+                strategy="bsb.placement.ParallelArrayPlacement",
+                cell_types=["test_cell"],
+                partitions=["test_layer"],
+                spacing_x=50,
+                angle=-450,
+            )
 
     def test_regression_issue_889(self):
         cfg = Configuration.default(
