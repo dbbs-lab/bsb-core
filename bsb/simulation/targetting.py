@@ -160,12 +160,13 @@ class ByIdTargetting(FractionFilter, CellTargetting, classmap_entry="by_id"):
             for model, pop in simdata.populations.items()
             if len(pop) > 0
         }
+
         dict_target = {}
         for model_name, ids in self.ids.items():
             if (model := by_name.get(model_name)) is not None:
-                ps_ids = list(simdata.placement[model].load_ids())
-                ids_here = [ps_ids.index(ids_i) for ids_i in ids if ids_i in ps_ids]
-                dict_target[model] = simdata.populations[model][ids_here]
+                pop = simdata.populations[model]
+                my_ids = simdata.placement[model].convert_to_local(ids)
+                dict_target[model] = pop[my_ids]
         return dict_target
 
 
