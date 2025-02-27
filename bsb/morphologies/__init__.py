@@ -1729,7 +1729,7 @@ def _morpho_to_swc(morpho):
                 " Note that SWC files cannot store multi-dimensional radii"
             )
         nid += len(b) - 1 if len(b) > 1 else len(b)
-        offset += 1
+        offset += 1 if len(b) > 1 else 0
         bmap[b] = ids[-1]
         data[ids, 6] = ids
         data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
