@@ -1,5 +1,5 @@
 """
-    Module for the CellType configuration node and its dependencies.
+Module for the CellType configuration node and its dependencies.
 """
 
 import typing

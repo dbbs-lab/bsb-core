@@ -1,5 +1,5 @@
 """
-    Module for the Partition configuration nodes and its dependencies.
+Module for the Partition configuration nodes and its dependencies.
 """
 
 import abc
@@ -544,7 +544,7 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         else:
             node = NrrdDependencyNode()
             node._file = _cached_file(
-                "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd",
+                "https://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd",
             )
             return node
 
