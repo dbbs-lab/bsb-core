@@ -202,7 +202,7 @@ def parse_configuration_file(file, parser=None, path=None, **kwargs):
     return parse_configuration_content(data, parser, path, **kwargs)
 
 
-def parse_configuration_dict(content, parser=None, path=None, **kwargs):
+def parse_configuration_content_to_dict(content, parser=None, path=None, **kwargs):
     """
     Parse the content of a configuration file into a dictionary.
 
@@ -241,7 +241,9 @@ def parse_configuration_content(content, parser=None, path=None, **kwargs):
     :return: the parsed configuration.
     :rtype: Configuration
     """
-    tree, meta, parser_name = parse_configuration_dict(content, parser, path, **kwargs)
+    tree, meta, parser_name = parse_configuration_content_to_dict(
+        content, parser, path, **kwargs
+    )
     return _from_parsed(parser_name, tree, meta, path)
 
 
@@ -268,7 +270,7 @@ __all__ = [
     "node",
     "on",
     "parse_configuration_file",
-    "parse_configuration_dict",
+    "parse_configuration_content_to_dict",
     "parse_configuration_content",
     "pluggable",
     "property",
@@ -295,7 +297,7 @@ __api__ = [
     "get_config_path",
     "make_config_diagram",
     "parse_configuration_file",
-    "parse_configuration_dict",
+    "parse_configuration_content_to_dict",
     "parse_configuration_content",
     "refs",
     "types",
