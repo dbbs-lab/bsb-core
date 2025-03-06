@@ -298,7 +298,7 @@ class SphericalTargetting(
 )
 class LocationTargetting:
     def get_locations(self, cell):
-        return cell.locations
+        return [v for v in cell.locations.values()]
 
 
 @config.node
