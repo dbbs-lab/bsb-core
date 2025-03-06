@@ -50,6 +50,7 @@ import warnings
 import zlib
 from contextlib import ExitStack
 from enum import Enum, auto
+from time import sleep
 
 import numpy as np
 from exceptiongroup import ExceptionGroup
@@ -757,6 +758,7 @@ class JobPool:
 
             return
 
+        main_error_tailed = None
         try:
             # Tell the listeners execution is running
             self.change_status(PoolStatus.EXECUTING)
@@ -806,16 +808,22 @@ class JobPool:
             self.change_status(PoolStatus.CLOSING)
             # Raise any unhandled errors
             self.raise_unhandled()
-        except:
+        except Exception as e:
             # If any exception (including SystemExit and KeyboardInterrupt) happen on main, we should
             # broadcast the abort to all worker nodes.
             self._workers_raise_unhandled = True
-            raise
+            main_error_tailed = e
         finally:
             # Shut down our internal pool
             self._mpipool.shutdown(wait=False, cancel_futures=True)
             # Broadcast whether the worker nodes should raise an unhandled error.
             self._comm.bcast(self._workers_raise_unhandled)
+
+        if main_error_tailed:
+            # Delay raising the error so that during MPI it doesn't get
+            # mangled together with all the workers exiting as well.
+            sleep(1)
+            raise main_error_tailed
 
     def _execute_serial(self):
         # Wait for jobs to finish scheduling

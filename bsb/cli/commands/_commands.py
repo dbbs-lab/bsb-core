@@ -109,6 +109,16 @@ class IgnoreErrors(
     pass
 
 
+class NoTTY(
+    BsbOption,
+    name="no_tty",
+    cli=("nt", "no-tty"),
+    env=("BSB_NO_TTY",),
+    flag=True,
+):
+    pass
+
+
 def _flatten_arr_args(arr):
     if arr is None:
         return arr
@@ -155,6 +165,7 @@ class BsbCompile(BaseCommand, name="compile"):
             append=context.append,
             redo=context.redo,
             fail_fast=not context.ignore_errors,
+            notty=context.no_tty,
         )
 
     def get_options(self):
@@ -174,6 +185,7 @@ class BsbCompile(BaseCommand, name="compile"):
             "clear": Clear(),
             "output": Output(),
             "ignore_errors": IgnoreErrors(),
+            "notty": NoTTY(),
         }
 
     def add_parser_arguments(self, parser):

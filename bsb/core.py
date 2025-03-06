@@ -275,16 +275,16 @@ class Scaffold:
         )
 
     @meter()
-    def run_placement(self, strategies=None, fail_fast=True, pipelines=True):
+    def run_placement(self, strategies=None, fail_fast=True, pipelines=True, notty=False):
         """
         Run placement strategies.
         """
         if pipelines:
-            self.run_pipelines()
+            self.run_pipelines(fail_fast=fail_fast, notty=notty)
         if strategies is None:
             strategies = set(self.placement.values())
         strategies = PlacementStrategy.sort_deps(strategies)
-        with self.create_job_pool(fail_fast=fail_fast) as pool:
+        with self.create_job_pool(fail_fast=fail_fast, notty=notty) as pool:
             if pool.is_main():
 
                 def scheduler(strategy):
@@ -294,16 +294,18 @@ class Scaffold:
             pool.execute()
 
     @meter()
-    def run_connectivity(self, strategies=None, fail_fast=True, pipelines=True):
+    def run_connectivity(
+        self, strategies=None, fail_fast=True, pipelines=True, notty=False
+    ):
         """
         Run connection strategies.
         """
         if pipelines:
-            self.run_pipelines()
+            self.run_pipelines(fail_fast=fail_fast, notty=notty)
         if strategies is None:
             strategies = set(self.connectivity.values())
         strategies = ConnectionStrategy.sort_deps(strategies)
-        with self.create_job_pool(fail_fast=fail_fast) as pool:
+        with self.create_job_pool(fail_fast=fail_fast, notty=notty) as pool:
             if pool.is_main():
                 pool.schedule(strategies)
             pool.execute()
@@ -316,25 +318,29 @@ class Scaffold:
         self.run_placement([strategy])
 
     @meter()
-    def run_after_placement(self, hooks=None, fail_fast=None, pipelines=True):
+    def run_after_placement(
+        self, hooks=None, fail_fast=None, pipelines=True, notty=False
+    ):
         """
         Run after placement hooks.
         """
         if hooks is None:
             hooks = set(self.after_placement.values())
-        with self.create_job_pool(fail_fast) as pool:
+        with self.create_job_pool(fail_fast, notty=notty) as pool:
             if pool.is_main():
                 pool.schedule(hooks)
             pool.execute()
 
     @meter()
-    def run_after_connectivity(self, hooks=None, fail_fast=None, pipelines=True):
+    def run_after_connectivity(
+        self, hooks=None, fail_fast=None, pipelines=True, notty=False
+    ):
         """
         Run after placement hooks.
         """
         if hooks is None:
             hooks = set(self.after_connectivity.values())
-        with self.create_job_pool(fail_fast) as pool:
+        with self.create_job_pool(fail_fast, notty=notty) as pool:
             if pool.is_main():
                 pool.schedule(hooks)
             pool.execute()
@@ -353,6 +359,7 @@ class Scaffold:
         redo=False,
         force=False,
         fail_fast=True,
+        notty=False,
     ):
         """
         Run reconstruction steps in the scaffold sequence to obtain a full network.
@@ -408,23 +415,29 @@ class Scaffold:
             phases.append("after_connectivity")
         self._workflow = Workflow(phases)
         try:
-            self.run_pipelines(fail_fast=fail_fast)
+            self.run_pipelines(fail_fast=fail_fast, notty=notty)
             self._workflow.next_phase()
             if not skip_placement:
                 placement_todo = ", ".join(s.name for s in p_strats)
                 report(f"Starting placement strategies: {placement_todo}", level=2)
-                self.run_placement(p_strats, fail_fast=fail_fast, pipelines=False)
+                self.run_placement(
+                    p_strats, fail_fast=fail_fast, pipelines=False, notty=notty
+                )
                 self._workflow.next_phase()
             if not skip_after_placement:
-                self.run_after_placement(pipelines=False, fail_fast=fail_fast)
+                self.run_after_placement(
+                    pipelines=False, fail_fast=fail_fast, notty=notty
+                )
                 self._workflow.next_phase()
             if not skip_connectivity:
                 connectivity_todo = ", ".join(s.name for s in c_strats)
                 report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
-                self.run_connectivity(c_strats, fail_fast=fail_fast, pipelines=False)
+                self.run_connectivity(
+                    c_strats, fail_fast=fail_fast, pipelines=False, notty=notty
+                )
                 self._workflow.next_phase()
             if not skip_after_connectivity:
-                self.run_after_connectivity(pipelines=False)
+                self.run_after_connectivity(pipelines=False, notty=notty)
                 self._workflow.next_phase()
         finally:
             # After compilation we should flag the storage as having existed before so that
@@ -433,10 +446,10 @@ class Scaffold:
             del self._workflow
 
     @meter()
-    def run_pipelines(self, fail_fast=True, pipelines=None):
+    def run_pipelines(self, fail_fast=True, pipelines=None, notty=False):
         if pipelines is None:
             pipelines = self.get_dependency_pipelines()
-        with self.create_job_pool(fail_fast=fail_fast) as pool:
+        with self.create_job_pool(fail_fast=fail_fast, notty=notty) as pool:
             if pool.is_main():
                 pool.schedule(pipelines)
             pool.execute()
@@ -788,7 +801,7 @@ class Scaffold:
             ) from None
         return cs
 
-    def create_job_pool(self, fail_fast=None, quiet=False):
+    def create_job_pool(self, fail_fast=None, quiet=False, notty=False):
         id_pool = self._comm.bcast(int(time.time()), root=0)
         pool = JobPool(
             id_pool, self, fail_fast=fail_fast, workflow=getattr(self, "_workflow", None)
@@ -799,7 +812,7 @@ class Scaffold:
             tty = os.isatty(sys.stdout.fileno()) and sum(os.get_terminal_size())
         except Exception:
             tty = False
-        if tty:
+        if tty and not notty:
             fps = 25
             default_listener = TTYTerminalListener(fps)
             default_max_wait = 1 / fps
