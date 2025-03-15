@@ -152,7 +152,9 @@ class PlacementIndicator:
                 )
         if density_key is not None:
             if voxels is None:
-                raise Exception("Can't guess voxel density without a voxelset.")
+                estimate = 0
+                for p in self.partitions:
+                    estimate += np.sum(self._estim_for_voxels(p.voxelset, density_key))
             elif density_key in voxels.data_keys:
                 estimate = self._estim_for_voxels(voxels, density_key)
             else:
