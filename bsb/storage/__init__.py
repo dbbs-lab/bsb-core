@@ -1,15 +1,15 @@
 """
-    This module imports all supported storage engines, objects that read and write data,
-    which are present as subfolders of the `engine` folder, and provides them
-    transparently to the user, as a part of the :class:`Storage <.storage.Storage>`
-    factory class. The module scans the :mod:`.storage.interfaces` module for any class
-    that inherits from :class:`Interface <.storage.interfaces.Interface>`  to collect all
-    Feature Interfaces and then scans the ``storage.engines.*`` submodules for any class
-    that provides an implementation of those features.
+This module imports all supported storage engines, objects that read and write data,
+which are present as subfolders of the `engine` folder, and provides them
+transparently to the user, as a part of the :class:`Storage <.storage.Storage>`
+factory class. The module scans the :mod:`.storage.interfaces` module for any class
+that inherits from :class:`Interface <.storage.interfaces.Interface>`  to collect all
+Feature Interfaces and then scans the ``storage.engines.*`` submodules for any class
+that provides an implementation of those features.
 
-    These features, because they all follow the same interface can then be passed on to
-    consumers and can be used independent of the underlying storage engine, which is the
-    end goal of this module.
+These features, because they all follow the same interface can then be passed on to
+consumers and can be used independent of the underlying storage engine, which is the
+end goal of this module.
 """
 
 import functools

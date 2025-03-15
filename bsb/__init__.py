@@ -7,7 +7,7 @@ which are essential for `bsb-core` to function. First time users are recommended
 install the `bsb` package instead.
 """
 
-__version__ = "5.0.2"
+__version__ = "5.1.0"
 
 import functools
 import importlib
@@ -414,6 +414,7 @@ on_main: "bsb.storage.decorators.on_main"
 on_main_until: "bsb.storage.decorators.on_main_until"
 open_storage: "bsb.storage.open_storage"
 parse_configuration_content: "bsb.config.parse_configuration_content"
+parse_configuration_content_to_dict: "bsb.config.parse_configuration_content_to_dict"
 parse_configuration_file: "bsb.config.parse_configuration_file"
 parse_morphology_content: "bsb.morphologies.parsers.parse_morphology_content"
 parse_morphology_file: "bsb.morphologies.parsers.parse_morphology_file"

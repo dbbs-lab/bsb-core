@@ -1,3 +1,9 @@
+## [v5.1.0] - 2025-03-03
+### :sparkles: New Features
+- [`aa4d082`](https://github.com/dbbs-lab/bsb-core/commit/aa4d082155a76fc436b9d66de10ba4bbb0c318fe) - Expose intermediate function for parse configuration *(PR [#913](https://github.com/dbbs-lab/bsb-core/pull/913) by [@drodarie](https://github.com/drodarie))*
+  - :arrow_lower_right: *addresses issue [#911](https://github.com/dbbs-lab/bsb-core/issues/911) opened by [@drodarie](https://github.com/drodarie)*
+
+
 ## [v5.0.2] - 2025-01-13
 ### :bug: Bug Fixes
 - [`818de95`](https://github.com/dbbs-lab/bsb-core/commit/818de951ecfee9ae288d40044cc7b7a3456e1d44) - CLI bsb simulate command *(PR [#909](https://github.com/dbbs-lab/bsb-core/pull/909) by [@drodarie](https://github.com/drodarie))*
@@ -524,3 +530,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v5.0.0]: https://github.com/dbbs-lab/bsb-core/compare/v4.5.5...v5.0.0
 [v5.0.1]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.0...v5.0.1
 [v5.0.2]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.1...v5.0.2
+[v5.1.0]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.2...v5.1.0
