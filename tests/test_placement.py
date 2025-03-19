@@ -186,11 +186,10 @@ class TestIndicators(
         dud3_ind = indicators["cell_rel_dens_key"]
         dud4_ind = indicators["cell_density_key"]
         ratio_dud3 = 2.0
-        with self.assertRaises(Exception):
-            # No voxel set provided
-            dud4_ind.guess()
-
         predicted_count = (self.voxels.loc_data * 100**3).flatten()
+        guess4 = dud4_ind.guess()
+        self.assertTrue(abs(np.sum(predicted_count) - guess4) <= 1)
+
         guess4 = dud4_ind.guess(voxels=self.voxels.get_voxelset())
         guess3 = dud3_ind.guess(voxels=self.voxels.get_voxelset())
         self.assertTrue(np.all(np.absolute(predicted_count - guess4) <= 1))
