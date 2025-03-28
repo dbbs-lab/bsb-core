@@ -1,6 +1,12 @@
 {
     "imp": {
         "importable":{
+            "dicts":{
+                "$import": {
+                "ref": "indoc_reference.txt#/get/a/nested secrets",
+                "values": ["vim"]
+                },
+            },
             "$import": {
                 "ref": "indoc_import.txt#/imp/importable",
                 "values": ["dicts"]
