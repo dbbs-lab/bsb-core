@@ -80,6 +80,24 @@ class TestAllToAll(
             self.assertClose(100, c, "expected 25 local sources per global cell")
         self.assertEqual(100 * 100, len(self.network.get_connectivity_set("all_to_all")))
 
+    def test_affinity(self):
+        # test selection is bernoulli with p=affinity
+        affinity = 0.5
+        self.cfg.connectivity["all_to_all"] = dict(
+            strategy="bsb.connectivity.AllToAll",
+            presynaptic=dict(cell_types=["test_cell"]),
+            postsynaptic=dict(cell_types=["test_cell"]),
+            affinity=affinity,
+        )
+        self.network = Scaffold(self.cfg, self.storage)
+        self.network.compile(redo=True, only=["all_to_all"])
+        nb_conn = len(self.network.get_connectivity_set("all_to_all"))
+        n = 100 * 100
+        # apply central limit theorem to compare to N(0,1). Threshold rejection is 0.05
+        self.assertLess(
+            np.abs(nb_conn - n * affinity) / np.sqrt(n * affinity * affinity), 1.96
+        )
+
 
 class TestConnectivitySet(
     FixedPosConfigFixture,
