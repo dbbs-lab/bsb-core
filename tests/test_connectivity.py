@@ -82,7 +82,7 @@ class TestAllToAll(
 
     def test_affinity(self):
         # test selection is bernoulli with p=affinity
-        affinity = 0.5
+        affinity = 0.6
         self.cfg.connectivity["all_to_all"] = dict(
             strategy="bsb.connectivity.AllToAll",
             presynaptic=dict(cell_types=["test_cell"]),
@@ -95,7 +95,7 @@ class TestAllToAll(
         n = 100 * 100
         # apply central limit theorem to compare to N(0,1). Threshold rejection is 0.05
         self.assertLess(
-            np.abs(nb_conn - n * affinity) / np.sqrt(n * affinity * affinity), 1.96
+            np.abs(nb_conn - n * affinity), 1.96 * np.sqrt(n * affinity * (1 - affinity))
         )
 
 

@@ -689,8 +689,16 @@ class Scaffold:
         p_contrib = set(p_strats)
         while True:
             # Get all the placement strategies that effect the current set of CT.
-            full_wipe = set(itertools.chain(*(ps.cell_types for ps in p_contrib)))
-            contrib = set(self.get_placement(full_wipe))
+            cell_types_affected = set(
+                itertools.chain(*(ps.cell_types for ps in p_contrib))
+            )
+            contrib = set(self.get_placement(cell_types_affected))
+            if contrib:
+                contrib |= set(
+                    ps
+                    for ps in self.get_placement()
+                    if np.any(np.isin(ps.depends_on, list(contrib)))
+                )
             # Keep repeating until no new contributors are fished up.
             if contrib.issubset(p_contrib):
                 break
@@ -700,17 +708,18 @@ class Scaffold:
             "Redo-affected placement: " + " ".join(ps.name for ps in p_contrib), level=2
         )
 
-        c_contrib = set(c_strats)
-        conn_wipe = full_wipe.copy()
-        if full_wipe:
-            while True:
-                contrib = set(self.get_connectivity(anywhere=conn_wipe))
-                conn_wipe.update(
-                    itertools.chain(*(ct.get_cell_types() for ct in contrib))
-                )
-                if contrib.issubset(c_contrib):
-                    break
-                c_contrib.update(contrib)
+        c_contrib = set(c_strats) | set(
+            self.get_connectivity(anywhere=cell_types_affected)
+        )
+        while True:
+            contrib = c_contrib | set(
+                cs
+                for cs in self.get_connectivity()
+                if np.any(np.isin(cs.depends_on, list(c_contrib)))
+            )
+            if contrib.issubset(c_contrib):
+                break
+            c_contrib.update(contrib)
         report(
             "Redo-affected connectivity: " + " ".join(cs.name for cs in c_contrib),
             level=2,
@@ -727,25 +736,16 @@ class Scaffold:
                         f"Can't skip {skipstr}. Redoing {chainstr} requires to redo them."
                         + f" Omit {skipstr} from `skip` or use `force` (not recommended)."
                     )
-            # Error if we need to redo things the user didn't ask for
-            for label, chain, og in zip(
-                ("placement", "connection"), (p_contrib, c_contrib), (p_strats, c_strats)
-            ):
-                if len(chain) > len(og):
-                    new = chain.difference(og)
-                    raise RedoError(
-                        f"Need to redo additional {label} strategies: "
-                        + ", ".join(n.name for n in new)
-                        + ". Include them or use `force` (not recommended)."
-                    )
 
-        for ct in full_wipe:
+        for ct in cell_types_affected:
             report(f"Clearing all data of {ct.name}", level=2)
             ct.clear()
 
-        for ct in conn_wipe:
-            report(f"Clearing connectivity data of {ct.name}", level=2)
-            ct.clear_connections()
+        c_sets = set(itertools.chain(*(cs.get_output_names() for cs in c_contrib)))
+        for cs in c_sets:
+            report(f"Clearing connectivity data of {cs}", level=2)
+            cs = self.get_connectivity_set(cs)
+            cs.clear()
 
         return p_contrib, c_contrib
 
