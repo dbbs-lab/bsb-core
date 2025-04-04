@@ -680,7 +680,7 @@ class Scaffold:
             any_match = partial_query(
                 conn_type.presynaptic.cell_types, any_query
             ) or partial_query(conn_type.postsynaptic.cell_types, any_query)
-            return any_match or (pre_match and post_match)
+            return any_match and pre_match and post_match
 
         types = self.connectivity.values()
         return [*filter(query, types)]
@@ -731,7 +731,7 @@ class Scaffold:
                 unskipped = [p.name for p in p_contrib if p.name in skip]
                 if unskipped:
                     chainstr = ", ".join(f"'{s.name}'" for s in (p_strats + c_strats))
-                    skipstr = ", ".join(f"'{s.name}'" for s in unskipped)
+                    skipstr = ", ".join(f"'{s}'" for s in unskipped)
                     raise RedoError(
                         f"Can't skip {skipstr}. Redoing {chainstr} requires to redo them."
                         + f" Omit {skipstr} from `skip` or use `force` (not recommended)."
