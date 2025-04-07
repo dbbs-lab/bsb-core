@@ -7,6 +7,7 @@ from time import time
 
 import numpy as np
 
+from ..services import MPI
 from .results import SimulationResult
 
 if typing.TYPE_CHECKING:
@@ -68,20 +69,21 @@ class SimulatorAdapter(abc.ABC):
         """
         Simulate the given simulations.
         """
+        comm = comm or MPI
         with ExitStack() as context:
             for simulation in simulations:
                 context.enter_context(simulation.scaffold.storage.read_only())
             alldata = []
             for simulation in simulations:
-                data = self.prepare(simulation)
+                data = self.prepare(simulation, comm=comm)
                 alldata.append(data)
                 for hook in simulation.post_prepare:
                     hook(self, simulation, data)
             if post_prepare:
                 post_prepare(self, simulations, alldata)
-            results = self.run(*simulations)
+            results = self.run(*simulations, comm=comm)
             return [
-                self.collect(simulation, data, result)
+                self.collect(simulation, data, result, comm=comm)
                 for simulation, result in zip(simulations, results)
             ]
 
