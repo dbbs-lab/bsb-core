@@ -13,7 +13,9 @@ nb_spike_trains = len(my_spiketrains)
 fig, ax = plt.subplots(nb_spike_trains, sharex=True, figsize=(10, nb_spike_trains * 6))
 for i, spike_t in enumerate(my_spiketrains):  # Iterate over all spike trains
     name = spike_t.annotations["device"]  # Retrieve the device name
-    cell_list = spike_t.annotations["senders"]  # Retrieve the ids of the cells spiking
+    cell_list = spike_t.array_annotations[
+        "senders"
+    ]  # Retrieve the ids of the cells spiking
     spike_times = spike_t.magnitude  # Retrieve the spike times
     ax[i].scatter(spike_times, cell_list, c=f"C{i}")
     ax[i].set_xlabel(f"Time ({spike_t.times.units.dimensionality.string})")
