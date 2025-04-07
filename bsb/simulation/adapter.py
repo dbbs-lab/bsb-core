@@ -68,6 +68,14 @@ class SimulatorAdapter(abc.ABC):
     def simulate(self, *simulations, post_prepare=None, comm=None):
         """
         Simulate the given simulations.
+
+        :param simulations: One or a list of simulation configurations to simulate.
+        :type simulations: ~bsb.simulation.simulation.Simulation
+        :param post_prepare: Optional callable to run after the simulations' preparation.
+        :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
+          will participate in the simulation. The first node will idle as the main node.
+        :return: List of simulation results for each simulation run.
+        :rtype: list[~bsb.simulation.results.SimulationResult]
         """
         comm = comm or MPI
         with ExitStack() as context:
@@ -81,11 +89,8 @@ class SimulatorAdapter(abc.ABC):
                     hook(self, simulation, data)
             if post_prepare:
                 post_prepare(self, simulations, alldata)
-            results = self.run(*simulations, comm=comm)
-            return [
-                self.collect(simulation, data, result, comm=comm)
-                for simulation, result in zip(simulations, results)
-            ]
+            self.run(*simulations, comm=comm)
+            return self.collect()
 
     @abc.abstractmethod
     def prepare(self, simulation, comm=None):
@@ -96,6 +101,8 @@ class SimulatorAdapter(abc.ABC):
         :type simulation: ~bsb.simulation.simulation.Simulation
         :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
           will participate in the simulation. The first node will idle as the main node.
+        :return: Prepared simulation data.
+        :rtype: SimulationData
         """
         pass
 
@@ -103,15 +110,26 @@ class SimulatorAdapter(abc.ABC):
     def run(self, *simulations, comm=None):
         """
         Fire up the prepared adapter.
+
+        :param simulations: One or a list of simulation configurations to simulate.
+        :type simulations: ~bsb.simulation.simulation.Simulation
+        :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
+          will participate in the simulation. The first node will idle as the main node.
+        :return: List of simulation results.
+        :rtype: list[~bsb.simulation.results.SimulationResult]
         """
         pass
 
-    def collect(self, simulation, simdata, simresult, comm=None):
+    def collect(self):
         """
-        Collect the output of a simulation that completed
+        Collect the output the simulations that completed
+
+        :return: Collected simulation results.
+        :rtype: list[~bsb.simulation.results.SimulationResult]
         """
-        simresult.flush()
-        return simresult
+        for data in self.simdata.values():
+            data.result.flush()
+        return [data.result for data in self.simdata.values()]
 
     def add_progress_listener(self, listener):
         self._progress_listeners.append(listener)

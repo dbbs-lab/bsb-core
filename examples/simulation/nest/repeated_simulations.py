@@ -21,7 +21,8 @@ for i in range(10):
     # ...
 
     # Let the adapter run the simulation and collect the output.
-    results = adapter.run(simulation)[0]
+    adapter.run(simulation)
+    results = adapter.collect()
     # Organize the Neo data file into your data workflow by tagging it,
     # renaming it, moving it, giving it metadata, ...
     output_file = f"my_simulation_results_{input_rate}Hz.nio"
