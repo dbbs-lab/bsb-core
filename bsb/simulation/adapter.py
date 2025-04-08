@@ -7,7 +7,7 @@ from time import time
 
 import numpy as np
 
-from ..services import MPI
+from ..services.mpi import MPIService
 from .results import SimulationResult
 
 if typing.TYPE_CHECKING:
@@ -61,60 +61,58 @@ class SimulationData:
 
 
 class SimulatorAdapter(abc.ABC):
-    def __init__(self):
+    def __init__(self, comm=None):
+        """
+        :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
+          will participate in the simulation. The first node will idle as the main node.
+        """
         self._progress_listeners = []
         self.simdata: dict["Simulation", "SimulationData"] = dict()
+        self.comm = MPIService(comm)
 
-    def simulate(self, *simulations, post_prepare=None, comm=None):
+    def simulate(self, *simulations, post_prepare=None):
         """
         Simulate the given simulations.
 
         :param simulations: One or a list of simulation configurations to simulate.
         :type simulations: ~bsb.simulation.simulation.Simulation
         :param post_prepare: Optional callable to run after the simulations' preparation.
-        :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
-          will participate in the simulation. The first node will idle as the main node.
         :return: List of simulation results for each simulation run.
         :rtype: list[~bsb.simulation.results.SimulationResult]
         """
-        comm = comm or MPI
         with ExitStack() as context:
             for simulation in simulations:
                 context.enter_context(simulation.scaffold.storage.read_only())
             alldata = []
             for simulation in simulations:
-                data = self.prepare(simulation, comm=comm)
+                data = self.prepare(simulation)
                 alldata.append(data)
                 for hook in simulation.post_prepare:
                     hook(self, simulation, data)
             if post_prepare:
                 post_prepare(self, simulations, alldata)
-            results = self.run(*simulations, comm=comm)
+            results = self.run(*simulations)
             return self.collect(results)
 
     @abc.abstractmethod
-    def prepare(self, simulation, comm=None):
+    def prepare(self, simulation):
         """
         Reset the simulation backend and prepare for the given simulation.
 
         :param simulation: The simulation configuration to prepare.
         :type simulation: ~bsb.simulation.simulation.Simulation
-        :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
-          will participate in the simulation. The first node will idle as the main node.
         :return: Prepared simulation data.
         :rtype: SimulationData
         """
         pass
 
     @abc.abstractmethod
-    def run(self, *simulations, comm=None):
+    def run(self, *simulations):
         """
         Fire up the prepared adapter.
 
         :param simulations: One or a list of simulation configurations to simulate.
         :type simulations: ~bsb.simulation.simulation.Simulation
-        :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
-          will participate in the simulation. The first node will idle as the main node.
         :return: List of simulation results.
         :rtype: list[~bsb.simulation.results.SimulationResult]
         """

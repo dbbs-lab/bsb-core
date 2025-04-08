@@ -10,10 +10,17 @@ class SimulationBackendPlugin:
     Simulation: _Sim
 
 
-def get_simulation_adapter(name: str):
+def get_simulation_adapter(name: str, comm=None):
+    """
+    Return the adapter corresponding to the given simulator name.
+
+    :param str name: Name of the simulator.
+    :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
+      will participate in the simulation. The first node will idle as the main node.
+    """
     from ._backends import get_simulation_adapters
 
-    return get_simulation_adapters()[name]
+    return get_simulation_adapters()[name](comm=comm)
 
 
 __all__ = ["SimulationBackendPlugin", "get_simulation_adapter"]
