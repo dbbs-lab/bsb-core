@@ -89,8 +89,8 @@ class SimulatorAdapter(abc.ABC):
                     hook(self, simulation, data)
             if post_prepare:
                 post_prepare(self, simulations, alldata)
-            self.run(*simulations, comm=comm)
-            return self.collect()
+            results = self.run(*simulations, comm=comm)
+            return self.collect(results)
 
     @abc.abstractmethod
     def prepare(self, simulation, comm=None):
@@ -120,16 +120,16 @@ class SimulatorAdapter(abc.ABC):
         """
         pass
 
-    def collect(self):
+    def collect(self, results):
         """
         Collect the output the simulations that completed
 
         :return: Collected simulation results.
         :rtype: list[~bsb.simulation.results.SimulationResult]
         """
-        for data in self.simdata.values():
-            data.result.flush()
-        return [data.result for data in self.simdata.values()]
+        for result in results:
+            result.flush()
+        return results
 
     def add_progress_listener(self, listener):
         self._progress_listeners.append(listener)
