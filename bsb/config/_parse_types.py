@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .. import warn
-from ..exceptions import ConfigurationWarning, FileImportError
+from ..exceptions import ConfigurationWarning, FileImportError, ParserError
 
 
 class parsed_node:
@@ -163,12 +163,12 @@ class file_imp(file_ref):
                     # It should be here because of the merge.
                     loc_node = node
                     while node_loc != ref.key_path:
-                        key = ref.key_path.split(node_loc, 1)[-1].split("/", 1)[-1]
+                        key = ref.key_path.split(node_loc, 1)[-1].split("/", 2)[1]
                         if key not in loc_node:  # pragma: nocover
                             raise ParserError(
                                 f"Reference {ref.key_path} not found in {node_loc}. "
                                 f"Should have been merged."
                             )
-                        loc_node = node[key]
+                        loc_node = loc_node[key]
                         node_loc += "/" + key
                     ref.node = loc_node

@@ -248,6 +248,7 @@ class TestFileImport(unittest.TestCase):
                     "that": "are",
                     "even": {"nested": "eh"},
                     "with": ["new", "list"],
+                    "vim": "is hard",
                 },
                 "diff": "added",
             },
