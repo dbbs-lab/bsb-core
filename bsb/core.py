@@ -450,7 +450,9 @@ class Scaffold:
         :type simulation_name: str
         """
         simulation = self.get_simulation(simulation_name)
-        adapter = get_simulation_adapter(simulation.simulator)
+        adapter = get_simulation_adapter(
+            simulation.simulator, comm=self._comm.get_communicator()
+        )
         return adapter.simulate(simulation)[0]
 
     def get_simulation(self, sim_name: str) -> "Simulation":

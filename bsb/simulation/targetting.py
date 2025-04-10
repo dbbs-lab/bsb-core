@@ -162,7 +162,7 @@ class ByLabelTargetting(
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
         return {
-            model: simdata.populations[
+            model: simdata.populations[model][
                 simdata.placement[model].get_label_mask(self.labels)
             ]
             for model in super().get_targets(adapter, simulation, simdata).keys()
