@@ -183,16 +183,11 @@ class TestRedoCompilation(
             atol=1e-5,
         )
         self.assertClose(
-            positions,
-            self.network.cell_types.cell.get_placement_set().load_positions(),
-            "Redoing placement on cell2 should not affect cell1 connectivity",
-            atol=1e-5,
-        )
-        self.assertClose(
             connections,
             np.array(
                 self.network.get_connectivity_set("cell_to_cell").load_connections().all()
             ),
+            "Redoing placement on cell2 should not affect cell1 connectivity",
             atol=1e-5,
         )
         new_positions = self.network.cell_types.cell2.get_placement_set().load_positions()
