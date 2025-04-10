@@ -103,8 +103,19 @@ class EncodedLabels(np.ndarray):
         else:
             raise IndexError(f"Labelset {labels} does not exist")
 
-    def get_mask(self, labels):
-        has_any = [k for k, v in self.labels.items() if any(lbl in v for lbl in labels)]
+    def get_mask(self, labels=None):
+        """
+        Get indexes matching the labels provided.
+
+        :param list[str] labels: List of labels
+        :rtype: numpy.ndarray[int]
+        """
+        labels = set(labels or [])
+        has_any = [
+            k
+            for k, v in self.labels.items()
+            if any(lbl in v for lbl in labels) or v == labels
+        ]
         return np.isin(self, has_any)
 
     def walk(self):
