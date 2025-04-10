@@ -711,7 +711,9 @@ class Scaffold:
         )
 
         c_contrib = set(c_strats) | set(
-            self.get_connectivity(anywhere=cell_types_affected)
+            []
+            if len(cell_types_affected) == 0
+            else self.get_connectivity(anywhere=cell_types_affected)
         )
         while True:
             contrib = c_contrib | set(
