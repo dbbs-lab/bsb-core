@@ -4,6 +4,7 @@ import numpy as np
 
 from .. import config
 from ..config import types
+from ..exceptions import ConnectivityError
 from ..mixins import InvertedRoI
 from .strategy import ConnectionStrategy
 
@@ -24,10 +25,14 @@ class Convergence(ConnectionStrategy):
         raise NotImplementedError("Needs to be restored, please open an issue.")
 
 
+@config.node
 class AllToAll(ConnectionStrategy):
     """
     All to all connectivity between two neural populations
     """
+
+    affinity: float = config.attr(type=types.float(0.0, 1.0), required=False, default=1.0)
+    """Probability for each individual connection to be, default is 1 i.e. all connected."""
 
     def connect(self, pre, post):
         for from_ps in pre.placement:
@@ -35,10 +40,12 @@ class AllToAll(ConnectionStrategy):
             for to_ps in post.placement:
                 len_ = len(to_ps)
                 ml = fl * len_
+                filtered_ = np.random.binomial(1, p=self.affinity, size=ml) > 0
+                ml = np.count_nonzero(filtered_)
                 src_locs = np.full((ml, 3), -1)
                 dest_locs = np.full((ml, 3), -1)
-                src_locs[:, 0] = np.repeat(np.arange(fl), len_)
-                dest_locs[:, 0] = np.tile(np.arange(len_), fl)
+                src_locs[:, 0] = np.repeat(np.arange(fl), len_)[filtered_]
+                dest_locs[:, 0] = np.tile(np.arange(len_), fl)[filtered_]
                 self.connect_cells(from_ps, to_ps, src_locs, dest_locs)
 
 
@@ -48,6 +55,11 @@ def _connect_fixed_degree(self, pre, post, degree, is_in):
     ps_counted = pre.placement if is_in else post.placement
     ps_fixed = post.placement if is_in else pre.placement
     high = sum(len(ps) for ps in ps_counted)
+    if high < degree:
+        raise ConnectivityError(
+            f"Number of cells for dependant population ({high}) is too small to match "
+            f"required degree value {degree} for connection strategy {self.name}"
+        )
     for ps in ps_fixed:
         l = len(ps)
         counted_targets = np.full((l * degree, 3), -1)
@@ -82,6 +94,7 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
     """
 
     indegree: int = config.attr(type=int, required=True)
+    """Number of postsynaptic cell to connect to each presynaptic cell."""
 
     def connect(self, pre, post):
         _connect_fixed_degree(self, pre, post, self.indegree, True)
@@ -95,6 +108,7 @@ class FixedOutdegree(ConnectionStrategy):
     """
 
     outdegree: int = config.attr(type=int, required=True)
+    """Number of presynaptic cell to connect to each postsynaptic cell."""
 
     def connect(self, pre, post):
         _connect_fixed_degree(self, pre, post, self.outdegree, False)

@@ -18,7 +18,7 @@ def sweep(param):
 
     # Run the simulation
     results = network.run_simulation("my_sim")
-    # Tjese are the recorded spiketrains and signals
+    # These are the recorded spiketrains and signals
     print(results.spiketrains)
     print(results.analogsignals)
 
