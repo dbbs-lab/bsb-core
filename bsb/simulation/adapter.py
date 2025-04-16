@@ -49,9 +49,11 @@ class AdapterProgress:
 class AdapterCheckpoint:
     def __init__(self, simulations):
         self.simulations = simulations
+        self.resolutions = []
         self.checkpoints = {}
         for sim in simulations:
             for device in sim.devices.values():
+                self.resolutions.append(sim.resolution)
                 device_ckp = device.get_checkpoints(sim.duration, sim.resolution)
                 print(f"{device.name}: {device_ckp}")
                 for checkpoint in device_ckp:
@@ -59,11 +61,11 @@ class AdapterCheckpoint:
                         self.checkpoints[checkpoint] = [sim]
                     else:
                         self.checkpoints[checkpoint].append(sim)
-        self.iterator = self.sort_checkpoints()
+        self.iterator = iter(self.sort_checkpoints())
         self.status = next(self.iterator, None)
 
     def sort_checkpoints(self):
-        return iter(sorted(self.checkpoints.keys()))
+        return sorted(self.checkpoints.keys())
 
     def get_status(self, i):
         if self.status == i:
@@ -71,6 +73,27 @@ class AdapterCheckpoint:
             return True
         else:
             return False
+
+    def suitable_step(self, pstep):
+        sorted = np.array(self.sort_checkpoints())
+        max_resolution = max(self.resolutions)
+        if pstep == int(pstep):
+            check_multiple = sorted % pstep
+        else:
+            check_multiple = sorted / pstep - np.array(sorted / pstep, dtype=int)
+        if all(check_multiple == 0):
+            return pstep
+        elif any(sorted / max_resolution != np.array(sorted / max_resolution, dtype=int)):
+            raise ValueError(
+                f"Provided checkpoints are not multiple of resolution: {max_resolution}"
+            )
+        else:
+            # We are here because pstep is too large. Now we look for the GDC between pstep and our checkpoints
+            converted = np.array(sorted / max_resolution, dtype=int)
+            min_step = int(pstep / max_resolution)
+            for i in range(0, len(converted)):
+                min_step = np.gcd(min_step, converted[i])
+            return min_step * max_resolution
 
 
 class SimulationData:

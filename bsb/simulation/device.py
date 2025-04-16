@@ -12,8 +12,9 @@ class DeviceModel(SimulationComponent):
         )
 
     def get_checkpoints(self, duration, resolution):
-        """If checkpoints attribute is not set return an empty list, otherwise return a list of checkpoints. If only a float it is
-        provided it is assumed to be the time interval between checkpoints"""
+        """If checkpoints attribute is not set return an empty list, otherwise return a list of checkpoints (in ms).
+        If only a float it is provided it is assumed to be the time interval between checkpoints
+        """
         if hasattr(self, "checkpoints"):
             if isinstance(self.checkpoints, float):
                 import numpy as np
@@ -24,13 +25,9 @@ class DeviceModel(SimulationComponent):
                         f"In device {self.name} , Checkpoints must be a multiple of {resolution}"
                     )
                 chkp_array = np.delete(np.arange(0, duration, self.checkpoints), 0)
-                return (
-                    chkp_array / resolution
-                )  # Convert the Checkpoints from simulation time in simulation steps
+                return chkp_array
             else:
-                return (
-                    self.checkpoints / resolution
-                )  # Convert the Checkpoints from simulation time in simulation steps
+                return self.checkpoints
         else:
             return []
 
