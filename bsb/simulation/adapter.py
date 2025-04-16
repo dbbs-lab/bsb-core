@@ -46,6 +46,33 @@ class AdapterProgress:
         return
 
 
+class AdapterCheckpoint:
+    def __init__(self, simulations):
+        self.simulations = simulations
+        self.checkpoints = {}
+        for sim in simulations:
+            for device in sim.devices.values():
+                device_ckp = device.get_checkpoints(sim.duration, sim.resolution)
+                print(f"{device.name}: {device_ckp}")
+                for checkpoint in device_ckp:
+                    if checkpoint not in self.checkpoints:
+                        self.checkpoints[checkpoint] = [sim]
+                    else:
+                        self.checkpoints[checkpoint].append(sim)
+        self.iterator = self.sort_checkpoints()
+        self.status = next(self.iterator, None)
+
+    def sort_checkpoints(self):
+        return iter(sorted(self.checkpoints.keys()))
+
+    def get_status(self, i):
+        if self.status == i:
+            self.status = next(self.iterator, None)
+            return True
+        else:
+            return False
+
+
 class SimulationData:
     def __init__(self, simulation: "Simulation", result=None):
         self.chunks = None
@@ -133,4 +160,4 @@ class SimulatorAdapter(abc.ABC):
         self._progress_listeners.append(listener)
 
 
-__all__ = ["AdapterProgress", "SimulationData", "SimulatorAdapter"]
+__all__ = ["AdapterCheckpoint", "AdapterProgress", "SimulationData", "SimulatorAdapter"]
