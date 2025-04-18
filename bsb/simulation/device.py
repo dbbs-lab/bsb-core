@@ -1,9 +1,13 @@
+from bsb import types
+
 from .. import config
 from .component import SimulationComponent
 
 
 @config.node
 class DeviceModel(SimulationComponent):
+    checkpoints = config.attr(type=types.or_(float, types.list(type=float)), default=None)
+
     def implement(self, adapter, simulation, simdata):
         raise NotImplementedError(
             "The "
@@ -15,7 +19,7 @@ class DeviceModel(SimulationComponent):
         """If checkpoints attribute is not set return an empty list, otherwise return a list of checkpoints (in ms).
         If only a float it is provided it is assumed to be the time interval between checkpoints
         """
-        if hasattr(self, "checkpoints"):
+        if self.checkpoints:
             if isinstance(self.checkpoints, float):
                 import numpy as np
 
