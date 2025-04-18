@@ -55,7 +55,6 @@ class AdapterCheckpoint:
             for device in sim.devices.values():
                 self.resolutions.append(sim.resolution)
                 device_ckp = device.get_checkpoints(sim.duration, sim.resolution)
-                print(f"{device.name}: {device_ckp}")
                 for checkpoint in device_ckp:
                     if checkpoint not in self.checkpoints:
                         self.checkpoints[checkpoint] = [sim]
