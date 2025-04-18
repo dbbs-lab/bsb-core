@@ -47,6 +47,11 @@ class AdapterProgress:
 
 
 class AdapterCheckpoint:
+    """Class that manages checkpointing of a simulation. In self.checkpoints a dictionary is saved with the checkpoint time as key and the value
+    is a list of simulations that have to flush at that checkpoint.
+    The get_status() method should be called in SimulatorAdapter run() to check if a checkpoint is reached.
+    """
+
     def __init__(self, simulations):
         self.simulations = simulations
         self.resolutions = []
@@ -67,6 +72,7 @@ class AdapterCheckpoint:
         return sorted(self.checkpoints.keys())
 
     def get_status(self, i):
+        # Checks if a checkpoint is reached, if it is the case it pass to the next one.
         if self.status == i:
             self.status = next(self.iterator, None)
             return True
@@ -74,6 +80,7 @@ class AdapterCheckpoint:
             return False
 
     def suitable_step(self, pstep):
+        # Check the greatest common divisor between progression step (pstep) and checkpoints value.
         sorted = np.array(self.sort_checkpoints())
         max_resolution = max(self.resolutions)
         if pstep == int(pstep):
