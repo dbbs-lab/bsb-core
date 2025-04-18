@@ -186,8 +186,9 @@ and a delay of 0.1 ms, targeting the population of ``my_cell_model``:
 By default, device results are collected only at the end of the simulation. However, if intermediate result collection is required,
 you can specify a series of time checkpoints at which the simulation will pause and gather partial results.
 These checkpoints can be configured using the :guilabel:`checkpoints` attribute. This attribute accepts either:
-  * A *list* of *float* values, each representing a specific time (in milliseconds) at which to collect results.
-  * A single *float* value, which will be interpreted as a fixed time interval between consecutive checkpoints (in ms).
+
+   * A *list* of *float* values, each representing a specific time (in milliseconds) at which to collect results.
+   * A single *float* value, which will be interpreted as a fixed time interval between consecutive checkpoints (in ms).
 
 Example configuration:
 
