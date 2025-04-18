@@ -72,7 +72,7 @@ class AdapterCheckpoint:
         return sorted(self.checkpoints.keys())
 
     def get_status(self, i):
-        # Checks if a checkpoint is reached, if it is the case it pass to the next one.
+        """Checks whether the current simulation time has reached a checkpoint. If so, it advances to the next checkpoint"""
         if self.status == i:
             self.status = next(self.iterator, None)
             return True
@@ -80,7 +80,11 @@ class AdapterCheckpoint:
             return False
 
     def suitable_step(self, pstep):
-        # Check the greatest common divisor between progression step (pstep) and checkpoints value.
+        """
+        Check the greatest common divisor between progression step (pstep) and checkpoints value.
+
+        :return: gdc interval (float).
+        """
         sorted = np.array(self.sort_checkpoints())
         max_resolution = max(self.resolutions)
         if pstep == int(pstep):

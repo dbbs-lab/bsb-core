@@ -20,6 +20,8 @@ All of the above is simulation backend specific and is covered in the correspond
  * :doc:`NEURON </simulation/neuron>`.
  * :doc:`ARBOR </simulation/arbor>`.
 
+To familiarize with general aspects of simulation components you can dive in the :doc:`Simulation components page </simulation/advanced>`.
+
 Running Simulations
 ===================
 
