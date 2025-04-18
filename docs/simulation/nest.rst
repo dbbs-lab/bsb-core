@@ -146,11 +146,12 @@ NEST provides two types of devices: *recording* devices, for extracting informat
 and *stimulation* devices, for delivering stimuli.
 
 The ``bsb-nest`` module provides interfaces for NEST devices through the ``NestDevice`` object.
-To properly configure a device, you need to specify three attributes:
+To properly configure a device, you need to specify four attributes:
 
    * :guilabel:`weight` : *float* specifying the connection weight between the device and its target (required).
    * :guilabel:`delay` : *float* specifying the transmission delay between the device and its target (required).
    * :guilabel:`targeting` : Specifies the targets of the device, which can be a population or a NEST rule.
+   * :guilabel:`receptor_type` : *int* ID of the postsynaptic target receptor.
 
 For example, to create a device named ``my_new_device`` of class ``device_type``, with a weight of 1
 and a delay of 0.1 ms, targeting the population of ``my_cell_model``:
@@ -181,6 +182,37 @@ and a delay of 0.1 ms, targeting the population of ``my_cell_model``:
             }
           }
         )
+
+By default, device results are collected only at the end of the simulation. However, if intermediate result collection is required,
+you can specify a series of time checkpoints at which the simulation will pause and gather partial results.
+These checkpoints can be configured using the :guilabel:`checkpoints` attribute. This attribute accepts either:
+  * A *list* of *float* values, each representing a specific time (in milliseconds) at which to collect results.
+  * A single *float* value, which will be interpreted as a fixed time interval between consecutive checkpoints (in ms).
+
+Example configuration:
+
+.. tab-set-code::
+
+    .. code-block:: json
+
+        "my_new_device": {
+          "device": "device_type",
+          "weight": 1,
+          "delay": 0.1,
+          "checkpoints": 100,
+        }
+    .. code-block:: python
+
+        config.simulations["my_simulation_name"].devices=dict(
+          my_new_device={
+            "device": "device_type",
+            "weight": 1,
+            "delay": 0.1,
+            "checkpoints": 100,
+          }
+        )
+
+In the example above, the device ``my_new_device`` will collect results every 100 milliseconds during the simulation.
 
 Stimulation devices
 -------------------
