@@ -87,7 +87,7 @@ dev = [
     "build~=1.0",
     "twine~=4.0",
     "pre-commit~=3.5",
-    "black~=25.1.0",
+    "black~=25.1.1",
     "isort~=6.0.0",
     "snakeviz~=2.1",
     "bump-my-version~=0.24"
@@ -100,7 +100,7 @@ line-length = 90
 profile = "black"
 
 [tool.bumpversion]
-current_version = "5.1.0"
+current_version = "5.1.1"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 search = "{current_version}"

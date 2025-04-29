@@ -5,8 +5,11 @@ List of strategies
 :class:`AllToAll <.connectivity.general.AllToAll>`
 ==================================================
 
-This strategy connects each presynaptic neuron to all the postsynaptic neurons.
-It therefore creates one connection for each unique pair of neuron.
+This strategy creates a connection with a probability equals to ``affinity``
+for each possible pair of presynaptic and postsynaptic neurons.
+By default, all unique neuron pair create one connection.
+
+* ``affinity``: Probability of a pair of neuron to create a connection (default is 1.0, i.e. all connected).
 
 :class:`FixedIndegree <.connectivity.general.FixedIndegree>`
 ============================================================

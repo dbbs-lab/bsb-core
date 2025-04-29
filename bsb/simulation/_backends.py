@@ -25,4 +25,4 @@ def get_simulation_nodes() -> dict[str, "Simulation"]:
 
 @functools.cache
 def get_simulation_adapters() -> dict[str, "SimulatorAdapter"]:
-    return {name: plugin.Adapter() for name, plugin in get_backends().items()}
+    return {name: plugin.Adapter for name, plugin in get_backends().items()}

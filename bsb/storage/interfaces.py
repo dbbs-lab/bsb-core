@@ -628,27 +628,40 @@ class PlacementSet(Interface):
         """
         Should label the cells with given labels.
 
-        :param cells: Array of cells in this set to label.
-        :type cells: numpy.ndarray
         :param labels: List of labels
         :type labels: list[str]
+        :param cells: Array of cells in this set to label.
+        :type cells: list[int]
         """
         pass
 
     @abc.abstractmethod
-    def get_labelled(self, labels):
+    def get_unique_labels(self):
+        """
+        Should return the unique labels assigned to the cells.
+
+        :return: List of unique labels
+        :rtype: list[set[str]]
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_labelled(self, labels=None):
         """
         Should return the ids of the cells labelled with given labels.
+        If labels are not provided, will filter non labelled cells.
 
         :param labels: List of labels
         :type labels: list[str]
+        :rtype: numpy.ndarray[int]
         """
         pass
 
     @abc.abstractmethod
-    def get_label_mask(self, labels):
+    def get_label_mask(self, labels=None):
         """
         Should return a mask that fits the placement set for the cells with given labels.
+        If labels are not provided, will filter non labelled cells.
 
         :param labels: List of labels
         :type labels: list[str]

@@ -1,3 +1,8 @@
+## [v5.1.1] - 2025-03-28
+### :bug: Bug Fixes
+- [`e7635d1`](https://github.com/dbbs-lab/bsb-core/commit/e7635d19b0094b026163907b69f1b0f2a7a35425) - ref parsing when key is deep *(PR [#917](https://github.com/dbbs-lab/bsb-core/pull/917) by [@drodarie](https://github.com/drodarie))*
+
+
 ## [v5.1.0] - 2025-03-03
 ### :sparkles: New Features
 - [`aa4d082`](https://github.com/dbbs-lab/bsb-core/commit/aa4d082155a76fc436b9d66de10ba4bbb0c318fe) - Expose intermediate function for parse configuration *(PR [#913](https://github.com/dbbs-lab/bsb-core/pull/913) by [@drodarie](https://github.com/drodarie))*
@@ -531,3 +536,4 @@ MorphologyRepositories, morphologies, voxelization and touch detection.
 [v5.0.1]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.0...v5.0.1
 [v5.0.2]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.1...v5.0.2
 [v5.1.0]: https://github.com/dbbs-lab/bsb-core/compare/v5.0.2...v5.1.0
+[v5.1.1]: https://github.com/dbbs-lab/bsb-core/compare/v5.1.0...v5.1.1
