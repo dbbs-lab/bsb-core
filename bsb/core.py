@@ -10,6 +10,7 @@ from ._util import obj_str_insert
 from .config._config import Configuration
 from .connectivity import ConnectionStrategy
 from .exceptions import (
+    DatasetNotFoundError,
     InputError,
     MissingActiveConfigError,
     NodeNotFoundError,
@@ -748,7 +749,10 @@ class Scaffold:
         c_sets = set(itertools.chain(*(cs.get_output_names() for cs in c_contrib)))
         for cs in c_sets:
             report(f"Clearing connectivity data of {cs}", level=2)
-            cs = self.get_connectivity_set(cs)
+            try:
+                cs = self.get_connectivity_set(cs)
+            except DatasetNotFoundError:
+                continue
             cs.clear()
 
         return p_contrib, c_contrib
