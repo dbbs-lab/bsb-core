@@ -112,6 +112,19 @@ class SimCellModelReference(Reference):
         return isinstance(value, CellModel)
 
 
+class SimConnModelReference(Reference):
+    def __call__(self, root, here):
+        from ..simulation.simulation import Simulation
+
+        sim = self.up(here, Simulation)
+        return sim.connection_models
+
+    def is_ref(self, value):
+        from ..simulation.connection import ConnectionModel
+
+        return isinstance(value, ConnectionModel)
+
+
 cell_type_ref = CellTypeReference()
 conn_type_ref = ConnectionTypeReference()
 partition_ref = PartitionReference()
@@ -120,6 +133,7 @@ connectivity_ref = ConnectivityReference()
 regional_ref = RegionalReference()
 region_ref = RegionReference()
 sim_cell_model_ref = SimCellModelReference()
+sim_conn_model_ref = SimConnModelReference()
 
 __all__ = [
     "Reference",
@@ -131,5 +145,6 @@ __all__ = [
     "regional_ref",
     "region_ref",
     "sim_cell_model_ref",
+    "sim_conn_model_ref",
 ]
 __api__ = ["Reference"]

@@ -11,6 +11,7 @@ from ..config import refs, types
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
     from .cell import CellModel
+    from .connection import ConnectionModel
 
 
 @config.dynamic(attr_name="strategy", default="all", auto_classmap=True)
@@ -171,6 +172,42 @@ class ByIdTargetting(FractionFilter, CellTargetting, classmap_entry="by_id"):
 
 
 @config.node
+class PreCellConnectionModelTargetting(
+    CellModelFilter, FractionFilter, CellTargetting, classmap_entry="pre_cell"
+):
+    """
+    Targets all pre syn cell
+    """
+
+    conn_models: list["ConnectionModel"] = config.reflist(
+        refs.sim_conn_model_ref, required=False
+    )
+
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
+        dict_target = {}
+        for conn_model in simulation.connection_models.values():
+            if not self.conn_models or conn_model.tag in self.conn_models:
+                cs = conn_model.get_connectivity_set()
+                # search pre syn cell
+                for (
+                    cm,
+                    pop,
+                ) in (
+                    simdata.populations.items()
+                ):  # this on a restricted pop if inherits from other targettings
+                    if cm.cell_type == cs.pre_type:
+                        break
+                else:
+                    break
+                # found pre cm of the type in conn model
+                pre, _ = cs.load_connections().from_(simdata.chunks).all()  # local ids
+                locs = np.unique(pre[:, 0])
+                dict_target[conn_model] = pop[locs]
+        return dict_target
+
+
+@config.node
 class ByLabelTargetting(
     CellModelFilter, FractionFilter, CellTargetting, classmap_entry="by_label"
 ):
@@ -315,7 +352,7 @@ class LabelTargetting(LocationTargetting, classmap_entry="label"):
         locs = [
             loc
             for loc in cell.locations.values()
-            if all(l in loc.section.labels for l in self.labels)
+            if any(l in loc.section.labels for l in self.labels)
         ]
         return locs
 
@@ -339,6 +376,18 @@ class BranchLocTargetting(LabelTargetting, classmap_entry="branch"):
         return selected
 
 
+@config.node
+class ConnectionModelTargetting(LocationTargetting, classmap_entry="conn_model"):
+
+    def get_locations(self, cell, cm, simdata):
+        cs = cm.get_connectivity_set()
+        pre, _ = cs.load_connections().from_(simdata.chunks).as_globals().all()
+        selected = []
+        for loc in pre[pre[:, 0] == cell.id, 1:]:
+            selected.append(cell.locations[tuple(loc)])
+        return selected
+
+
 __all__ = [
     "BranchLocTargetting",
     "ByIdTargetting",
@@ -347,10 +396,12 @@ __all__ = [
     "CellModelTargetting",
     "CellTargetting",
     "ConnectionTargetting",
+    "ConnectionModelTargetting",
     "CylindricalTargetting",
     "FractionFilter",
     "LabelTargetting",
     "LocationTargetting",
+    "PreCellConnectionModelTargetting",
     "RepresentativesTargetting",
     "SomaTargetting",
     "SphericalTargetting",
