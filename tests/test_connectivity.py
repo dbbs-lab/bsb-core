@@ -93,9 +93,10 @@ class TestAllToAll(
         self.network.compile(redo=True, only=["all_to_all"])
         nb_conn = len(self.network.get_connectivity_set("all_to_all"))
         n = 100 * 100
-        # apply central limit theorem to compare to N(0,1). Threshold rejection is 0.05
+        # apply central limit theorem to compare to N(0,1). Threshold rejection is 0.001
         self.assertLess(
-            np.abs(nb_conn - n * affinity), 1.96 * np.sqrt(n * affinity * (1 - affinity))
+            np.abs(nb_conn - n * affinity) / (np.sqrt(n * affinity * (1 - affinity))), 3.27,
+            "This test should fail only 1 in every 1000"
         )
 
 
