@@ -311,6 +311,31 @@ class Relay(AfterConnectivityHook):
     def postprocess(self):
         pass
 
+@config.node
+class CastSynapticLocation(AfterConnectivityHook):
+    """
+    Replaces pre/post connection locations on a connectivity set with the relayed location
+    """
+
+    connections: list["ConnectivityReference"] = config.reflist(refs.connectivity_ref, required=True)
+    #new_locations: 
+
+    def postprocess(self):
+        
+        for connection in self.connections: 
+            
+        
+        for connection in set(self.connections):
+            try:
+                cs = self.scaffold.get_connectivity_set(connection)
+            except DatasetNotFoundError:
+                raise ConnectivityError(
+                    f"AfterConnectivityHook {self.name} do not find {connection} ConnectivitySet."
+                )
+            except ValueError as e:
+                raise e
+            
+            # check spoof_connections
 
 class BidirectionalContact(AfterConnectivityHook):
     # Replicates all contacts (connections and compartments) to have bidirection in gaps
