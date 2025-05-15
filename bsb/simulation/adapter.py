@@ -47,6 +47,9 @@ class AdapterProgress:
 
 
 class SimulationData:
+    """
+    Container class for simulation data.
+    """
     def __init__(self, simulation: "Simulation", result=None):
         self.chunks = None
         self.populations = dict()
@@ -67,7 +70,7 @@ class SimulatorAdapter(abc.ABC):
           will participate in the simulation. The first node will idle as the main node.
         """
         self._progress_listeners = []
-        self.simdata: dict["Simulation", "SimulationData"] = dict()
+        self.simdata: dict[Simulation, SimulationData] = dict()
         self.comm = MPIService(comm)
 
     def simulate(self, *simulations, post_prepare=None):
@@ -102,7 +105,7 @@ class SimulatorAdapter(abc.ABC):
         :param simulation: The simulation configuration to prepare.
         :type simulation: ~bsb.simulation.simulation.Simulation
         :return: Prepared simulation data.
-        :rtype: SimulationData
+        :rtype: ~bsb.simulation.adapter.SimulationData
         """
         pass
 
