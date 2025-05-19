@@ -246,15 +246,17 @@ class Storage:
         """
         self._engine.remove()
 
-    def load(self):
+    def load(self, update_config=False):
         """
         Load a scaffold from the storage.
+
+        :param bool update_config: If True, update the config of the storage
 
         :returns: :class:`Scaffold <.core.Scaffold>`
         """
         from ..core import Scaffold
 
-        return Scaffold(storage=self, comm=self._comm.get_communicator())
+        return Scaffold(storage=self, comm=self._comm.get_communicator(), update_config=update_config)
 
     def load_active_config(self):
         """

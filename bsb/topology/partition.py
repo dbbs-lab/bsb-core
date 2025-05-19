@@ -590,13 +590,6 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         """
         return {k: v.load_object() for k, v in self.atlas_datasets.items()}
 
-    def boot(self):
-        for k, v in self.datasets.items():
-            if np.any(np.array(v.raw.shape[:3]) != np.array(self.annotations.shape)):
-                raise ConfigurationError(
-                    f"Shape of dataset {k} does not match the shape of the annotations."
-                )
-
     @classmethod
     def get_structure_mask_condition(cls, find):
         """
@@ -666,6 +659,15 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         # has an id that is part of the structure.
         id = self.struct_id if self.struct_id is not None else self.struct_name
         self._mask_cond = self.get_structure_mask_condition(id)
+
+    def _validate_source_compat(self):
+        super()._validate_source_compat()
+        # Validate also the atlas datasets shapes with respect to the annotations.
+        for k, v in self.datasets.items():
+            if np.any(np.array(v.raw.shape[:3]) != np.array(self.annotations.shape)):
+                raise ConfigurationError(
+                    f"Shape of dataset {k} does not match the shape of the annotations."
+                )
 
 
 def _safe_hread(s):
