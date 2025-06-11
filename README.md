@@ -1,7 +1,6 @@
-[![Build Status](https://github.com/dbbs-lab/bsb-core/actions/workflows/main.yml/badge.svg)](https://github.com/dbbs-lab/bsb-core/actions/workflows/main.yml)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Documentation Status](https://readthedocs.org/projects/bsb/badge/?version=latest)](https://bsb.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/dbbs-lab/bsb-core/branch/main/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb-core)
+> [!NOTE]
+>
+> This repository has moved and is now maintained as a part of the [BSB monorepository](https://github.com/dbbs-lab/bsb).
 
 <h3>:closed_book: Read the documentation on https://bsb.readthedocs.io/en/latest</h3>
 
